@@ -39,7 +39,7 @@ const Login = () => {
         .from("users")
         .select("*")
         .eq("email", data.email)
-        .single();
+        .maybeSingle();
 
       if (userError || !user) {
         toast({
