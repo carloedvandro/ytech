@@ -37,14 +37,14 @@ export const Hero = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto pt-8">
             <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
               <Wifi className="w-10 h-10 text-secondary" />
-              <h3 className="text-lg font-semibold text-white">Até 500 Mbps</h3>
-              <p className="text-sm text-white/80">Velocidade de fibra óptica via 5G</p>
+              <h3 className="text-lg font-semibold text-white">Internet 5G</h3>
+              <p className="text-sm text-white/80">Chip de dados com cobertura nacional</p>
             </div>
 
             <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
               <Zap className="w-10 h-10 text-secondary" />
-              <h3 className="text-lg font-semibold text-white">Instalação Rápida</h3>
-              <p className="text-sm text-white/80">Conectado em até 24 horas</p>
+              <h3 className="text-lg font-semibold text-white">Planos Flexíveis</h3>
+              <p className="text-sm text-white/80">160 GB ou 250 GB acumulativos</p>
             </div>
 
             <div className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">

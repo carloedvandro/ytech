@@ -11,10 +11,9 @@ const plans = [
       "160 GB de internet 5G",
       "Velocidade ultra rápida",
       "Cobertura nacional",
-      "Wi-Fi grátis",
       "Suporte 24/7",
-      "Instalação inclusa",
-      "Sem fidelidade"
+      "Sem fidelidade",
+      "Ganhe indicando amigos"
     ],
     popular: true
   },
@@ -26,10 +25,9 @@ const plans = [
       "250 GB acumulativos",
       "Ideal para área rural",
       "Internet estável no campo",
-      "Wi-Fi grátis",
       "Suporte 24/7",
-      "Instalação inclusa",
-      "Sem fidelidade"
+      "Sem fidelidade",
+      "Ganhe indicando amigos"
     ],
     popular: false
   }
