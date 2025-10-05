@@ -24,10 +24,8 @@ interface DashboardSidebarProps {
 
 const menuItems = [
   { title: "Início", url: "/dashboard", icon: Home },
-  { title: "Minha Rede", url: "/dashboard/network", icon: Users },
-  { title: "Financeiro", url: "/dashboard/financial", icon: DollarSign },
-  { title: "Meu Plano", url: "/dashboard/plan", icon: Package },
-  { title: "Configurações", url: "/dashboard/settings", icon: Settings },
+  { title: "Minha Rede", url: "/network", icon: Users },
+  { title: "Financeiro", url: "/financial", icon: DollarSign },
 ];
 
 export function DashboardSidebar({ user }: DashboardSidebarProps) {

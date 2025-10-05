@@ -1,0 +1,264 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+
+interface Commission {
+  id: string;
+  amount: number;
+  level: number;
+  status: string;
+  created_at: string;
+  referred_user_id: string;
+}
+
+const Financial = () => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [balance, setBalance] = useState({
+    total: 0,
+    available: 0,
+    pending: 0,
+  });
+  const [pixKey, setPixKey] = useState("");
+
+  useEffect(() => {
+    loadFinancialData();
+  }, []);
+
+  const loadFinancialData = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+
+      // Buscar comissões
+      const { data: commissionsData, error: commissionsError } = await supabase
+        .from("commissions")
+        .select("*")
+        .eq("user_id", userData.id)
+        .order("created_at", { ascending: false });
+
+      if (commissionsError) throw commissionsError;
+
+      setCommissions(commissionsData || []);
+
+      // Calcular saldos
+      const total = commissionsData?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+      const available = commissionsData?.filter(c => c.status === "available").reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+      const pending = commissionsData?.filter(c => c.status === "pending").reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+
+      setBalance({ total, available, pending });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar dados",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!pixKey) {
+      toast({
+        title: "Chave PIX obrigatória",
+        description: "Informe sua chave PIX para saque",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (balance.available < 10) {
+      toast({
+        title: "Saldo insuficiente",
+        description: "Saldo mínimo para saque é R$ 10,00",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+
+      // Criar solicitação de saque
+      const { error } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: userData.id,
+          type: "withdrawal",
+          amount: balance.available,
+          net_amount: balance.available * 0.97, // Taxa de 3%
+          fee: balance.available * 0.03,
+          pix_key: pixKey,
+          pix_key_type: "unknown",
+          status: "pending",
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Solicitação enviada!",
+        description: "Seu saque será processado em até 48h",
+      });
+
+      setPixKey("");
+      loadFinancialData();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao solicitar saque",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Financeiro</h1>
+          <p className="text-muted-foreground">
+            Gerencie suas comissões e saques
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">R$ {balance.total.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">Todas as comissões</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Disponível</CardTitle>
+              <TrendingUp className="h-4 w-4 text-secondary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-secondary">R$ {balance.available.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">Pronto para saque</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pendente</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">R$ {balance.pending.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">Aguardando liberação</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Solicitar Saque</CardTitle>
+            <CardDescription>
+              Saque mínimo: R$ 10,00 | Taxa: 3% | Prazo: até 48h
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pixKey">Chave PIX</Label>
+              <Input
+                id="pixKey"
+                placeholder="CPF, e-mail, telefone ou chave aleatória"
+                value={pixKey}
+                onChange={(e) => setPixKey(e.target.value)}
+              />
+            </div>
+            <Button
+              onClick={handleWithdraw}
+              disabled={processing || balance.available < 10}
+              className="w-full"
+            >
+              {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Solicitar Saque de R$ {balance.available.toFixed(2)}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Histórico de Comissões</CardTitle>
+            <CardDescription>
+              Suas comissões por indicações
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {commissions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Você ainda não possui comissões
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {commissions.map((commission) => (
+                  <div
+                    key={commission.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div>
+                      <h3 className="font-semibold">
+                        Comissão Nível {commission.level}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(commission.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-secondary">
+                        R$ {Number(commission.amount).toFixed(2)}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs">
+                        {commission.status === "available" ? (
+                          <>
+                            <CheckCircle2 className="h-3 w-3 text-secondary" />
+                            <span className="text-secondary">Disponível</span>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <span className="text-muted-foreground">Pendente</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default Financial;
