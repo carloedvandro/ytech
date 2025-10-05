@@ -1,9 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield } from "lucide-react";
-
 export const Hero = () => {
-  return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-secondary px-4 py-20">
+  return <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-secondary px-4 py-20">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden opacity-20">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-secondary blur-3xl animate-pulse"></div>
@@ -56,24 +54,18 @@ export const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-            <Button 
-              size="lg" 
-              className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90 shadow-lg"
-              onClick={() => document.getElementById('como-participar')?.scrollIntoView({ behavior: 'smooth' })}
-            >
+            <Button size="lg" className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90 shadow-lg" onClick={() => document.getElementById('como-participar')?.scrollIntoView({
+            behavior: 'smooth'
+          })}>
               Quero Participar
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="text-lg px-8 py-6 border-white text-white hover:bg-white/10"
-              onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
-            >
+            <Button size="lg" variant="outline" onClick={() => document.getElementById('planos')?.scrollIntoView({
+            behavior: 'smooth'
+          })} className="text-lg px-8 py-6 border-white hover:bg-white/10 text-red-500">
               Como Funciona
             </Button>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
