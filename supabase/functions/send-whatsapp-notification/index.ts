@@ -9,9 +9,23 @@ const corsHeaders = {
 const messageTemplates = {
   welcome: (data: any) => 
     `🎉 *Bem-vindo à Y-TECH Internet 5G!*\n\n` +
-    `Olá ${data.name}!\n\n` +
-    `Seu cadastro foi realizado com sucesso.\n\n` +
-    `Agora você faz parte da nossa rede! 🚀`,
+    `Olá ${data.name}! 🚀\n\n` +
+    `É um prazer enorme ter você conosco! Seu cadastro foi realizado com sucesso e você agora faz parte da nossa família Y-TECH.\n\n` +
+    `📋 *Seus Dados de Cadastro:*\n` +
+    `• Nome: ${data.name}\n` +
+    `• Email: ${data.email}\n` +
+    `• WhatsApp: ${data.whatsapp}\n` +
+    `• CPF: ${data.cpf}\n\n` +
+    `🔐 *Próximos Passos:*\n\n` +
+    `1️⃣ Faça login na plataforma:\n${data.loginUrl}\n\n` +
+    `2️⃣ Escolha seu plano e realize o pagamento para ativar sua conta\n\n` +
+    `3️⃣ Após a confirmação do pagamento, você receberá seu link de indicação exclusivo para começar a ganhar comissões!\n\n` +
+    `💰 *Sistema de Comissões:*\n` +
+    `Com seu link de indicação ativo, você poderá convidar outras pessoas e ganhar comissões em até 4 níveis!\n\n` +
+    `📱 *Importante:*\n` +
+    `Guarde este link de login para fácil acesso:\n${data.loginUrl}\n\n` +
+    `Estamos muito felizes em tê-lo(a) conosco! Se tiver qualquer dúvida, estamos à disposição.\n\n` +
+    `Seja bem-vindo(a) e bons negócios! 🎯`,
 
   payment_pending: (data: any) =>
     `💰 *Y-TECH Internet 5G*\n\n` +

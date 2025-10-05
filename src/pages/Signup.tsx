@@ -217,17 +217,42 @@ const Signup = () => {
       const passwordHash = btoa(data.password); // TEMPORÁRIO - usar bcrypt no backend
 
       // 3. Inserir usuário
-      const { error: insertError } = await supabase.from("users").insert({
-        full_name: data.fullName,
-        email: data.email,
-        cpf: data.cpf,
-        whatsapp: data.whatsapp,
-        password_hash: passwordHash,
-        referred_by: referrer.id,
-        status: "pending_payment",
-      });
+      const { data: newUser, error: insertError } = await supabase
+        .from("users")
+        .insert({
+          full_name: data.fullName,
+          email: data.email,
+          cpf: data.cpf,
+          whatsapp: data.whatsapp,
+          password_hash: passwordHash,
+          referred_by: referrer.id,
+          status: "pending_payment",
+        })
+        .select()
+        .single();
 
       if (insertError) throw insertError;
+
+      // 4. Enviar mensagem de boas-vindas no WhatsApp
+      try {
+        await supabase.functions.invoke("send-whatsapp-notification", {
+          body: {
+            whatsapp: data.whatsapp,
+            messageType: "welcome",
+            data: {
+              name: data.fullName,
+              email: data.email,
+              whatsapp: data.whatsapp,
+              cpf: data.cpf,
+              loginUrl: "https://ytech.yrwentechnology.com.br/login",
+            },
+            userId: newUser?.id,
+          },
+        });
+      } catch (whatsappError) {
+        console.error("Erro ao enviar WhatsApp:", whatsappError);
+        // Não bloqueia o cadastro se o WhatsApp falhar
+      }
 
       toast({
         title: "Cadastro realizado!",
