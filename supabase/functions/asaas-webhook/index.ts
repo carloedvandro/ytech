@@ -11,15 +11,45 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Processar evento de pagamento
-    if (event.event === 'PAYMENT_CONFIRMED' || event.event === 'PAYMENT_RECEIVED') {
-      const paymentId = event.payment.externalReference;
+    const paymentId = event.payment?.externalReference;
 
-      if (!paymentId) {
-        console.log('No external reference found');
-        return new Response(JSON.stringify({ received: true }), { status: 200 });
-      }
+    // PAYMENT_CREATED - Nova cobrança criada
+    if (event.event === 'PAYMENT_CREATED') {
+      console.log('Payment created:', paymentId);
+      // Apenas log, já criamos o pagamento antes
+    }
 
+    // PAYMENT_UPDATED - Cobrança atualizada
+    if (event.event === 'PAYMENT_UPDATED' && paymentId) {
+      await supabaseClient
+        .from('payments')
+        .update({
+          metadata: {
+            asaas_status: event.payment.status,
+            asaas_updated_at: new Date().toISOString(),
+          },
+        })
+        .eq('id', paymentId);
+
+      console.log('Payment updated:', paymentId);
+    }
+
+    // PAYMENT_AUTHORIZED - Pagamento autorizado (cartão)
+    if (event.event === 'PAYMENT_AUTHORIZED' && paymentId) {
+      await supabaseClient
+        .from('payments')
+        .update({
+          metadata: {
+            asaas_status: 'AUTHORIZED',
+          },
+        })
+        .eq('id', paymentId);
+
+      console.log('Payment authorized:', paymentId);
+    }
+
+    // PAYMENT_CONFIRMED ou PAYMENT_RECEIVED - Pagamento confirmado
+    if ((event.event === 'PAYMENT_CONFIRMED' || event.event === 'PAYMENT_RECEIVED') && paymentId) {
       // Buscar pagamento
       const { data: payment, error: paymentError } = await supabaseClient
         .from('payments')
@@ -95,6 +125,36 @@ serve(async (req) => {
       }
 
       console.log('Payment confirmed and commissions created');
+    }
+
+    // PAYMENT_OVERDUE - Cobrança vencida
+    if (event.event === 'PAYMENT_OVERDUE' && paymentId) {
+      await supabaseClient
+        .from('payments')
+        .update({
+          status: 'expired',
+          metadata: {
+            asaas_status: 'OVERDUE',
+          },
+        })
+        .eq('id', paymentId);
+
+      console.log('Payment overdue:', paymentId);
+    }
+
+    // PAYMENT_DELETED - Cobrança removida
+    if (event.event === 'PAYMENT_DELETED' && paymentId) {
+      await supabaseClient
+        .from('payments')
+        .update({
+          status: 'cancelled',
+          metadata: {
+            asaas_status: 'DELETED',
+          },
+        })
+        .eq('id', paymentId);
+
+      console.log('Payment deleted:', paymentId);
     }
 
     // Processar evento de transferência
