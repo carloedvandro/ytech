@@ -85,7 +85,7 @@ const Checkout = () => {
           plan_id: planId,
           amount: plan.price,
           status: "pending",
-          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutos
+          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
           metadata: {
             address: data,
           },
@@ -95,16 +95,21 @@ const Checkout = () => {
 
       if (paymentError) throw paymentError;
 
-      toast({
-        title: "Pagamento iniciado!",
-        description: "Você será redirecionado para o pagamento PIX",
+      // Criar cobrança no Asaas
+      const { error: asaasError } = await supabase.functions.invoke('create-asaas-payment', {
+        body: { paymentId: payment.id },
       });
 
-      // Aqui você pode integrar com API de pagamento (PIX)
-      // Por enquanto, vamos simular
+      if (asaasError) throw asaasError;
+
+      toast({
+        title: "Pagamento criado!",
+        description: "Gerando QR Code PIX...",
+      });
+
       setTimeout(() => {
         navigate(`/payment/${payment.id}`);
-      }, 1500);
+      }, 1000);
     } catch (error: any) {
       toast({
         title: "Erro ao processar pagamento",

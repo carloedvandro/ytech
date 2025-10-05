@@ -1,1 +1,10 @@
 project_id = "fkdaaxaybuynohmnatdv"
+
+[functions.create-asaas-payment]
+verify_jwt = true
+
+[functions.create-asaas-transfer]
+verify_jwt = true
+
+[functions.asaas-webhook]
+verify_jwt = false

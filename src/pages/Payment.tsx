@@ -48,21 +48,6 @@ const Payment = () => {
 
       if (planError) throw planError;
       setPlan(planData);
-
-      // Simular geração de PIX (em produção, integrar com API de pagamento)
-      if (!paymentData.pix_code) {
-        const pixCode = `00020126580014br.gov.bcb.pix0136${paymentId}520400005303986540${paymentData.amount.toFixed(2)}5802BR5913MegaChipRural6009SaoPaulo62070503***6304`;
-        
-        await supabase
-          .from("payments")
-          .update({ 
-            pix_code: pixCode,
-            pix_qr_code: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCode)}`
-          })
-          .eq("id", paymentId);
-        
-        setPayment({ ...paymentData, pix_code: pixCode, pix_qr_code: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCode)}` });
-      }
     } catch (error: any) {
       toast({
         title: "Erro ao carregar pagamento",

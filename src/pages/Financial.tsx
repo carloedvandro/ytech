@@ -89,25 +89,39 @@ const Financial = () => {
       const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
 
       // Criar solicitação de saque
-      const { error } = await supabase
+      const { data: transaction, error } = await supabase
         .from("transactions")
         .insert({
           user_id: userData.id,
           type: "withdrawal",
           amount: balance.available,
-          net_amount: balance.available * 0.97, // Taxa de 3%
+          net_amount: balance.available * 0.97,
           fee: balance.available * 0.03,
           pix_key: pixKey,
           pix_key_type: "unknown",
           status: "pending",
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast({
-        title: "Solicitação enviada!",
-        description: "Seu saque será processado em até 48h",
+      // Processar transferência no Asaas
+      const { error: asaasError } = await supabase.functions.invoke('create-asaas-transfer', {
+        body: { transactionId: transaction.id },
       });
+
+      if (asaasError) {
+        toast({
+          title: "Saque em processamento",
+          description: "Sua solicitação será processada em até 48h",
+        });
+      } else {
+        toast({
+          title: "Saque processado!",
+          description: "A transferência foi iniciada",
+        });
+      }
 
       setPixKey("");
       loadFinancialData();
