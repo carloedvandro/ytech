@@ -54,14 +54,19 @@ export const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-            <Button size="lg" className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90 shadow-lg" onClick={() => document.getElementById('como-participar')?.scrollIntoView({
-            behavior: 'smooth'
-          })}>
+            <Button 
+              size="lg" 
+              className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90 shadow-lg" 
+              onClick={() => window.location.href = "/cadastro"}
+            >
               Quero Participar
             </Button>
-            <Button size="lg" variant="outline" onClick={() => document.getElementById('planos')?.scrollIntoView({
-            behavior: 'smooth'
-          })} className="text-lg px-8 py-6 border-white bg-gray-50 text-purple-600">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              onClick={() => document.getElementById('como-participar')?.scrollIntoView({ behavior: 'smooth' })} 
+              className="text-lg px-8 py-6 border-white bg-gray-50 text-purple-600"
+            >
               Como Funciona
             </Button>
           </div>
