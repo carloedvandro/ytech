@@ -1,0 +1,126 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const megaApiHost = Deno.env.get('MEGA_API_HOST') || 'apinocode01.megaapi.com.br';
+    const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY') || 'megacode-MOylIChpYA5';
+    const megaToken = Deno.env.get('MEGA_API_KEY') || 'MOylIChpYA5';
+
+    const { whatsapp } = await req.json();
+
+    if (!whatsapp) {
+      throw new Error('WhatsApp não fornecido');
+    }
+
+    // Verificar se há tentativas de fraude bloqueadas
+    const { data: fraudCheck } = await supabase
+      .from('fraud_attempts')
+      .select('*')
+      .eq('identifier', whatsapp)
+      .eq('attempt_type', 'whatsapp')
+      .single();
+
+    if (fraudCheck && fraudCheck.blocked_until) {
+      const blockedUntil = new Date(fraudCheck.blocked_until);
+      if (blockedUntil > new Date()) {
+        const hoursLeft = Math.ceil((blockedUntil.getTime() - Date.now()) / (1000 * 60 * 60));
+        throw new Error(`WhatsApp bloqueado. Tente novamente em ${hoursLeft}h`);
+      }
+    }
+
+    // Gerar código de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+
+    // Salvar código no banco
+    const { error: insertError } = await supabase
+      .from('whatsapp_verifications')
+      .insert({
+        whatsapp,
+        code,
+        expires_at: expiresAt.toISOString(),
+        verified: false,
+        attempts: 0
+      });
+
+    if (insertError) {
+      console.error('Erro ao salvar verificação:', insertError);
+      throw insertError;
+    }
+
+    // Formatar número para o Mega API (sem o +)
+    const formattedNumber = whatsapp.replace(/\D/g, '');
+
+    // Mensagem formatada
+    const message = `🔐 *Y-TECH Internet 5G*\n\nSeu código de verificação:\n\n*${code}*\n\nVálido por 10 minutos.\n\n_Não compartilhe este código._`;
+
+    console.log(`📱 Enviando código ${code} para ${formattedNumber}`);
+
+    // Enviar via Mega API
+    const megaUrl = `https://${megaApiHost}/message/sendText/${megaInstanceKey}`;
+    console.log('Mega API URL:', megaUrl);
+
+    const megaResponse = await fetch(megaUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': megaToken
+      },
+      body: JSON.stringify({
+        number: formattedNumber,
+        text: message
+      })
+    });
+
+    const megaData = await megaResponse.json();
+    console.log('Resposta Mega API:', JSON.stringify(megaData, null, 2));
+
+    if (!megaResponse.ok) {
+      console.error('Erro do Mega API:', megaData);
+      throw new Error(`Erro ao enviar mensagem: ${megaData.error || 'Erro desconhecido'}`);
+    }
+
+    // Salvar mensagem enviada
+    await supabase
+      .from('whatsapp_messages')
+      .insert({
+        whatsapp: formattedNumber,
+        message_type: 'verification_code',
+        message_content: message,
+        status: 'sent',
+        mega_message_id: megaData.key?.id || null,
+        metadata: { code, expiresAt: expiresAt.toISOString() }
+      });
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      expiresAt: expiresAt.toISOString(),
+      message: 'Código enviado com sucesso'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Erro:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    return new Response(JSON.stringify({ 
+      error: errorMessage 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+});
