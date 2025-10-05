@@ -15,9 +15,9 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const megaApiHost = Deno.env.get('MEGA_API_HOST') || 'apinocode01.megaapi.com.br';
-    const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY') || 'megacode-MOylIChpYA5';
-    const megaToken = Deno.env.get('MEGA_API_KEY') || 'MOylIChpYA5';
+    const megaApiHost = 'apinocode01.megaapi.com.br';
+    const megaInstanceKey = 'megacode-MOylIChpYA5';
+    const megaToken = 'MOylIChpYA5';
 
     const { whatsapp } = await req.json();
 
@@ -69,19 +69,21 @@ Deno.serve(async (req) => {
 
     console.log(`📱 Enviando código ${code} para ${formattedNumber}`);
 
-    // Enviar via Mega API
-    const megaUrl = `https://${megaApiHost}/message/sendText/${megaInstanceKey}`;
+    // Enviar via Mega API (endpoint correto)
+    const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
     console.log('Mega API URL:', megaUrl);
 
     const megaResponse = await fetch(megaUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': megaToken
+        'Authorization': `Bearer ${megaToken}`
       },
       body: JSON.stringify({
-        number: formattedNumber,
-        text: message
+        messageData: {
+          to: formattedNumber,
+          text: message
+        }
       })
     });
 
