@@ -4,44 +4,32 @@ import { Check } from "lucide-react";
 
 const plans = [
   {
-    name: "Plano Básico",
-    price: 129,
-    speed: "100 Mbps",
+    name: "Plano Smartphone",
+    price: 129.99,
+    data: "160 GB",
     features: [
-      "Velocidade de até 100 Mbps",
+      "160 GB de internet 5G",
+      "Velocidade ultra rápida",
+      "Cobertura nacional",
       "Wi-Fi grátis",
       "Suporte 24/7",
       "Instalação inclusa",
       "Sem fidelidade"
     ],
-    popular: false
-  },
-  {
-    name: "Plano Premium",
-    price: 199,
-    speed: "300 Mbps",
-    features: [
-      "Velocidade de até 300 Mbps",
-      "Wi-Fi Mesh grátis",
-      "Suporte prioritário 24/7",
-      "Instalação premium",
-      "Sem fidelidade",
-      "2 meses grátis no anual"
-    ],
     popular: true
   },
   {
-    name: "Plano VIP",
-    price: 299,
-    speed: "500 Mbps",
+    name: "Plano Rural",
+    price: 129.99,
+    data: "250 GB",
     features: [
-      "Velocidade de até 500 Mbps",
-      "Wi-Fi Mesh premium",
-      "Suporte VIP exclusivo",
-      "Instalação express",
-      "Sem fidelidade",
-      "3 meses grátis no anual",
-      "IP fixo incluso"
+      "250 GB acumulativos",
+      "Ideal para área rural",
+      "Internet estável no campo",
+      "Wi-Fi grátis",
+      "Suporte 24/7",
+      "Instalação inclusa",
+      "Sem fidelidade"
     ],
     popular: false
   }
@@ -79,11 +67,11 @@ export const Plans = () => {
               <CardHeader className="text-center pb-8 pt-8">
                 <CardTitle className="text-2xl mb-2">{plan.name}</CardTitle>
                 <CardDescription className="text-lg font-medium text-primary">
-                  {plan.speed}
+                  {plan.data}
                 </CardDescription>
                 <div className="mt-4">
                   <span className="text-5xl font-bold text-foreground">
-                    R$ {plan.price}
+                    R$ {plan.price.toFixed(2).replace('.', ',')}
                   </span>
                   <span className="text-muted-foreground">/mês</span>
                 </div>
@@ -99,16 +87,11 @@ export const Plans = () => {
               </CardContent>
 
               <CardFooter className="pt-6">
-                <Button 
-                  className={`w-full ${
-                    plan.popular 
-                      ? 'bg-primary hover:bg-primary/90' 
-                      : 'bg-secondary hover:bg-secondary/90'
-                  }`}
-                  size="lg"
-                >
-                  Assinar Agora
-                </Button>
+                <div className="w-full text-center py-3 px-4 rounded-lg bg-muted border border-border">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Disponível apenas por indicação
+                  </p>
+                </div>
               </CardFooter>
             </Card>
           ))}
