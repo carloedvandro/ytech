@@ -69,13 +69,13 @@ const Dashboard = () => {
               <input
                 type="text"
                 readOnly
-                value={`${window.location.origin}/cadastro?ref=${JSON.parse(localStorage.getItem("user_session") || "{}").id}`}
+                value={`https://ytech.yrwentechnology.com.br/cadastro?ref=${JSON.parse(localStorage.getItem("user_session") || "{}").id}`}
                 className="flex-1 px-4 py-2 border rounded-md bg-muted"
               />
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(
-                    `${window.location.origin}/cadastro?ref=${JSON.parse(localStorage.getItem("user_session") || "{}").id}`
+                    `https://ytech.yrwentechnology.com.br/cadastro?ref=${JSON.parse(localStorage.getItem("user_session") || "{}").id}`
                   );
                 }}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
