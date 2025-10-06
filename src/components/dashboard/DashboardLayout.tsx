@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { PlanSelector } from "./PlanSelector";
@@ -15,6 +15,7 @@ interface User {
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
 
@@ -28,11 +29,14 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
     const userData = JSON.parse(sessionData);
     setUser(userData);
 
-    // Se pending_payment, forçar seleção de plano
-    if (userData.status === "pending_payment") {
+    // Se pending_payment E não está em checkout/payment, forçar seleção de plano
+    const isCheckoutOrPayment = location.pathname.includes("/checkout") || location.pathname.includes("/payment");
+    if (userData.status === "pending_payment" && !isCheckoutOrPayment) {
       setShowPlanSelector(true);
+    } else {
+      setShowPlanSelector(false);
     }
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   if (!user) return null;
 
