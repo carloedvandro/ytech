@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, DollarSign, TrendingUp, Share2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { UsernameManager } from "@/components/UsernameManager";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -13,6 +14,7 @@ const Dashboard = () => {
     totalCommissions: 0,
     availableBalance: 0,
   });
+  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
     loadStats();
@@ -55,6 +57,16 @@ const Dashboard = () => {
         console.log("Usuário não está logado");
         return;
       }
+
+      // Buscar dados completos do usuário
+      const { data: user, error: userError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userData.id)
+        .single();
+
+      if (userError) throw userError;
+      setUserData(user);
 
       // Buscar total de indicações (toda a rede)
       const { data: networkData, error: networkError } = await supabase
@@ -175,6 +187,31 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader>
+            <CardTitle>Seu Username</CardTitle>
+            <CardDescription>
+              Escolha um username único para seu link de indicação
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {userData && (
+              <UsernameManager
+                userId={userData.id}
+                currentUsername={userData.username}
+                onUsernameUpdate={(newUsername) => {
+                  setUserData({ ...userData, username: newUsername });
+                  // Atualizar localStorage também
+                  localStorage.setItem(
+                    "user_session",
+                    JSON.stringify({ ...userData, username: newUsername })
+                  );
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Seu Link de Indicação</CardTitle>
             <CardDescription>
               Compartilhe este link para convidar novos usuários
@@ -185,14 +222,23 @@ const Dashboard = () => {
               <input
                 type="text"
                 readOnly
-                value={`https://ytech.yrwentechnology.com.br/cadastro?ref=${JSON.parse(localStorage.getItem("user_session") || "{}").id}`}
+                value={
+                  userData?.username
+                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData.username}`
+                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData?.id || ""}`
+                }
                 className="flex-1 px-4 py-2 border rounded-md bg-muted"
               />
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(
-                    `https://ytech.yrwentechnology.com.br/cadastro?ref=${JSON.parse(localStorage.getItem("user_session") || "{}").id}`
-                  );
+                  const link = userData?.username
+                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData.username}`
+                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData?.id || ""}`;
+                  navigator.clipboard.writeText(link);
+                  toast({
+                    title: "Link copiado!",
+                    description: "O link foi copiado para a área de transferência",
+                  });
                 }}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >

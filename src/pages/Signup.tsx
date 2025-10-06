@@ -196,14 +196,30 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      // 1. Buscar referred_by pelo código
-      const { data: referrer, error: referrerError } = await supabase
+      // 1. Buscar referred_by pelo código (pode ser UUID ou username)
+      let referrer;
+      
+      // Tentar primeiro como UUID
+      const { data: referrerById } = await supabase
         .from("users")
         .select("id")
         .eq("id", referralCode)
-        .single();
+        .maybeSingle();
 
-      if (referrerError || !referrer) {
+      if (referrerById) {
+        referrer = referrerById;
+      } else {
+        // Tentar como username
+        const { data: referrerByUsername } = await supabase
+          .from("users")
+          .select("id")
+          .eq("username", referralCode)
+          .maybeSingle();
+
+        referrer = referrerByUsername;
+      }
+
+      if (!referrer) {
         toast({
           title: "Código inválido",
           description: "Código de indicação não encontrado",

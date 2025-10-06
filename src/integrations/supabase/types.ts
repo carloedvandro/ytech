@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      asaas_webhook_events: {
+        Row: {
+          asaas_payment_id: string | null
+          event_id: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          payment_id: string | null
+          processed_at: string | null
+          response_message: string | null
+        }
+        Insert: {
+          asaas_payment_id?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          payment_id?: string | null
+          processed_at?: string | null
+          response_message?: string | null
+        }
+        Update: {
+          asaas_payment_id?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          payment_id?: string | null
+          processed_at?: string | null
+          response_message?: string | null
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           amount: number
@@ -377,6 +410,7 @@ export type Database = {
           referred_by: string | null
           status: Database["public"]["Enums"]["user_status"] | null
           updated_at: string | null
+          username: string | null
           whatsapp: string
         }
         Insert: {
@@ -392,6 +426,7 @@ export type Database = {
           referred_by?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
           updated_at?: string | null
+          username?: string | null
           whatsapp: string
         }
         Update: {
@@ -407,6 +442,7 @@ export type Database = {
           referred_by?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
           updated_at?: string | null
+          username?: string | null
           whatsapp?: string
         }
         Relationships: [
