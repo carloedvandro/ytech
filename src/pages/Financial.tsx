@@ -298,49 +298,6 @@ const Financial = () => {
           </Card>
         </div>
 
-        {isAdmin && (
-          <Card className="border-primary">
-            <CardHeader>
-              <CardTitle>Ferramentas de Administrador</CardTitle>
-              <CardDescription>
-                Funções exclusivas para administradores do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={async () => {
-                  setProcessing(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke('fix-pending-commissions');
-                    
-                    if (error) throw error;
-
-                    toast({
-                      title: "Comissões atualizadas!",
-                      description: `${data?.message || 'Comissões liberadas'}`,
-                    });
-                    
-                    loadFinancialData();
-                  } catch (error: any) {
-                    toast({
-                      title: "Erro",
-                      description: error.message,
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setProcessing(false);
-                  }
-                }}
-                disabled={processing}
-                variant="outline"
-                className="w-full"
-              >
-                {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Liberar Todas as Comissões Pendentes
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         <Card>
           <CardHeader>

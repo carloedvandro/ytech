@@ -41,7 +41,7 @@ serve(async (req) => {
       externalReference: payment.users.id,
     };
 
-    const customerResponse = await fetch('https://sandbox.asaas.com/api/v3/customers', {
+    const customerResponse = await fetch('https://api.asaas.com/api/v3/customers', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ serve(async (req) => {
       const errorText = await customerResponse.text();
       // Se o cliente já existe, tentar buscar pelo CPF
       if (errorText.includes('cpfCnpj already exists')) {
-        const searchResponse = await fetch(`https://sandbox.asaas.com/api/v3/customers?cpfCnpj=${payment.users.cpf.replace(/\D/g, '')}`, {
+        const searchResponse = await fetch(`https://api.asaas.com/api/v3/customers?cpfCnpj=${payment.users.cpf.replace(/\D/g, '')}`, {
           headers: {
             'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
           },
@@ -73,7 +73,7 @@ serve(async (req) => {
     console.log('Asaas customer:', asaasCustomer);
 
     // Agora criar cobrança no Asaas
-    const asaasResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
+    const asaasResponse = await fetch('https://api.asaas.com/api/v3/payments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ serve(async (req) => {
     console.log('Asaas payment created:', asaasPayment);
 
     // Buscar QR Code PIX
-    const pixResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${asaasPayment.id}/pixQrCode`, {
+    const pixResponse = await fetch(`https://api.asaas.com/api/v3/payments/${asaasPayment.id}/pixQrCode`, {
       headers: {
         'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
       },
