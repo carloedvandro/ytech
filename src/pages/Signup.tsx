@@ -199,17 +199,24 @@ const Signup = () => {
       // 1. Buscar referred_by pelo código (pode ser UUID ou username)
       let referrer;
       
-      // Tentar primeiro como UUID
-      const { data: referrerById } = await supabase
-        .from("users")
-        .select("id")
-        .eq("id", referralCode)
-        .maybeSingle();
+      // Verificar se parece ser um UUID (contém hífens e tem 36 caracteres)
+      const looksLikeUUID = referralCode.includes('-') && referralCode.length === 36;
+      
+      if (looksLikeUUID) {
+        // Tentar primeiro como UUID
+        const { data: referrerById } = await supabase
+          .from("users")
+          .select("id")
+          .eq("id", referralCode)
+          .maybeSingle();
 
-      if (referrerById) {
-        referrer = referrerById;
-      } else {
-        // Tentar como username
+        if (referrerById) {
+          referrer = referrerById;
+        }
+      }
+      
+      // Se não encontrou por UUID ou não parece UUID, tentar como username
+      if (!referrer) {
         const { data: referrerByUsername } = await supabase
           .from("users")
           .select("id")
