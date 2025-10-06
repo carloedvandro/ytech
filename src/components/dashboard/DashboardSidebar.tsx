@@ -1,5 +1,7 @@
-import { Home, Users, DollarSign, Settings, LogOut, Package } from "lucide-react";
+import { Home, Users, DollarSign, LogOut, Shield } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +34,21 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const { open } = useSidebar();
   const navigate = useNavigate();
 
+  // Verificar se o usuário é admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      return !!data;
+    },
+  });
+
   const handleLogout = () => {
     localStorage.removeItem("user_session");
     navigate("/login");
@@ -60,6 +77,22 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/admin"
+                      className={({ isActive }) =>
+                        isActive ? "bg-accent text-accent-foreground" : ""
+                      }
+                    >
+                      <Shield className="h-4 w-4" />
+                      {open && <span>Admin</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleLogout}>
