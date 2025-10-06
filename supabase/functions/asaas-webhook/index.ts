@@ -144,6 +144,21 @@ serve(async (req) => {
 
       console.log('Network data for user:', payment.user_id, network);
 
+      // Verificar se já existem comissões para este pagamento
+      const { data: existingCommissions } = await supabaseClient
+        .from('commissions')
+        .select('id')
+        .eq('payment_id', paymentId)
+        .limit(1);
+
+      if (existingCommissions && existingCommissions.length > 0) {
+        console.log('Commissions already exist for payment:', paymentId);
+        return new Response(
+          JSON.stringify({ received: true, message: 'Payment already processed, commissions exist' }), 
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
       if (network && network.path && network.path.length > 1) {
         const commissions = [];
         const path = network.path;
