@@ -208,62 +208,11 @@ const Payment = () => {
               </div>
             </div>
 
-            <div className="w-full space-y-2">
-              <Button
-                onClick={checkPaymentStatus}
-                disabled={checking}
-                variant="outline"
-                className="w-full"
-              >
-                {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Verificar Pagamento
-              </Button>
-
-              <Button
-                onClick={async () => {
-                  setChecking(true);
-                  try {
-                    const { error } = await supabase.functions.invoke('simulate-payment-confirmation', {
-                      body: { paymentId }
-                    });
-
-                    if (error) throw error;
-
-                    // Atualizar dados do usuário no localStorage
-                    const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
-                    const { data: updatedUser } = await supabase
-                      .from("users")
-                      .select("*")
-                      .eq("id", userData.id)
-                      .single();
-
-                    if (updatedUser) {
-                      localStorage.setItem("user_session", JSON.stringify(updatedUser));
-                    }
-
-                    toast({
-                      title: "Pagamento confirmado!",
-                      description: "Simulação em ambiente sandbox.",
-                    });
-                    
-                    setTimeout(() => navigate("/dashboard"), 1500);
-                  } catch (error: any) {
-                    toast({
-                      title: "Erro",
-                      description: error.message,
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setChecking(false);
-                  }
-                }}
-                disabled={checking}
-                variant="secondary"
-                className="w-full"
-              >
-                {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Confirmar Pagamento (Sandbox)
-              </Button>
+            <div className="w-full space-y-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-3">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Verificando pagamento automaticamente...</span>
+              </div>
 
               {isAdmin && (
                 <Button
