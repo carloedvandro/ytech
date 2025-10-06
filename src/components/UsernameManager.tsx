@@ -100,10 +100,15 @@ export const UsernameManager = ({ userId, currentUsername, onUsernameUpdate }: U
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      console.log('💾 Salvando username:', username, 'para userId:', userId);
+      
+      const { data, error } = await supabase
         .from("users")
         .update({ username })
-        .eq("id", userId);
+        .eq("id", userId)
+        .select();
+
+      console.log('💾 Resultado da atualização:', { data, error });
 
       if (error) throw error;
 
