@@ -168,12 +168,20 @@ serve(async (req) => {
 
       // PAYMENT_CONFIRMED ou PAYMENT_RECEIVED - Pagamento confirmado
       if (event.event === 'PAYMENT_CONFIRMED' || event.event === 'PAYMENT_RECEIVED') {
+        console.log('🎯 Starting PAYMENT_CONFIRMED/RECEIVED processing:', {
+          eventId,
+          paymentId,
+          subscriptionId: event.payment?.subscription,
+          asaasPaymentId: event.payment?.id
+        });
+
         let payment;
         let userId;
         let planId;
         
         // Tentar buscar pelo externalReference primeiro
         if (paymentId) {
+          console.log('🔍 Searching payment by ID:', paymentId);
           const { data: paymentData } = await supabaseClient
             .from('payments')
             .select('*')
@@ -184,43 +192,58 @@ serve(async (req) => {
             payment = paymentData;
             userId = payment.user_id;
             planId = payment.plan_id;
+            console.log('✓ Payment found by ID:', { paymentId, userId, planId });
+          } else {
+            console.log('⚠️ Payment not found by ID:', paymentId);
           }
         }
         
         // Se não encontrou, pode ser um pagamento recorrente - buscar pela subscription
         if (!payment && event.payment?.subscription) {
-          const { data: subscriptionPayment } = await supabaseClient
+          console.log('🔍 Searching payment by subscription:', event.payment.subscription);
+          const { data: subscriptionPayment, error: subError } = await supabaseClient
             .from('payments')
             .select('*')
             .eq('subscription_id', event.payment.subscription)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
+          
+          if (subError) {
+            console.error('❌ Error searching subscription payment:', subError);
+          }
           
           if (subscriptionPayment) {
             payment = subscriptionPayment;
             userId = subscriptionPayment.user_id;
             planId = subscriptionPayment.plan_id;
             
-            console.log('🔄 Recurrent payment detected:', {
+            console.log('✓ Recurrent payment found:', {
               subscriptionId: event.payment.subscription,
+              paymentId: subscriptionPayment.id,
               asaasPaymentId: event.payment?.id,
               userId,
               planId
             });
+          } else {
+            console.log('⚠️ Subscription payment not found:', event.payment.subscription);
           }
         }
 
         if (!payment || !userId) {
-          console.log('⚠️ Payment not found in database:', {
-            paymentId,
-            subscriptionId: event.payment?.subscription,
+          console.error('❌ CRITICAL: Payment not found in database:', {
+            searchedPaymentId: paymentId,
+            searchedSubscriptionId: event.payment?.subscription,
             event: event.event,
-            asaasPaymentId: event.payment?.id
+            asaasPaymentId: event.payment?.id,
+            hasPayment: !!payment,
+            hasUserId: !!userId
           });
           
           if (eventId) {
             await supabaseClient
               .from('asaas_webhook_events')
-              .update({ response_message: 'Failed: Payment not found' })
+              .update({ response_message: 'Failed: Payment not found in database' })
               .eq('event_id', eventId);
           }
           
@@ -230,6 +253,14 @@ serve(async (req) => {
           );
         }
 
+        console.log('📋 Payment details:', {
+          paymentId: payment.id,
+          userId,
+          planId,
+          amount: payment.amount,
+          status: payment.status
+        });
+
         // Buscar plano
         const { data: plan, error: planError } = await supabaseClient
           .from('plans')
@@ -238,10 +269,10 @@ serve(async (req) => {
           .single();
 
         if (planError || !plan) {
-          console.log('⚠️ Plan not found for payment:', {
-            paymentId,
+          console.error('❌ CRITICAL: Plan not found:', {
             planId,
-            error: planError?.message
+            error: planError?.message,
+            details: planError?.details
           });
           
           if (eventId) {
@@ -257,9 +288,16 @@ serve(async (req) => {
           );
         }
 
+        console.log('📋 Plan details:', {
+          planId: plan.id,
+          planName: plan.name,
+          commission_l1: plan.commission_l1,
+          commission_l2_l4: plan.commission_l2_l4
+        });
+
         // Se for o primeiro pagamento (tem paymentId), atualizar status
         if (paymentId && payment.id === paymentId) {
-          await supabaseClient
+          const { error: updateError } = await supabaseClient
             .from('payments')
             .update({
               status: 'completed',
@@ -267,7 +305,11 @@ serve(async (req) => {
             })
             .eq('id', paymentId);
           
-          console.log('✓ Payment status updated to completed:', paymentId);
+          if (updateError) {
+            console.error('❌ Error updating payment status:', updateError);
+          } else {
+            console.log('✓ Payment status updated to completed:', paymentId);
+          }
         }
 
         // Atualizar data de renovação
@@ -276,58 +318,86 @@ serve(async (req) => {
           const nextRenewalDate = new Date(currentDate);
           nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
           
-          await supabaseClient
+          const { error: renewalError } = await supabaseClient
             .from('payments')
             .update({
               next_renewal_date: nextRenewalDate.toISOString(),
             })
             .eq('subscription_id', payment.subscription_id);
             
-          console.log('✓ Updated renewal date for subscription:', nextRenewalDate.toISOString());
+          if (renewalError) {
+            console.error('❌ Error updating renewal date:', renewalError);
+          } else {
+            console.log('✓ Updated renewal date for subscription:', nextRenewalDate.toISOString());
+          }
         }
 
         // Atualizar status do usuário para ativo
-        await supabaseClient
+        const { error: userError } = await supabaseClient
           .from('users')
           .update({ status: 'active' })
           .eq('id', userId);
         
-        console.log('✓ User status updated to active:', userId);
+        if (userError) {
+          console.error('❌ Error updating user status:', userError);
+        } else {
+          console.log('✓ User status updated to active:', userId);
+        }
 
-        // Processar comissões MLM
+        // ============================================
+        // PROCESSAMENTO DE COMISSÕES MLM
+        // ============================================
+        console.log('💰 Starting commission processing for user:', userId);
+
+        // Buscar rede do usuário
         const { data: network, error: networkError } = await supabaseClient
           .from('user_network')
           .select('path')
           .eq('user_id', userId)
           .single();
 
-        console.log('📊 Network data for user:', {
+        if (networkError) {
+          console.error('❌ Error fetching network:', {
+            userId,
+            error: networkError.message,
+            details: networkError.details
+          });
+        }
+
+        console.log('📊 Network data:', {
           userId,
+          hasNetwork: !!network,
           path: network?.path,
-          pathLength: network?.path?.length,
-          error: networkError?.message
+          pathLength: network?.path?.length
         });
 
-        // Para pagamentos recorrentes, gerar um identificador único baseado no ID do pagamento do Asaas
+        // Para pagamentos recorrentes, gerar um identificador único
         const commissionReference = event.payment?.subscription 
           ? `${event.payment.subscription}_${event.payment.id}` 
           : paymentId;
 
-        console.log('💰 Commission reference:', commissionReference);
+        console.log('💰 Commission reference generated:', {
+          commissionReference,
+          isRecurrent: !!event.payment?.subscription,
+          paymentId,
+          asaasPaymentId: event.payment?.id
+        });
 
-        // Verificar se já existem comissões para este pagamento específico
-        const { data: existingCommissions } = await supabaseClient
+        // Verificar se já existem comissões
+        const { data: existingCommissions, error: checkError } = await supabaseClient
           .from('commissions')
-          .select('id')
-          .eq('payment_id', commissionReference)
-          .limit(1);
+          .select('id, user_id, level, amount')
+          .eq('payment_id', commissionReference);
+
+        if (checkError) {
+          console.error('❌ Error checking existing commissions:', checkError);
+        }
 
         if (existingCommissions && existingCommissions.length > 0) {
           console.log('✓ Commissions already exist for this payment:', {
             commissionReference,
-            event: event.event,
-            commissionsCount: existingCommissions.length,
-            message: 'This payment was already processed'
+            count: existingCommissions.length,
+            commissions: existingCommissions
           });
           
           if (eventId) {
@@ -343,83 +413,135 @@ serve(async (req) => {
           );
         }
 
-        if (network && network.path && network.path.length > 1) {
-          const commissions = [];
-          const path = network.path;
+        console.log('✓ No existing commissions found, proceeding to create new ones');
 
-          console.log('🔄 Building commissions for path:', path);
-
-          // Nível 1 (indicador direto)
-          if (path.length >= 2) {
-            const level1UserId = path[path.length - 2];
-            commissions.push({
-              user_id: level1UserId,
-              referred_user_id: userId,
-              payment_id: commissionReference,
-              amount: plan.commission_l1,
-              level: 1,
-              status: 'available',
-              released_at: new Date().toISOString(),
-            });
-            console.log(`  ✓ Level 1 commission for user ${level1UserId}: R$ ${plan.commission_l1}`);
-          }
-
-          // Níveis 2-4
-          for (let i = 2; i <= 4 && path.length > i; i++) {
-            const levelUserId = path[path.length - (i + 1)];
-            commissions.push({
-              user_id: levelUserId,
-              referred_user_id: userId,
-              payment_id: commissionReference,
-              amount: plan.commission_l2_l4,
-              level: i,
-              status: 'available',
-              released_at: new Date().toISOString(),
-            });
-            console.log(`  ✓ Level ${i} commission for user ${levelUserId}: R$ ${plan.commission_l2_l4}`);
-          }
-
-          if (commissions.length > 0) {
-            console.log(`💰 Creating ${commissions.length} commissions:`, JSON.stringify(commissions, null, 2));
-            
-            const { data: insertedCommissions, error: commError } = await supabaseClient
-              .from('commissions')
-              .insert(commissions)
-              .select();
-
-            if (commError) {
-              console.error('❌ Error inserting commissions:', {
-                error: commError.message,
-                details: commError.details,
-                hint: commError.hint
-              });
-              
-              if (eventId) {
-                await supabaseClient
-                  .from('asaas_webhook_events')
-                  .update({ response_message: 'Failed: ' + commError.message })
-                  .eq('event_id', eventId);
-              }
-              
-              return new Response(
-                JSON.stringify({ received: true, message: 'Commission creation failed', error: commError.message }), 
-                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-              );
-            } else {
-              console.log('✅ Commissions successfully created:', {
-                count: insertedCommissions?.length,
-                commissions: insertedCommissions
-              });
-            }
-          } else {
-            console.log('⚠️ No commissions to create - network path too short');
-          }
-        } else {
-          console.log('⚠️ No network path found or path too short:', {
+        // Verificar se há rede
+        if (!network || !network.path || network.path.length <= 1) {
+          console.log('⚠️ No upline network found:', {
             hasNetwork: !!network,
-            pathLength: network?.path?.length
+            hasPath: !!network?.path,
+            pathLength: network?.path?.length,
+            message: 'User has no referrers - no commissions to create'
           });
+          
+          if (eventId) {
+            await supabaseClient
+              .from('asaas_webhook_events')
+              .update({ response_message: 'Completed (no upline network)' })
+              .eq('event_id', eventId);
+          }
+          
+          return new Response(
+            JSON.stringify({ received: true, message: 'No upline network' }), 
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
+
+        // Criar comissões
+        const commissions = [];
+        const path = network.path;
+
+        console.log('🔄 Building commissions from path:', {
+          fullPath: path,
+          pathLength: path.length,
+          userId: path[path.length - 1]
+        });
+
+        // Nível 1 (indicador direto)
+        if (path.length >= 2) {
+          const level1UserId = path[path.length - 2];
+          commissions.push({
+            user_id: level1UserId,
+            referred_user_id: userId,
+            payment_id: commissionReference,
+            amount: plan.commission_l1,
+            level: 1,
+            status: 'available',
+            released_at: new Date().toISOString(),
+          });
+          console.log(`  ✓ Level 1 commission: User ${level1UserId} → R$ ${plan.commission_l1}`);
+        }
+
+        // Níveis 2-4
+        for (let i = 2; i <= 4 && path.length > i; i++) {
+          const levelUserId = path[path.length - (i + 1)];
+          commissions.push({
+            user_id: levelUserId,
+            referred_user_id: userId,
+            payment_id: commissionReference,
+            amount: plan.commission_l2_l4,
+            level: i,
+            status: 'available',
+            released_at: new Date().toISOString(),
+          });
+          console.log(`  ✓ Level ${i} commission: User ${levelUserId} → R$ ${plan.commission_l2_l4}`);
+        }
+
+        if (commissions.length === 0) {
+          console.log('⚠️ No commissions to create - path too short');
+          
+          if (eventId) {
+            await supabaseClient
+              .from('asaas_webhook_events')
+              .update({ response_message: 'Completed (no commissions needed)' })
+              .eq('event_id', eventId);
+          }
+          
+          return new Response(
+            JSON.stringify({ received: true, message: 'No commissions needed' }), 
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`💰 Inserting ${commissions.length} commissions:`, JSON.stringify(commissions, null, 2));
+        
+        const { data: insertedCommissions, error: commError } = await supabaseClient
+          .from('commissions')
+          .insert(commissions)
+          .select();
+
+        if (commError) {
+          console.error('❌ CRITICAL ERROR inserting commissions:', {
+            error: commError.message,
+            code: commError.code,
+            details: commError.details,
+            hint: commError.hint,
+            commissions
+          });
+          
+          if (eventId) {
+            await supabaseClient
+              .from('asaas_webhook_events')
+              .update({ 
+                response_message: `Failed: Commission error - ${commError.message}`,
+                metadata: {
+                  ...event,
+                  commission_error: {
+                    message: commError.message,
+                    details: commError.details,
+                    hint: commError.hint
+                  }
+                }
+              })
+              .eq('event_id', eventId);
+          }
+          
+          return new Response(
+            JSON.stringify({ 
+              received: true, 
+              message: 'Commission creation failed', 
+              error: commError.message,
+              details: commError.details
+            }), 
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log('✅ COMMISSIONS SUCCESSFULLY CREATED:', {
+          count: insertedCommissions?.length,
+          totalAmount: commissions.reduce((sum, c) => sum + Number(c.amount), 0),
+          commissions: insertedCommissions
+        });
 
         // Atualizar status do webhook para "Completed"
         if (eventId) {
