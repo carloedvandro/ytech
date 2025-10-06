@@ -33,7 +33,13 @@ serve(async (req) => {
       event = await req.json();
     }
     
-    console.log('Asaas webhook received:', JSON.stringify(event, null, 2));
+    console.log('📥 Asaas webhook received:', {
+      event: event.event,
+      paymentId: event.payment?.externalReference,
+      asaasPaymentId: event.payment?.id,
+      status: event.payment?.status,
+      timestamp: new Date().toISOString()
+    });
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -44,7 +50,12 @@ serve(async (req) => {
 
     // PAYMENT_CREATED - Nova cobrança criada
     if (event.event === 'PAYMENT_CREATED') {
-      console.log('Payment created:', paymentId);
+      console.log('✓ Payment created in Asaas:', {
+        paymentId,
+        asaasPaymentId: event.payment?.id,
+        value: event.payment?.value,
+        billingType: event.payment?.billingType
+      });
       return new Response(
         JSON.stringify({ received: true, message: 'Payment created event logged' }), 
         { status: 200, headers: corsHeaders }
@@ -98,9 +109,18 @@ serve(async (req) => {
         .single();
 
       if (paymentError || !payment) {
-        console.error('Payment not found:', paymentError);
+        console.log('⚠️ Payment not found in database:', {
+          paymentId,
+          event: event.event,
+          asaasPaymentId: event.payment?.id,
+          reason: paymentError ? 'Database error' : 'Payment deleted or never created',
+          error: paymentError?.message
+        });
         return new Response(
-          JSON.stringify({ received: true, message: 'Payment not found' }), 
+          JSON.stringify({ 
+            received: true, 
+            message: 'Payment not found - possibly deleted or not yet created in system' 
+          }), 
           { status: 200, headers: corsHeaders }
         );
       }
@@ -113,7 +133,11 @@ serve(async (req) => {
         .single();
 
       if (planError || !plan) {
-        console.error('Plan not found:', planError);
+        console.log('⚠️ Plan not found for payment:', {
+          paymentId,
+          planId: payment.plan_id,
+          error: planError?.message
+        });
         return new Response(
           JSON.stringify({ received: true, message: 'Plan not found' }), 
           { status: 200, headers: corsHeaders }
@@ -152,7 +176,12 @@ serve(async (req) => {
         .limit(1);
 
       if (existingCommissions && existingCommissions.length > 0) {
-        console.log('Commissions already exist for payment:', paymentId);
+        console.log('✓ Commissions already exist for payment (duplicate webhook event):', {
+          paymentId,
+          event: event.event,
+          commissionsCount: existingCommissions.length,
+          message: 'This is a duplicate webhook - payment was already processed'
+        });
         return new Response(
           JSON.stringify({ received: true, message: 'Payment already processed, commissions exist' }), 
           { status: 200, headers: corsHeaders }
@@ -207,7 +236,12 @@ serve(async (req) => {
         }
       }
 
-      console.log('Payment confirmed and commissions created');
+      console.log('✅ Payment confirmed and commissions created successfully:', {
+        paymentId,
+        userId: payment.user_id,
+        planId: payment.plan_id,
+        amount: payment.amount
+      });
       return new Response(
         JSON.stringify({ received: true, message: 'Payment confirmed and commissions created' }), 
         { status: 200, headers: corsHeaders }
@@ -281,13 +315,22 @@ serve(async (req) => {
     }
 
     // Evento não tratado - retornar sucesso mesmo assim
-    console.log('Unhandled event type:', event.event);
+    console.log('ℹ️ Unhandled event type:', {
+      event: event.event,
+      paymentId: event.payment?.externalReference,
+      transferId: event.transfer?.id,
+      message: 'Event type not implemented in webhook handler'
+    });
     return new Response(
       JSON.stringify({ received: true, message: 'Event received but not processed' }), 
       { status: 200, headers: corsHeaders }
     );
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('❌ Webhook error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    });
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error',
