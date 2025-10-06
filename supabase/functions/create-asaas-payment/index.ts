@@ -32,7 +32,47 @@ serve(async (req) => {
 
     if (paymentError) throw paymentError;
 
-    // Criar cobrança no Asaas
+    // Primeiro, criar ou buscar o cliente no Asaas
+    const customerData = {
+      name: payment.users.full_name,
+      cpfCnpj: payment.users.cpf.replace(/\D/g, ''),
+      email: payment.users.email,
+      phone: payment.users.whatsapp.replace(/\D/g, ''),
+      externalReference: payment.users.id,
+    };
+
+    const customerResponse = await fetch('https://sandbox.asaas.com/api/v3/customers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+      },
+      body: JSON.stringify(customerData),
+    });
+
+    let asaasCustomer;
+    if (!customerResponse.ok) {
+      const errorText = await customerResponse.text();
+      // Se o cliente já existe, tentar buscar pelo CPF
+      if (errorText.includes('cpfCnpj already exists')) {
+        const searchResponse = await fetch(`https://sandbox.asaas.com/api/v3/customers?cpfCnpj=${payment.users.cpf.replace(/\D/g, '')}`, {
+          headers: {
+            'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+          },
+        });
+        const searchData = await searchResponse.json();
+        asaasCustomer = searchData.data[0];
+      } else {
+        console.error('Asaas customer error:', errorText);
+        throw new Error(`Asaas customer API error: ${errorText}`);
+      }
+    } else {
+      asaasCustomer = await customerResponse.json();
+    }
+
+    console.log('Asaas customer:', asaasCustomer);
+
+    // Agora criar cobrança no Asaas
     const asaasResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
       method: 'POST',
       headers: {
@@ -40,7 +80,7 @@ serve(async (req) => {
         'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
       },
       body: JSON.stringify({
-        customer: payment.users.cpf.replace(/\D/g, ''),
+        customer: asaasCustomer.id,
         billingType: 'PIX',
         value: Number(payment.amount),
         dueDate: new Date(Date.now() + 30 * 60 * 1000).toISOString().split('T')[0],
