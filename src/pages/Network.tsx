@@ -60,7 +60,7 @@ const Network = () => {
         .from("user_network")
         .select("level")
         .eq("user_id", userData.id)
-        .single();
+        .maybeSingle();
 
       const userLevel = myLevel?.level || 1;
 
