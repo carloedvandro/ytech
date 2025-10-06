@@ -17,6 +17,11 @@ interface Commission {
   referred_user_id: string;
 }
 
+interface UserPlan {
+  status: string;
+  plan_end_date: string | null;
+}
+
 const Financial = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -28,6 +33,7 @@ const Financial = () => {
     pending: 0,
   });
   const [pixKey, setPixKey] = useState("");
+  const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
 
   useEffect(() => {
     loadFinancialData();
@@ -36,6 +42,21 @@ const Financial = () => {
   const loadFinancialData = async () => {
     try {
       const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+
+      // Buscar dados atualizados do usuário
+      const { data: userInfo } = await supabase
+        .from("users")
+        .select("status, metadata")
+        .eq("id", userData.id)
+        .single();
+
+      if (userInfo) {
+        const metadata = userInfo.metadata as { plan_end_date?: string } | null;
+        setUserPlan({
+          status: userInfo.status,
+          plan_end_date: metadata?.plan_end_date || null,
+        });
+      }
 
       // Buscar comissões
       const { data: commissionsData, error: commissionsError } = await supabase
@@ -66,6 +87,19 @@ const Financial = () => {
   };
 
   const handleWithdraw = async () => {
+    // Verificar se é sexta-feira (5 = Friday)
+    const today = new Date();
+    const isFriday = today.getDay() === 5;
+
+    if (!isFriday) {
+      toast({
+        title: "Saque não disponível",
+        description: "Saques só podem ser realizados às sextas-feiras",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!pixKey) {
       toast({
         title: "Chave PIX obrigatória",
@@ -75,10 +109,10 @@ const Financial = () => {
       return;
     }
 
-    if (balance.available < 10) {
+    if (balance.available < 200) {
       toast({
         title: "Saldo insuficiente",
-        description: "Saldo mínimo para saque é R$ 10,00",
+        description: "Saldo mínimo para saque é R$ 200,00",
         variant: "destructive",
       });
       return;
@@ -119,7 +153,7 @@ const Financial = () => {
       } else {
         toast({
           title: "Saque processado!",
-          description: "A transferência foi iniciada",
+          description: "O pagamento será processado até terça-feira",
         });
       }
 
@@ -146,6 +180,10 @@ const Financial = () => {
     );
   }
 
+  const today = new Date();
+  const isFriday = today.getDay() === 5;
+  const canWithdraw = isFriday && balance.available >= 200;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -155,6 +193,25 @@ const Financial = () => {
             Gerencie suas comissões e saques
           </p>
         </div>
+
+        {userPlan && (
+          <Card className="border-secondary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Status do Plano</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-secondary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-secondary">
+                {userPlan.status === "active" ? "Ativo" : "Pendente"}
+              </div>
+              {userPlan.plan_end_date && (
+                <p className="text-xs text-muted-foreground">
+                  Válido até: {new Date(userPlan.plan_end_date).toLocaleDateString('pt-BR')}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
@@ -195,10 +252,20 @@ const Financial = () => {
           <CardHeader>
             <CardTitle>Solicitar Saque</CardTitle>
             <CardDescription>
-              Saque mínimo: R$ 10,00 | Taxa: 3% | Prazo: até 48h
+              Saque mínimo: R$ 200,00 | Disponível: Sextas-feiras | Taxa: 3%
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {!isFriday && (
+              <div className="bg-muted p-3 rounded-md text-sm text-muted-foreground">
+                ⚠️ Saques só podem ser realizados às sextas-feiras
+              </div>
+            )}
+            {isFriday && balance.available < 200 && (
+              <div className="bg-muted p-3 rounded-md text-sm text-muted-foreground">
+                ⚠️ Saldo insuficiente. Mínimo: R$ 200,00
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="pixKey">Chave PIX</Label>
               <Input
@@ -206,16 +273,20 @@ const Financial = () => {
                 placeholder="CPF, e-mail, telefone ou chave aleatória"
                 value={pixKey}
                 onChange={(e) => setPixKey(e.target.value)}
+                disabled={!canWithdraw}
               />
             </div>
             <Button
               onClick={handleWithdraw}
-              disabled={processing || balance.available < 10}
+              disabled={processing || !canWithdraw}
               className="w-full"
             >
               {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Solicitar Saque de R$ {balance.available.toFixed(2)}
             </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              💡 O pagamento será processado até, no máximo, terça-feira
+            </p>
           </CardContent>
         </Card>
 
