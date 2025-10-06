@@ -37,6 +37,34 @@ const Financial = () => {
 
   useEffect(() => {
     loadFinancialData();
+
+    // Escutar por novas comissões em tempo real
+    const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+    
+    const channel = supabase
+      .channel('financial-commissions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'commissions',
+          filter: `user_id=eq.${userData.id}`
+        },
+        (payload) => {
+          console.log('Nova comissão recebida no financeiro!', payload);
+          loadFinancialData(); // Recarregar dados
+          toast({
+            title: "Nova comissão!",
+            description: `Você recebeu R$ ${Number(payload.new.amount).toFixed(2)}`,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadFinancialData = async () => {

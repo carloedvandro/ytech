@@ -16,6 +16,34 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadStats();
+
+    // Escutar por novas comissões em tempo real
+    const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+    
+    const channel = supabase
+      .channel('commissions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'commissions',
+          filter: `user_id=eq.${userData.id}`
+        },
+        (payload) => {
+          console.log('Nova comissão recebida!', payload);
+          loadStats(); // Recarregar estatísticas
+          toast({
+            title: "Nova comissão recebida!",
+            description: `Você recebeu R$ ${Number(payload.new.amount).toFixed(2)} de comissão`,
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadStats = async () => {

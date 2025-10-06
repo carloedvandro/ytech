@@ -80,8 +80,8 @@ serve(async (req) => {
           payment_id: paymentId,
           amount: payment.plans.commission_l1,
           level: 1,
-          status: 'pending',
-          released_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'available',
+          released_at: new Date().toISOString(),
         });
       }
 
@@ -93,8 +93,8 @@ serve(async (req) => {
           payment_id: paymentId,
           amount: payment.plans.commission_l2_l4,
           level: i,
-          status: 'pending',
-          released_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'available',
+          released_at: new Date().toISOString(),
         });
       }
 
