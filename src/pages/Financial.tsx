@@ -34,9 +34,11 @@ const Financial = () => {
   });
   const [pixKey, setPixKey] = useState("");
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadFinancialData();
+    checkAdminRole();
 
     // Escutar por novas comissões em tempo real
     const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
@@ -66,6 +68,26 @@ const Financial = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const checkAdminRole = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+      if (!userData.id) return;
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (!error && data) {
+        setIsAdmin(true);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar role:", error);
+    }
+  };
 
   const loadFinancialData = async () => {
     try {
@@ -275,6 +297,50 @@ const Financial = () => {
             </CardContent>
           </Card>
         </div>
+
+        {isAdmin && (
+          <Card className="border-primary">
+            <CardHeader>
+              <CardTitle>Ferramentas de Administrador</CardTitle>
+              <CardDescription>
+                Funções exclusivas para administradores do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={async () => {
+                  setProcessing(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('fix-pending-commissions');
+                    
+                    if (error) throw error;
+
+                    toast({
+                      title: "Comissões atualizadas!",
+                      description: `${data?.message || 'Comissões liberadas'}`,
+                    });
+                    
+                    loadFinancialData();
+                  } catch (error: any) {
+                    toast({
+                      title: "Erro",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setProcessing(false);
+                  }
+                }}
+                disabled={processing}
+                variant="outline"
+                className="w-full"
+              >
+                {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Liberar Todas as Comissões Pendentes
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
