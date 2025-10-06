@@ -34,12 +34,13 @@ const Network = () => {
     try {
       const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
 
-      // Buscar rede do usuário
+      // Buscar TODA a rede do usuário (não só indicados diretos)
       const { data: networkData, error: networkError } = await supabase
         .from("user_network")
         .select(`
           level,
           user_id,
+          path,
           users!user_network_user_id_fkey (
             id,
             full_name,
@@ -48,14 +49,24 @@ const Network = () => {
             created_at
           )
         `)
-        .eq("parent_id", userData.id)
+        .contains("path", [userData.id])
+        .neq("user_id", userData.id) // Excluir o próprio usuário
         .order("level", { ascending: true });
 
       if (networkError) throw networkError;
 
+      // Buscar o nível do usuário logado para calcular níveis relativos
+      const { data: myLevel } = await supabase
+        .from("user_network")
+        .select("level")
+        .eq("user_id", userData.id)
+        .single();
+
+      const userLevel = myLevel?.level || 1;
+
       const formattedNetwork = networkData?.map((item: any) => ({
         ...item.users,
-        level: item.level,
+        level: item.level - userLevel, // Calcular nível relativo
       })) || [];
 
       setNetwork(formattedNetwork);
