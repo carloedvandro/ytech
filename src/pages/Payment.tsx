@@ -16,6 +16,7 @@ const Payment = () => {
   const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!paymentId) {
@@ -23,11 +24,32 @@ const Payment = () => {
       return;
     }
     loadPayment();
+    checkAdminRole();
     
     // Verificar status a cada 5 segundos
     const interval = setInterval(checkPaymentStatus, 5000);
     return () => clearInterval(interval);
   }, [paymentId]);
+
+  const checkAdminRole = async () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+      if (!userData.id) return;
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userData.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (!error && data) {
+        setIsAdmin(true);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar role:", error);
+    }
+  };
 
   const loadPayment = async () => {
     try {
@@ -243,35 +265,37 @@ const Payment = () => {
                 Confirmar Pagamento (Sandbox)
               </Button>
 
-              <Button
-                onClick={async () => {
-                  setChecking(true);
-                  try {
-                    const { data, error } = await supabase.functions.invoke('fix-pending-commissions');
-                    
-                    if (error) throw error;
+              {isAdmin && (
+                <Button
+                  onClick={async () => {
+                    setChecking(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('fix-pending-commissions');
+                      
+                      if (error) throw error;
 
-                    toast({
-                      title: "Comissões atualizadas!",
-                      description: `${data?.message || 'Comissões liberadas'}`,
-                    });
-                  } catch (error: any) {
-                    toast({
-                      title: "Erro",
-                      description: error.message,
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setChecking(false);
-                  }
-                }}
-                disabled={checking}
-                variant="outline"
-                className="w-full text-xs"
-              >
-                {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Liberar Comissões Pendentes (Admin)
-              </Button>
+                      toast({
+                        title: "Comissões atualizadas!",
+                        description: `${data?.message || 'Comissões liberadas'}`,
+                      });
+                    } catch (error: any) {
+                      toast({
+                        title: "Erro",
+                        description: error.message,
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setChecking(false);
+                    }
+                  }}
+                  disabled={checking}
+                  variant="outline"
+                  className="w-full text-xs"
+                >
+                  {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Liberar Comissões Pendentes (Admin)
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
