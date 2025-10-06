@@ -163,7 +163,7 @@ const Payment = () => {
           <CardContent className="flex flex-col items-center space-y-4">
             {payment.pix_qr_code && (
               <img 
-                src={payment.pix_qr_code} 
+                src={`data:image/png;base64,${payment.pix_qr_code}`} 
                 alt="QR Code PIX" 
                 className="w-64 h-64 border rounded-lg"
               />
