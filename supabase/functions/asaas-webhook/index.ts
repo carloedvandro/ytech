@@ -33,20 +33,55 @@ serve(async (req) => {
       event = await req.json();
     }
     
-    console.log('📥 Asaas webhook received:', {
-      event: event.event,
-      paymentId: event.payment?.externalReference,
-      asaasPaymentId: event.payment?.id,
-      status: event.payment?.status,
-      timestamp: new Date().toISOString()
-    });
-
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    const eventId = event.id;
     const paymentId = event.payment?.externalReference;
+    
+    console.log('📥 Asaas webhook received:', {
+      eventId,
+      event: event.event,
+      paymentId,
+      asaasPaymentId: event.payment?.id,
+      status: event.payment?.status,
+      timestamp: new Date().toISOString()
+    });
+
+    // 🔒 IDEMPOTÊNCIA: Verificar se este evento já foi processado
+    if (eventId) {
+      const { data: existingEvent } = await supabaseClient
+        .from('asaas_webhook_events')
+        .select('id')
+        .eq('event_id', eventId)
+        .maybeSingle();
+
+      if (existingEvent) {
+        console.log('✓ Evento já processado (duplicado):', {
+          eventId,
+          event: event.event,
+          message: 'Ignorando evento duplicado - retornando 200'
+        });
+        return new Response(
+          JSON.stringify({ received: true, message: 'Event already processed' }), 
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
+      // Registrar evento como processado ANTES de processar
+      await supabaseClient
+        .from('asaas_webhook_events')
+        .insert({
+          event_id: eventId,
+          event_type: event.event,
+          asaas_payment_id: event.payment?.id,
+          payment_id: paymentId,
+          metadata: event,
+          response_message: 'Processing started'
+        });
+    }
 
     // PAYMENT_CREATED - Nova cobrança criada
     if (event.event === 'PAYMENT_CREATED') {
