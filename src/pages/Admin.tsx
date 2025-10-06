@@ -36,9 +36,11 @@ const Admin = () => {
   const { data: currentUser } = useQuery({
     queryKey: ["current-user"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) throw new Error("Not authenticated");
 
+      const user = JSON.parse(storedUser);
+      
       const { data: isAdmin } = await supabase.rpc('has_role', {
         _user_id: user.id,
         _role: 'admin'
