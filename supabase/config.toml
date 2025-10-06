@@ -11,3 +11,7 @@ verify_jwt = false
 
 [functions.simulate-payment-confirmation]
 verify_jwt = true
+
+[functions.fix-pending-commissions]
+verify_jwt = false
+

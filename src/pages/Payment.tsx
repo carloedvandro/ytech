@@ -242,6 +242,36 @@ const Payment = () => {
                 {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar Pagamento (Sandbox)
               </Button>
+
+              <Button
+                onClick={async () => {
+                  setChecking(true);
+                  try {
+                    const { data, error } = await supabase.functions.invoke('fix-pending-commissions');
+                    
+                    if (error) throw error;
+
+                    toast({
+                      title: "Comissões atualizadas!",
+                      description: `${data?.message || 'Comissões liberadas'}`,
+                    });
+                  } catch (error: any) {
+                    toast({
+                      title: "Erro",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setChecking(false);
+                  }
+                }}
+                disabled={checking}
+                variant="outline"
+                className="w-full text-xs"
+              >
+                {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Liberar Comissões Pendentes (Admin)
+              </Button>
             </div>
           </CardContent>
         </Card>

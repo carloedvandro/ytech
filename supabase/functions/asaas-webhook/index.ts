@@ -78,49 +78,59 @@ serve(async (req) => {
         .eq('id', payment.user_id);
 
       // Processar comissões MLM
-      const { data: userNetwork } = await supabaseClient
+      const { data: network } = await supabaseClient
         .from('user_network')
-        .select('user_id, level')
+        .select('path')
         .eq('user_id', payment.user_id)
         .single();
 
-      if (userNetwork && userNetwork.user_id) {
-        // Buscar hierarquia de referidos
-        const { data: parents } = await supabaseClient
-          .from('user_network')
-          .select('parent_id, level')
-          .eq('user_id', payment.user_id);
+      console.log('Network data for user:', payment.user_id, network);
 
-        if (parents && parents.length > 0) {
-          const commissions = [];
+      if (network && network.path && network.path.length > 1) {
+        const commissions = [];
+        const path = network.path;
+
+        // Nível 1 (indicador direto)
+        if (path.length >= 2) {
+          commissions.push({
+            user_id: path[path.length - 2],
+            referred_user_id: payment.user_id,
+            payment_id: paymentId,
+            amount: payment.plans.commission_l1,
+            level: 1,
+            status: 'available',
+            released_at: new Date().toISOString(),
+          });
+        }
+
+        // Níveis 2-4
+        for (let i = 2; i <= 4 && path.length > i; i++) {
+          commissions.push({
+            user_id: path[path.length - (i + 1)],
+            referred_user_id: payment.user_id,
+            payment_id: paymentId,
+            amount: payment.plans.commission_l2_l4,
+            level: i,
+            status: 'available',
+            released_at: new Date().toISOString(),
+          });
+        }
+
+        if (commissions.length > 0) {
+          console.log('Creating commissions:', JSON.stringify(commissions, null, 2));
           
-          // Criar comissões para cada nível
-          for (let level = 1; level <= 4; level++) {
-            const parent = parents.find(p => p.level === level);
-            if (!parent || !parent.parent_id) continue;
+          const { data: insertedCommissions, error: commError } = await supabaseClient
+            .from('commissions')
+            .insert(commissions)
+            .select();
 
-            const commissionAmount = level === 1 
-              ? Number(payment.plans.commission_l1)
-              : Number(payment.plans.commission_l2_l4);
-
-            commissions.push({
-              user_id: parent.parent_id,
-              referred_user_id: payment.user_id,
-              payment_id: paymentId,
-              level: level,
-              amount: commissionAmount,
-              status: 'pending',
-              released_at: null,
-            });
+          if (commError) {
+            console.error('Error inserting commissions:', commError);
+          } else {
+            console.log('Commissions successfully created:', insertedCommissions);
           }
-
-          if (commissions.length > 0) {
-            await supabaseClient
-              .from('commissions')
-              .insert(commissions);
-
-            console.log(`Created ${commissions.length} commissions`);
-          }
+        } else {
+          console.log('No commissions to create - network path too short');
         }
       }
 
