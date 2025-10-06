@@ -40,7 +40,7 @@ serve(async (req) => {
         'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
       },
       body: JSON.stringify({
-        customer: payment.users.id,
+        customer: payment.users.cpf.replace(/\D/g, ''),
         billingType: 'PIX',
         value: Number(payment.amount),
         dueDate: new Date(Date.now() + 30 * 60 * 1000).toISOString().split('T')[0],
