@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { PlanSelector } from "./PlanSelector";
+import { supabase } from "@/integrations/supabase/client";
 
 interface User {
   id: string;
@@ -20,22 +21,39 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
   const [showPlanSelector, setShowPlanSelector] = useState(false);
 
   useEffect(() => {
-    const sessionData = localStorage.getItem("user_session");
-    if (!sessionData) {
-      navigate("/login");
-      return;
-    }
+    const loadUser = async () => {
+      const sessionData = localStorage.getItem("user_session");
+      if (!sessionData) {
+        navigate("/login");
+        return;
+      }
 
-    const userData = JSON.parse(sessionData);
-    setUser(userData);
+      const localUser = JSON.parse(sessionData);
+      
+      // Buscar dados atualizados do banco
+      const { data: updatedUser } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", localUser.id)
+        .single();
 
-    // Se pending_payment E não está em checkout/payment, forçar seleção de plano
-    const isCheckoutOrPayment = location.pathname.includes("/checkout") || location.pathname.includes("/payment");
-    if (userData.status === "pending_payment" && !isCheckoutOrPayment) {
-      setShowPlanSelector(true);
-    } else {
-      setShowPlanSelector(false);
-    }
+      if (updatedUser) {
+        localStorage.setItem("user_session", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+
+        // Se pending_payment E não está em checkout/payment, forçar seleção de plano
+        const isCheckoutOrPayment = location.pathname.includes("/checkout") || location.pathname.includes("/payment");
+        if (updatedUser.status === "pending_payment" && !isCheckoutOrPayment) {
+          setShowPlanSelector(true);
+        } else {
+          setShowPlanSelector(false);
+        }
+      } else {
+        setUser(localUser);
+      }
+    };
+
+    loadUser();
   }, [navigate, location.pathname]);
 
   if (!user) return null;
