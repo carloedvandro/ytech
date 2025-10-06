@@ -36,7 +36,7 @@ const Admin = () => {
   const { data: currentUser } = useQuery({
     queryKey: ["current-user"],
     queryFn: async () => {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user_session");
       if (!storedUser) throw new Error("Not authenticated");
 
       const user = JSON.parse(storedUser);
