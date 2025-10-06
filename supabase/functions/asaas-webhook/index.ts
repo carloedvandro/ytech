@@ -41,7 +41,8 @@ serve(async (req) => {
     
     console.log('📥 Webhook:', { eventId, event: event.event, paymentId });
 
-    // 🔒 Verificar idempotência
+    // 🔒 Verificar idempotência - SEM AWAIT para resposta instantânea
+    let isDuplicate = false;
     if (eventId) {
       const { data: existingEvent } = await supabaseClient
         .from('asaas_webhook_events')
@@ -50,33 +51,39 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existingEvent) {
+        isDuplicate = true;
         console.log('✓ Duplicado:', eventId);
-        return new Response(
-          JSON.stringify({ received: true }), 
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
       }
-
-      // Registrar IMEDIATAMENTE
-      await supabaseClient
-        .from('asaas_webhook_events')
-        .insert({
-          event_id: eventId,
-          event_type: event.event,
-          asaas_payment_id: event.payment?.id,
-          payment_id: paymentId,
-          metadata: event,
-          response_message: 'Processing'
-        });
     }
 
-    // ⚡ RETORNAR 200 IMEDIATAMENTE
-    console.log('✓ 200 OK - Processing async');
-    
-    // 🔄 Processar de forma assíncrona
+    // ⚡ RETORNAR 200 IMEDIATAMENTE (antes de qualquer processamento)
+    const response = new Response(
+      JSON.stringify({ received: true }), 
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+    // Se é duplicado, retornar sem processar
+    if (isDuplicate) {
+      return response;
+    }
+    // 🔄 Processar de forma assíncrona (sem bloquear resposta)
     const processAsync = async () => {
       try {
-        console.log('🔄 Async processing started:', event.event);
+        // Registrar evento no banco DENTRO do processamento assíncrono
+        if (eventId) {
+          await supabaseClient
+            .from('asaas_webhook_events')
+            .insert({
+              event_id: eventId,
+              event_type: event.event,
+              asaas_payment_id: event.payment?.id,
+              payment_id: paymentId,
+              metadata: event,
+              response_message: 'Processing'
+            });
+        }
+
+        console.log('🔄 Processing:', event.event);
 
         // PAYMENT_CREATED
         if (event.event === 'PAYMENT_CREATED') {
@@ -397,14 +404,9 @@ serve(async (req) => {
       }
     };
 
-    // Iniciar processamento assíncrono (não aguardar)
+    // Iniciar processamento assíncrono (não aguardar) e retornar resposta
     processAsync().catch(err => console.error('Background error:', err));
-
-    // Retornar 200 imediatamente
-    return new Response(
-      JSON.stringify({ received: true }), 
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return response;
 
   } catch (error) {
     console.error('❌ Webhook error:', error instanceof Error ? error.message : 'Unknown');
