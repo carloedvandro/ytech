@@ -86,13 +86,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "commissions_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payments"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "commissions_referred_user_id_fkey"
             columns: ["referred_user_id"]
             isOneToOne: false
