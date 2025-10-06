@@ -186,15 +186,51 @@ const Payment = () => {
               </div>
             </div>
 
-            <Button
-              onClick={checkPaymentStatus}
-              disabled={checking}
-              variant="outline"
-              className="w-full"
-            >
-              {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Verificar Pagamento
-            </Button>
+            <div className="w-full space-y-2">
+              <Button
+                onClick={checkPaymentStatus}
+                disabled={checking}
+                variant="outline"
+                className="w-full"
+              >
+                {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Verificar Pagamento
+              </Button>
+
+              <Button
+                onClick={async () => {
+                  setChecking(true);
+                  try {
+                    const { error } = await supabase.functions.invoke('simulate-payment-confirmation', {
+                      body: { paymentId }
+                    });
+
+                    if (error) throw error;
+
+                    toast({
+                      title: "Pagamento confirmado!",
+                      description: "Simulação em ambiente sandbox.",
+                    });
+                    
+                    setTimeout(() => navigate("/dashboard"), 1500);
+                  } catch (error: any) {
+                    toast({
+                      title: "Erro",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setChecking(false);
+                  }
+                }}
+                disabled={checking}
+                variant="secondary"
+                className="w-full"
+              >
+                {checking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar Pagamento (Sandbox)
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.asaas-webhook]
 verify_jwt = false
+
+[functions.simulate-payment-confirmation]
+verify_jwt = true
