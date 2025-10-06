@@ -1,10 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const event = await req.json();
-    console.log('Asaas webhook received:', event);
+    console.log('Asaas webhook received:', JSON.stringify(event, null, 2));
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -16,7 +26,10 @@ serve(async (req) => {
     // PAYMENT_CREATED - Nova cobrança criada
     if (event.event === 'PAYMENT_CREATED') {
       console.log('Payment created:', paymentId);
-      // Apenas log, já criamos o pagamento antes
+      return new Response(
+        JSON.stringify({ received: true, message: 'Payment created event logged' }), 
+        { status: 200, headers: corsHeaders }
+      );
     }
 
     // PAYMENT_UPDATED - Cobrança atualizada
@@ -32,6 +45,10 @@ serve(async (req) => {
         .eq('id', paymentId);
 
       console.log('Payment updated:', paymentId);
+      return new Response(
+        JSON.stringify({ received: true, message: 'Payment updated' }), 
+        { status: 200, headers: corsHeaders }
+      );
     }
 
     // PAYMENT_AUTHORIZED - Pagamento autorizado (cartão)
@@ -46,6 +63,10 @@ serve(async (req) => {
         .eq('id', paymentId);
 
       console.log('Payment authorized:', paymentId);
+      return new Response(
+        JSON.stringify({ received: true, message: 'Payment authorized' }), 
+        { status: 200, headers: corsHeaders }
+      );
     }
 
     // PAYMENT_CONFIRMED ou PAYMENT_RECEIVED - Pagamento confirmado
@@ -59,7 +80,10 @@ serve(async (req) => {
 
       if (paymentError || !payment) {
         console.error('Payment not found:', paymentError);
-        return new Response(JSON.stringify({ received: true }), { status: 200 });
+        return new Response(
+          JSON.stringify({ received: true, message: 'Payment not found' }), 
+          { status: 200, headers: corsHeaders }
+        );
       }
 
       // Buscar plano
@@ -71,7 +95,10 @@ serve(async (req) => {
 
       if (planError || !plan) {
         console.error('Plan not found:', planError);
-        return new Response(JSON.stringify({ received: true }), { status: 200 });
+        return new Response(
+          JSON.stringify({ received: true, message: 'Plan not found' }), 
+          { status: 200, headers: corsHeaders }
+        );
       }
 
       // Atualizar pagamento para concluído
@@ -147,6 +174,10 @@ serve(async (req) => {
       }
 
       console.log('Payment confirmed and commissions created');
+      return new Response(
+        JSON.stringify({ received: true, message: 'Payment confirmed and commissions created' }), 
+        { status: 200, headers: corsHeaders }
+      );
     }
 
     // PAYMENT_OVERDUE - Cobrança vencida
@@ -162,6 +193,10 @@ serve(async (req) => {
         .eq('id', paymentId);
 
       console.log('Payment overdue:', paymentId);
+      return new Response(
+        JSON.stringify({ received: true, message: 'Payment overdue' }), 
+        { status: 200, headers: corsHeaders }
+      );
     }
 
     // PAYMENT_DELETED - Cobrança removida
@@ -177,6 +212,10 @@ serve(async (req) => {
         .eq('id', paymentId);
 
       console.log('Payment deleted:', paymentId);
+      return new Response(
+        JSON.stringify({ received: true, message: 'Payment deleted' }), 
+        { status: 200, headers: corsHeaders }
+      );
     }
 
     // Processar evento de transferência
@@ -200,15 +239,27 @@ serve(async (req) => {
           .eq('id', transaction.id);
 
         console.log('Transfer confirmed');
+        return new Response(
+          JSON.stringify({ received: true, message: 'Transfer confirmed' }), 
+          { status: 200, headers: corsHeaders }
+        );
       }
     }
 
-    return new Response(JSON.stringify({ received: true }), { status: 200 });
+    // Evento não tratado - retornar sucesso mesmo assim
+    console.log('Unhandled event type:', event.event);
+    return new Response(
+      JSON.stringify({ received: true, message: 'Event received but not processed' }), 
+      { status: 200, headers: corsHeaders }
+    );
   } catch (error) {
     console.error('Webhook error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), 
-      { status: 400 }
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        received: true 
+      }), 
+      { status: 200, headers: corsHeaders }
     );
   }
 });
