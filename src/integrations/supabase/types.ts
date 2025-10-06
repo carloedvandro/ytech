@@ -254,6 +254,44 @@ export type Database = {
           },
         ]
       }
+      user_deletion_logs: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          deleted_by_admin_id: string
+          deleted_data: Json | null
+          deleted_user_id: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          deleted_by_admin_id: string
+          deleted_data?: Json | null
+          deleted_user_id: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          deleted_by_admin_id?: string
+          deleted_data?: Json | null
+          deleted_user_id?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_deletion_logs_deleted_by_admin_id_fkey"
+            columns: ["deleted_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_network: {
         Row: {
           created_at: string | null
@@ -329,6 +367,7 @@ export type Database = {
         Row: {
           cpf: string
           created_at: string | null
+          deleted_at: string | null
           email: string | null
           full_name: string
           id: string
@@ -343,6 +382,7 @@ export type Database = {
         Insert: {
           cpf: string
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           full_name: string
           id?: string
@@ -357,6 +397,7 @@ export type Database = {
         Update: {
           cpf?: string
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           full_name?: string
           id?: string
@@ -486,7 +527,12 @@ export type Database = {
       plan_type: "basic" | "premium" | "vip"
       transaction_status: "pending" | "processing" | "completed" | "failed"
       transaction_type: "withdrawal" | "commission_release" | "payment"
-      user_status: "pending_payment" | "active" | "inactive"
+      user_status:
+        | "pending_payment"
+        | "active"
+        | "inactive"
+        | "suspended"
+        | "deleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -619,7 +665,13 @@ export const Constants = {
       plan_type: ["basic", "premium", "vip"],
       transaction_status: ["pending", "processing", "completed", "failed"],
       transaction_type: ["withdrawal", "commission_release", "payment"],
-      user_status: ["pending_payment", "active", "inactive"],
+      user_status: [
+        "pending_payment",
+        "active",
+        "inactive",
+        "suspended",
+        "deleted",
+      ],
     },
   },
 } as const
