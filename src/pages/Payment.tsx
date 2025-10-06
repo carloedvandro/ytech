@@ -207,6 +207,18 @@ const Payment = () => {
 
                     if (error) throw error;
 
+                    // Atualizar dados do usuário no localStorage
+                    const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+                    const { data: updatedUser } = await supabase
+                      .from("users")
+                      .select("*")
+                      .eq("id", userData.id)
+                      .single();
+
+                    if (updatedUser) {
+                      localStorage.setItem("user_session", JSON.stringify(updatedUser));
+                    }
+
                     toast({
                       title: "Pagamento confirmado!",
                       description: "Simulação em ambiente sandbox.",
