@@ -41,37 +41,18 @@ serve(async (req) => {
     
     console.log('📥 Webhook:', { eventId, event: event.event, paymentId });
 
-    // 🔒 Verificar idempotência - SEM AWAIT para resposta instantânea
-    let isDuplicate = false;
-    if (eventId) {
-      const { data: existingEvent } = await supabaseClient
-        .from('asaas_webhook_events')
-        .select('id')
-        .eq('event_id', eventId)
-        .maybeSingle();
-
-      if (existingEvent) {
-        isDuplicate = true;
-        console.log('✓ Duplicado:', eventId);
-      }
-    }
-
-    // ⚡ RETORNAR 200 IMEDIATAMENTE (antes de qualquer processamento)
+    // ⚡ RETORNAR 200 INSTANTANEAMENTE (sem nenhuma operação de banco)
     const response = new Response(
       JSON.stringify({ received: true }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-    // Se é duplicado, retornar sem processar
-    if (isDuplicate) {
-      return response;
-    }
     // 🔄 Processar de forma assíncrona (sem bloquear resposta)
     const processAsync = async () => {
       try {
-        // Registrar evento no banco DENTRO do processamento assíncrono
+        // Registrar evento no banco com ON CONFLICT para idempotência
         if (eventId) {
-          await supabaseClient
+          const { error: insertError } = await supabaseClient
             .from('asaas_webhook_events')
             .insert({
               event_id: eventId,
@@ -81,6 +62,15 @@ serve(async (req) => {
               metadata: event,
               response_message: 'Processing'
             });
+          
+          // Se deu erro de constraint (duplicata), ignorar
+          if (insertError) {
+            if (insertError.code === '23505') {
+              console.log('✓ Duplicado:', eventId);
+              return;
+            }
+            throw insertError;
+          }
         }
 
         console.log('🔄 Processing:', event.event);
