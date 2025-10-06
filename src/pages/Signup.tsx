@@ -205,7 +205,7 @@ const Signup = () => {
       if (looksLikeUUID) {
         // Tentar primeiro como UUID
         const { data: referrerById } = await supabase
-          .from("users")
+          .from("profiles")
           .select("id")
           .eq("id", referralCode)
           .maybeSingle();
@@ -218,7 +218,7 @@ const Signup = () => {
       // Se não encontrou por UUID ou não parece UUID, tentar como username
       if (!referrer) {
         const { data: referrerByUsername } = await supabase
-          .from("users")
+          .from("profiles")
           .select("id")
           .eq("username", referralCode)
           .maybeSingle();
@@ -236,27 +236,28 @@ const Signup = () => {
         return;
       }
 
-      // 2. Criar hash da senha (em produção usar bcrypt no backend)
-      const passwordHash = btoa(data.password); // TEMPORÁRIO - usar bcrypt no backend
+      // 2. Criar usuário no Supabase Auth
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: data.fullName,
+            cpf: data.cpf,
+            whatsapp: data.whatsapp,
+            referred_by: referrer.id,
+          }
+        }
+      });
 
-      // 3. Inserir usuário
-      const { data: newUser, error: insertError } = await supabase
-        .from("users")
-        .insert({
-          full_name: data.fullName,
-          email: data.email,
-          cpf: data.cpf,
-          whatsapp: data.whatsapp,
-          password_hash: passwordHash,
-          referred_by: referrer.id,
-          status: "pending_payment",
-        })
-        .select()
-        .single();
+      if (signUpError) throw signUpError;
 
-      if (insertError) throw insertError;
+      if (!authData.user) {
+        throw new Error('Erro ao criar usuário');
+      }
 
-      // 4. Enviar mensagem de boas-vindas no WhatsApp
+      // 3. Enviar mensagem de boas-vindas no WhatsApp
       try {
         await supabase.functions.invoke("send-whatsapp-notification", {
           body: {
@@ -267,9 +268,9 @@ const Signup = () => {
               email: data.email,
               whatsapp: data.whatsapp,
               cpf: data.cpf,
-              loginUrl: "https://ytech.yrwentechnology.com.br/login",
+              loginUrl: window.location.origin + "/login",
             },
-            userId: newUser?.id,
+            userId: authData.user.id,
           },
         });
       } catch (whatsappError) {
@@ -279,14 +280,15 @@ const Signup = () => {
 
       toast({
         title: "Cadastro realizado!",
-        description: "Você será redirecionado para escolher seu plano",
+        description: "Faça login para continuar",
       });
 
-      // Redirecionar para dashboard/login
+      // Redirecionar para login
       setTimeout(() => {
         navigate("/login");
       }, 2000);
     } catch (error: any) {
+      console.error('Signup error:', error);
       toast({
         title: "Erro ao cadastrar",
         description: error.message,

@@ -5,23 +5,24 @@ import { Users, DollarSign, TrendingUp, Share2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UsernameManager } from "@/components/UsernameManager";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const { profile, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalReferrals: 0,
     totalCommissions: 0,
     availableBalance: 0,
   });
-  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
+    if (!profile?.id) return;
+
     loadStats();
 
     // Escutar por novas comissões em tempo real
-    const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
-    
     const channel = supabase
       .channel('commissions-changes')
       .on(
@@ -30,11 +31,11 @@ const Dashboard = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'commissions',
-          filter: `user_id=eq.${userData.id}`
+          filter: `user_id=eq.${profile.id}`
         },
         (payload) => {
           console.log('Nova comissão recebida!', payload);
-          loadStats(); // Recarregar estatísticas
+          loadStats();
           toast({
             title: "Nova comissão recebida!",
             description: `Você recebeu R$ ${Number(payload.new.amount).toFixed(2)} de comissão`,
@@ -46,34 +47,18 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [profile?.id]);
 
   const loadStats = async () => {
+    if (!profile?.id) return;
+
     try {
-      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
-      
-      // Verificar se o usuário está logado
-      if (!userData.id) {
-        console.log("Usuário não está logado");
-        return;
-      }
-
-      // Buscar dados completos do usuário
-      const { data: user, error: userError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", userData.id)
-        .single();
-
-      if (userError) throw userError;
-      setUserData(user);
-
       // Buscar total de indicações (toda a rede)
       const { data: networkData, error: networkError } = await supabase
         .from("user_network")
         .select("id")
-        .contains("path", [userData.id])
-        .neq("user_id", userData.id);
+        .contains("path", [profile.id])
+        .neq("user_id", profile.id);
 
       if (networkError) throw networkError;
 
@@ -81,7 +66,7 @@ const Dashboard = () => {
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
         .select("amount, status")
-        .eq("user_id", userData.id);
+        .eq("user_id", profile.id);
 
       if (commissionsError) throw commissionsError;
 
@@ -115,10 +100,14 @@ const Dashboard = () => {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </DashboardLayout>
     );
+  }
+
+  if (!profile) {
+    return null;
   }
 
   return (
@@ -193,20 +182,11 @@ const Dashboard = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {userData && (
-              <UsernameManager
-                userId={userData.id}
-                currentUsername={userData.username}
-                onUsernameUpdate={(newUsername) => {
-                  setUserData({ ...userData, username: newUsername });
-                  // Atualizar localStorage também
-                  localStorage.setItem(
-                    "user_session",
-                    JSON.stringify({ ...userData, username: newUsername })
-                  );
-                }}
-              />
-            )}
+            <UsernameManager
+              userId={profile.id}
+              currentUsername={profile.username || null}
+              onUsernameUpdate={refreshProfile}
+            />
           </CardContent>
         </Card>
 
@@ -223,17 +203,17 @@ const Dashboard = () => {
                 type="text"
                 readOnly
                 value={
-                  userData?.username
-                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData.username}`
-                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData?.id || ""}`
+                  profile.username
+                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.username}`
+                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.id}`
                 }
                 className="flex-1 px-4 py-2 border rounded-md bg-muted"
               />
               <button
                 onClick={() => {
-                  const link = userData?.username
-                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData.username}`
-                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${userData?.id || ""}`;
+                  const link = profile.username
+                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.username}`
+                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.id}`;
                   navigator.clipboard.writeText(link);
                   toast({
                     title: "Link copiado!",

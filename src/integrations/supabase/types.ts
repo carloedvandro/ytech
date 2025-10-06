@@ -233,6 +233,59 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          cpf: string
+          created_at: string | null
+          deleted_at: string | null
+          full_name: string
+          id: string
+          last_login: string | null
+          metadata: Json | null
+          referred_by: string | null
+          status: Database["public"]["Enums"]["user_status"] | null
+          updated_at: string | null
+          username: string | null
+          whatsapp: string
+        }
+        Insert: {
+          cpf: string
+          created_at?: string | null
+          deleted_at?: string | null
+          full_name: string
+          id: string
+          last_login?: string | null
+          metadata?: Json | null
+          referred_by?: string | null
+          status?: Database["public"]["Enums"]["user_status"] | null
+          updated_at?: string | null
+          username?: string | null
+          whatsapp: string
+        }
+        Update: {
+          cpf?: string
+          created_at?: string | null
+          deleted_at?: string | null
+          full_name?: string
+          id?: string
+          last_login?: string | null
+          metadata?: Json | null
+          referred_by?: string | null
+          status?: Database["public"]["Enums"]["user_status"] | null
+          updated_at?: string | null
+          username?: string | null
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number
@@ -397,6 +450,7 @@ export type Database = {
       }
       users: {
         Row: {
+          auth_user_id: string | null
           cpf: string
           created_at: string | null
           deleted_at: string | null
@@ -405,6 +459,7 @@ export type Database = {
           id: string
           last_login: string | null
           metadata: Json | null
+          migrated_to_auth: boolean | null
           password_hash: string
           referred_by: string | null
           status: Database["public"]["Enums"]["user_status"] | null
@@ -413,6 +468,7 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          auth_user_id?: string | null
           cpf: string
           created_at?: string | null
           deleted_at?: string | null
@@ -421,6 +477,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           metadata?: Json | null
+          migrated_to_auth?: boolean | null
           password_hash: string
           referred_by?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
@@ -429,6 +486,7 @@ export type Database = {
           whatsapp: string
         }
         Update: {
+          auth_user_id?: string | null
           cpf?: string
           created_at?: string | null
           deleted_at?: string | null
@@ -437,6 +495,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           metadata?: Json | null
+          migrated_to_auth?: boolean | null
           password_hash?: string
           referred_by?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null

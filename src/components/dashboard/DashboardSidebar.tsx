@@ -1,7 +1,8 @@
 import { Home, Users, DollarSign, LogOut, Shield } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -32,7 +33,7 @@ const menuItems = [
 
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const { open } = useSidebar();
-  const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   // Verificar se o usuário é admin
   const { data: isAdmin } = useQuery({
@@ -48,11 +49,6 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       return !!data;
     },
   });
-
-  const handleLogout = () => {
-    localStorage.removeItem("user_session");
-    navigate("/login");
-  };
 
   return (
     <Sidebar collapsible="icon">
@@ -95,7 +91,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
               )}
 
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout}>
+                <SidebarMenuButton onClick={signOut}>
                   <LogOut className="h-4 w-4" />
                   {open && <span>Sair</span>}
                 </SidebarMenuButton>

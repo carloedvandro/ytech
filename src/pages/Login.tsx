@@ -34,43 +34,36 @@ const Login = () => {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      // Buscar usuário pelo email
-      const { data: user, error: userError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", data.email)
-        .maybeSingle();
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
 
-      if (userError || !user) {
+      if (error) {
         toast({
           title: "Erro ao fazer login",
-          description: "Email ou senha incorretos",
+          description: error.message === 'Invalid login credentials' 
+            ? 'Email ou senha incorretos'
+            : error.message,
           variant: "destructive",
         });
-        setLoading(false);
         return;
       }
 
-      // Verificar senha (temporário - usar bcrypt no backend)
-      const passwordHash = btoa(data.password);
-      if (user.password_hash !== passwordHash) {
+      if (!authData.user) {
         toast({
           title: "Erro ao fazer login",
-          description: "Email ou senha incorretos",
+          description: "Erro inesperado. Tente novamente.",
           variant: "destructive",
         });
-        setLoading(false);
         return;
       }
 
-      // Atualizar last_login
+      // Atualizar last_login no profile
       await supabase
-        .from("users")
+        .from("profiles")
         .update({ last_login: new Date().toISOString() })
-        .eq("id", user.id);
-
-      // Salvar sessão no localStorage
-      localStorage.setItem("user_session", JSON.stringify(user));
+        .eq("id", authData.user.id);
 
       toast({
         title: "Login realizado!",
@@ -79,6 +72,7 @@ const Login = () => {
 
       navigate("/dashboard");
     } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Erro ao fazer login",
         description: error.message,

@@ -40,7 +40,7 @@ export const UsernameManager = ({ userId, currentUsername, onUsernameUpdate }: U
     setChecking(true);
     try {
       const { data, error } = await supabase
-        .from("users")
+        .from("profiles")
         .select("id")
         .eq("username", value)
         .maybeSingle();
@@ -101,7 +101,7 @@ export const UsernameManager = ({ userId, currentUsername, onUsernameUpdate }: U
     setLoading(true);
     try {
       const { error } = await supabase
-        .from("users")
+        .from("profiles")
         .update({ username })
         .eq("id", userId);
 
