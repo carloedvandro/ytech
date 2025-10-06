@@ -56,11 +56,17 @@ serve(async (req) => {
     if (userError) throw userError;
 
     // Buscar rede do usuário para calcular comissões
-    const { data: network } = await supabaseClient
+    const { data: network, error: networkError } = await supabaseClient
       .from('user_network')
       .select('path')
       .eq('user_id', payment.user_id)
       .single();
+
+    console.log('Network data for user:', payment.user_id, network);
+    
+    if (networkError) {
+      console.error('Error fetching network:', networkError);
+    }
 
     if (network && network.path && network.path.length > 1) {
       const commissions = [];
@@ -93,15 +99,21 @@ serve(async (req) => {
       }
 
       if (commissions.length > 0) {
-        const { error: commError } = await supabaseClient
+        console.log('Creating commissions:', JSON.stringify(commissions, null, 2));
+        
+        const { data: insertedCommissions, error: commError } = await supabaseClient
           .from('commissions')
-          .insert(commissions);
+          .insert(commissions)
+          .select();
 
         if (commError) {
           console.error('Error inserting commissions:', commError);
+          throw commError;
         } else {
-          console.log('Commissions inserted:', commissions.length);
+          console.log('Commissions successfully created:', insertedCommissions);
         }
+      } else {
+        console.log('No commissions to create - network path too short');
       }
     }
 
