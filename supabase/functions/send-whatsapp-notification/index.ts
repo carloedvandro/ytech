@@ -103,17 +103,19 @@ Deno.serve(async (req) => {
     console.log(`📱 Enviando ${messageType} para ${formattedNumber}`);
 
     // Enviar via Mega API
-    const megaUrl = `https://${megaApiHost}/message/sendText/${megaInstanceKey}`;
+    const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
     
     const megaResponse = await fetch(megaUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': megaToken
+        'Authorization': `Bearer ${megaToken}`
       },
       body: JSON.stringify({
-        number: formattedNumber,
-        text: message
+        messageData: {
+          to: formattedNumber,
+          text: message
+        }
       })
     });
 
