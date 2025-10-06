@@ -116,7 +116,7 @@ const Network = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Minha Rede MLM</h1>
+          <h1 className="text-3xl font-bold">Minha Rede MMN</h1>
           <p className="text-muted-foreground">
             Visualize todos os usuários da sua rede em 4 níveis
           </p>
