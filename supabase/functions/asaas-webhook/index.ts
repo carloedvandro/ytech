@@ -13,7 +13,26 @@ serve(async (req) => {
   }
 
   try {
-    const event = await req.json();
+    // Asaas pode enviar dados como JSON ou form-urlencoded
+    const contentType = req.headers.get('content-type') || '';
+    let event;
+    
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      // Parsear form data
+      const formData = await req.text();
+      const params = new URLSearchParams(formData);
+      const dataParam = params.get('data');
+      
+      if (!dataParam) {
+        throw new Error('No data parameter found in form data');
+      }
+      
+      event = JSON.parse(dataParam);
+    } else {
+      // Parsear como JSON direto
+      event = await req.json();
+    }
+    
     console.log('Asaas webhook received:', JSON.stringify(event, null, 2));
 
     const supabaseClient = createClient(
