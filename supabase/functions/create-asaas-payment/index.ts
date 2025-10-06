@@ -23,6 +23,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Log da chave API (apenas os primeiros e últimos caracteres para segurança)
+    const apiKey = Deno.env.get('ASAAS_API_KEY') ?? '';
+    console.log('Asaas API Key (masked):', apiKey.substring(0, 20) + '...' + apiKey.substring(apiKey.length - 10));
+    console.log('Asaas API Key starts with $aact_prod:', apiKey.startsWith('$aact_prod'));
+
     // Buscar dados do pagamento
     const { data: payment, error: paymentError } = await supabaseClient
       .from('payments')
