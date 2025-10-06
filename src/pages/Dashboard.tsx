@@ -25,7 +25,7 @@ const Dashboard = () => {
       // Buscar total de indicações (toda a rede)
       const { data: networkData, error: networkError } = await supabase
         .from("user_network")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .contains("path", [userData.id])
         .neq("user_id", userData.id);
 
