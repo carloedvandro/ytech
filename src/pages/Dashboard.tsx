@@ -21,6 +21,12 @@ const Dashboard = () => {
   const loadStats = async () => {
     try {
       const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+      
+      // Verificar se o usuário está logado
+      if (!userData.id) {
+        console.log("Usuário não está logado");
+        return;
+      }
 
       // Buscar total de indicações (toda a rede)
       const { data: networkData, error: networkError } = await supabase
