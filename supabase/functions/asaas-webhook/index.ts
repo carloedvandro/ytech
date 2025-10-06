@@ -53,12 +53,24 @@ serve(async (req) => {
       // Buscar pagamento
       const { data: payment, error: paymentError } = await supabaseClient
         .from('payments')
-        .select('*, plans!payments_plan_id_fkey(*)')
+        .select('*')
         .eq('id', paymentId)
         .single();
 
-      if (paymentError) {
+      if (paymentError || !payment) {
         console.error('Payment not found:', paymentError);
+        return new Response(JSON.stringify({ received: true }), { status: 200 });
+      }
+
+      // Buscar plano
+      const { data: plan, error: planError } = await supabaseClient
+        .from('plans')
+        .select('*')
+        .eq('id', payment.plan_id)
+        .single();
+
+      if (planError || !plan) {
+        console.error('Plan not found:', planError);
         return new Response(JSON.stringify({ received: true }), { status: 200 });
       }
 
@@ -96,7 +108,7 @@ serve(async (req) => {
             user_id: path[path.length - 2],
             referred_user_id: payment.user_id,
             payment_id: paymentId,
-            amount: payment.plans.commission_l1,
+            amount: plan.commission_l1,
             level: 1,
             status: 'available',
             released_at: new Date().toISOString(),
@@ -109,7 +121,7 @@ serve(async (req) => {
             user_id: path[path.length - (i + 1)],
             referred_user_id: payment.user_id,
             payment_id: paymentId,
-            amount: payment.plans.commission_l2_l4,
+            amount: plan.commission_l2_l4,
             level: i,
             status: 'available',
             released_at: new Date().toISOString(),
