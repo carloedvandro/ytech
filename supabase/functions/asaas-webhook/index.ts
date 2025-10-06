@@ -135,21 +135,54 @@ serve(async (req) => {
     }
 
     // PAYMENT_CONFIRMED ou PAYMENT_RECEIVED - Pagamento confirmado
-    if ((event.event === 'PAYMENT_CONFIRMED' || event.event === 'PAYMENT_RECEIVED') && paymentId) {
-      // Buscar pagamento
-      const { data: payment, error: paymentError } = await supabaseClient
-        .from('payments')
-        .select('*')
-        .eq('id', paymentId)
-        .single();
+    if ((event.event === 'PAYMENT_CONFIRMED' || event.event === 'PAYMENT_RECEIVED')) {
+      let payment;
+      let userId;
+      let planId;
+      
+      // Tentar buscar pelo externalReference primeiro
+      if (paymentId) {
+        const { data: paymentData } = await supabaseClient
+          .from('payments')
+          .select('*')
+          .eq('id', paymentId)
+          .maybeSingle();
+        
+        if (paymentData) {
+          payment = paymentData;
+          userId = payment.user_id;
+          planId = payment.plan_id;
+        }
+      }
+      
+      // Se não encontrou, pode ser um pagamento recorrente - buscar pela subscription
+      if (!payment && event.payment?.subscription) {
+        const { data: subscriptionPayment } = await supabaseClient
+          .from('payments')
+          .select('*')
+          .eq('subscription_id', event.payment.subscription)
+          .maybeSingle();
+        
+        if (subscriptionPayment) {
+          payment = subscriptionPayment;
+          userId = subscriptionPayment.user_id;
+          planId = subscriptionPayment.plan_id;
+          
+          console.log('🔄 Recurrent payment detected:', {
+            subscriptionId: event.payment.subscription,
+            asaasPaymentId: event.payment?.id,
+            userId,
+            planId
+          });
+        }
+      }
 
-      if (paymentError || !payment) {
+      if (!payment || !userId) {
         console.log('⚠️ Payment not found in database:', {
           paymentId,
+          subscriptionId: event.payment?.subscription,
           event: event.event,
-          asaasPaymentId: event.payment?.id,
-          reason: paymentError ? 'Database error' : 'Payment deleted or never created',
-          error: paymentError?.message
+          asaasPaymentId: event.payment?.id
         });
         return new Response(
           JSON.stringify({ 
@@ -164,13 +197,13 @@ serve(async (req) => {
       const { data: plan, error: planError } = await supabaseClient
         .from('plans')
         .select('*')
-        .eq('id', payment.plan_id)
+        .eq('id', planId)
         .single();
 
       if (planError || !plan) {
         console.log('⚠️ Plan not found for payment:', {
           paymentId,
-          planId: payment.plan_id,
+          planId,
           error: planError?.message
         });
         return new Response(
@@ -179,16 +212,18 @@ serve(async (req) => {
         );
       }
 
-      // Atualizar pagamento para concluído
-      await supabaseClient
-        .from('payments')
-        .update({
-          status: 'completed',
-          paid_at: new Date().toISOString(),
-        })
-        .eq('id', paymentId);
+      // Se for o primeiro pagamento (tem paymentId), atualizar status
+      if (paymentId && payment.id === paymentId) {
+        await supabaseClient
+          .from('payments')
+          .update({
+            status: 'completed',
+            paid_at: new Date().toISOString(),
+          })
+          .eq('id', paymentId);
+      }
 
-      // Se for um pagamento de assinatura, atualizar data de renovação
+      // Atualizar data de renovação
       if (payment.subscription_id) {
         const currentDate = new Date(event.payment.dueDate);
         const nextRenewalDate = new Date(currentDate);
@@ -199,39 +234,44 @@ serve(async (req) => {
           .update({
             next_renewal_date: nextRenewalDate.toISOString(),
           })
-          .eq('id', paymentId);
+          .eq('subscription_id', payment.subscription_id);
           
-        console.log('Updated renewal date for subscription payment:', nextRenewalDate.toISOString());
+        console.log('Updated renewal date for subscription:', nextRenewalDate.toISOString());
       }
 
       // Atualizar status do usuário para ativo
       await supabaseClient
         .from('users')
         .update({ status: 'active' })
-        .eq('id', payment.user_id);
+        .eq('id', userId);
 
       // Processar comissões MLM
       const { data: network } = await supabaseClient
         .from('user_network')
         .select('path')
-        .eq('user_id', payment.user_id)
+        .eq('user_id', userId)
         .single();
 
-      console.log('Network data for user:', payment.user_id, network);
+      console.log('Network data for user:', userId, network);
 
-      // Verificar se já existem comissões para este pagamento
+      // Para pagamentos recorrentes, gerar um identificador único baseado no ID do pagamento do Asaas
+      const commissionReference = event.payment?.subscription 
+        ? `${event.payment.subscription}_${event.payment.id}` 
+        : paymentId;
+
+      // Verificar se já existem comissões para este pagamento específico
       const { data: existingCommissions } = await supabaseClient
         .from('commissions')
         .select('id')
-        .eq('payment_id', paymentId)
+        .eq('payment_id', commissionReference)
         .limit(1);
 
       if (existingCommissions && existingCommissions.length > 0) {
-        console.log('✓ Commissions already exist for payment (duplicate webhook event):', {
-          paymentId,
+        console.log('✓ Commissions already exist for this payment:', {
+          commissionReference,
           event: event.event,
           commissionsCount: existingCommissions.length,
-          message: 'This is a duplicate webhook - payment was already processed'
+          message: 'This payment was already processed'
         });
         return new Response(
           JSON.stringify({ received: true, message: 'Payment already processed, commissions exist' }), 
@@ -247,8 +287,8 @@ serve(async (req) => {
         if (path.length >= 2) {
           commissions.push({
             user_id: path[path.length - 2],
-            referred_user_id: payment.user_id,
-            payment_id: paymentId,
+            referred_user_id: userId,
+            payment_id: commissionReference,
             amount: plan.commission_l1,
             level: 1,
             status: 'available',
@@ -260,8 +300,8 @@ serve(async (req) => {
         for (let i = 2; i <= 4 && path.length > i; i++) {
           commissions.push({
             user_id: path[path.length - (i + 1)],
-            referred_user_id: payment.user_id,
-            payment_id: paymentId,
+            referred_user_id: userId,
+            payment_id: commissionReference,
             amount: plan.commission_l2_l4,
             level: i,
             status: 'available',
@@ -289,9 +329,11 @@ serve(async (req) => {
 
       console.log('✅ Payment confirmed and commissions created successfully:', {
         paymentId,
-        userId: payment.user_id,
-        planId: payment.plan_id,
-        amount: payment.amount
+        commissionReference,
+        userId,
+        planId,
+        isRecurrent: !!event.payment?.subscription,
+        subscriptionId: event.payment?.subscription
       });
       return new Response(
         JSON.stringify({ received: true, message: 'Payment confirmed and commissions created' }), 
