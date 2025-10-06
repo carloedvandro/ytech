@@ -14,6 +14,7 @@ import Payment from "./pages/Payment";
 import Network from "./pages/Network";
 import Financial from "./pages/Financial";
 import Admin from "./pages/Admin";
+import MigrateUsers from "./pages/MigrateUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/network" element={<AuthGuard><Network /></AuthGuard>} />
             <Route path="/financial" element={<AuthGuard><Financial /></AuthGuard>} />
             <Route path="/admin" element={<AuthGuard><Admin /></AuthGuard>} />
+            <Route path="/migrate-users" element={<MigrateUsers />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
