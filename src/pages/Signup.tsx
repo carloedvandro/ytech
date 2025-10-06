@@ -197,22 +197,18 @@ const Signup = () => {
     setLoading(true);
     try {
       // 1. Buscar referred_by pelo código (pode ser UUID ou username)
-      console.log('🔍 Buscando referralCode:', referralCode);
       let referrer;
       
       // Verificar se parece ser um UUID (contém hífens e tem 36 caracteres)
       const looksLikeUUID = referralCode.includes('-') && referralCode.length === 36;
-      console.log('📌 Parece UUID?', looksLikeUUID);
       
       if (looksLikeUUID) {
         // Tentar primeiro como UUID
-        const { data: referrerById, error: errorById } = await supabase
+        const { data: referrerById } = await supabase
           .from("users")
           .select("id")
           .eq("id", referralCode)
           .maybeSingle();
-
-        console.log('🔎 Busca por ID:', { data: referrerById, error: errorById });
 
         if (referrerById) {
           referrer = referrerById;
@@ -221,18 +217,14 @@ const Signup = () => {
       
       // Se não encontrou por UUID ou não parece UUID, tentar como username
       if (!referrer) {
-        const { data: referrerByUsername, error: errorByUsername } = await supabase
+        const { data: referrerByUsername } = await supabase
           .from("users")
           .select("id")
           .eq("username", referralCode)
           .maybeSingle();
 
-        console.log('🔎 Busca por username:', { data: referrerByUsername, error: errorByUsername });
-
         referrer = referrerByUsername;
       }
-
-      console.log('✅ Referrer encontrado:', referrer);
 
       if (!referrer) {
         toast({
