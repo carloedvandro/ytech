@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     // Criar transferência PIX no Asaas
-    const asaasResponse = await fetch('https://api.asaas.com/v3/transfers', {
+    const asaasResponse = await fetch('https://sandbox.asaas.com/api/v3/transfers', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

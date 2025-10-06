@@ -33,7 +33,7 @@ serve(async (req) => {
     if (paymentError) throw paymentError;
 
     // Criar cobrança no Asaas
-    const asaasResponse = await fetch('https://api.asaas.com/v3/payments', {
+    const asaasResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ serve(async (req) => {
     console.log('Asaas payment created:', asaasPayment);
 
     // Buscar QR Code PIX
-    const pixResponse = await fetch(`https://api.asaas.com/v3/payments/${asaasPayment.id}/pixQrCode`, {
+    const pixResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${asaasPayment.id}/pixQrCode`, {
       headers: {
         'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
       },
