@@ -145,11 +145,13 @@ export type Database = {
           expires_at: string
           id: string
           metadata: Json | null
+          next_renewal_date: string | null
           paid_at: string | null
           pix_code: string | null
           pix_qr_code: string | null
           plan_id: string
           status: string | null
+          subscription_id: string | null
           user_id: string
         }
         Insert: {
@@ -158,11 +160,13 @@ export type Database = {
           expires_at: string
           id?: string
           metadata?: Json | null
+          next_renewal_date?: string | null
           paid_at?: string | null
           pix_code?: string | null
           pix_qr_code?: string | null
           plan_id: string
           status?: string | null
+          subscription_id?: string | null
           user_id: string
         }
         Update: {
@@ -171,11 +175,13 @@ export type Database = {
           expires_at?: string
           id?: string
           metadata?: Json | null
+          next_renewal_date?: string | null
           paid_at?: string | null
           pix_code?: string | null
           pix_qr_code?: string | null
           plan_id?: string
           status?: string | null
+          subscription_id?: string | null
           user_id?: string
         }
         Relationships: [

@@ -20,6 +20,7 @@ interface Commission {
 interface UserPlan {
   status: string;
   plan_end_date: string | null;
+  next_renewal_date: string | null;
 }
 
 const Financial = () => {
@@ -100,11 +101,23 @@ const Financial = () => {
         .eq("id", userData.id)
         .single();
 
+      // Buscar último pagamento com assinatura ativa do usuário
+      const { data: lastPayment } = await supabase
+        .from("payments")
+        .select("next_renewal_date, subscription_id, status")
+        .eq("user_id", userData.id)
+        .eq("status", "completed")
+        .not("subscription_id", "is", null)
+        .order("paid_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       if (userInfo) {
         const metadata = userInfo.metadata as { plan_end_date?: string } | null;
         setUserPlan({
           status: userInfo.status,
           plan_end_date: metadata?.plan_end_date || null,
+          next_renewal_date: lastPayment?.next_renewal_date || null,
         });
       }
 
@@ -257,6 +270,11 @@ const Financial = () => {
               {userPlan.plan_end_date && (
                 <p className="text-xs text-muted-foreground">
                   Válido até: {new Date(userPlan.plan_end_date).toLocaleDateString('pt-BR')}
+                </p>
+              )}
+              {userPlan.next_renewal_date && userPlan.status === "active" && (
+                <p className="text-xs text-secondary font-medium mt-1">
+                  📅 Próxima renovação: {new Date(userPlan.next_renewal_date).toLocaleDateString('pt-BR')}
                 </p>
               )}
             </CardContent>

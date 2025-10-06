@@ -188,6 +188,22 @@ serve(async (req) => {
         })
         .eq('id', paymentId);
 
+      // Se for um pagamento de assinatura, atualizar data de renovação
+      if (payment.subscription_id) {
+        const currentDate = new Date(event.payment.dueDate);
+        const nextRenewalDate = new Date(currentDate);
+        nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
+        
+        await supabaseClient
+          .from('payments')
+          .update({
+            next_renewal_date: nextRenewalDate.toISOString(),
+          })
+          .eq('id', paymentId);
+          
+        console.log('Updated renewal date for subscription payment:', nextRenewalDate.toISOString());
+      }
+
       // Atualizar status do usuário para ativo
       await supabaseClient
         .from('users')

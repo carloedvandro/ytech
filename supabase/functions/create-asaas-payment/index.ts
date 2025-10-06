@@ -23,11 +23,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Log da chave API (apenas os primeiros e últimos caracteres para segurança)
-    const apiKey = Deno.env.get('ASAAS_API_KEY') ?? '';
-    console.log('Asaas API Key (masked):', apiKey.substring(0, 20) + '...' + apiKey.substring(apiKey.length - 10));
-    console.log('Asaas API Key starts with $aact_prod:', apiKey.startsWith('$aact_prod'));
-
     // Buscar dados do pagamento
     const { data: payment, error: paymentError } = await supabaseClient
       .from('payments')
@@ -77,8 +72,11 @@ serve(async (req) => {
 
     console.log('Asaas customer:', asaasCustomer);
 
-    // Agora criar cobrança no Asaas
-    const asaasResponse = await fetch('https://api.asaas.com/v3/payments', {
+    // Criar assinatura recorrente mensal no Asaas
+    const nextDueDate = new Date();
+    nextDueDate.setDate(nextDueDate.getDate() + 1); // Primeiro vencimento amanhã
+    
+    const subscriptionResponse = await fetch('https://api.asaas.com/v3/subscriptions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -87,43 +85,62 @@ serve(async (req) => {
       body: JSON.stringify({
         customer: asaasCustomer.id,
         billingType: 'PIX',
+        nextDueDate: nextDueDate.toISOString().split('T')[0],
         value: Number(payment.amount),
-        dueDate: new Date(Date.now() + 30 * 60 * 1000).toISOString().split('T')[0],
+        cycle: 'MONTHLY',
         description: `Plano ${payment.plans.name} - MegaChip Rural`,
         externalReference: paymentId,
-        postalService: false,
       }),
     });
 
-    if (!asaasResponse.ok) {
-      const errorText = await asaasResponse.text();
-      console.error('Asaas error:', errorText);
-      throw new Error(`Asaas API error: ${errorText}`);
+    if (!subscriptionResponse.ok) {
+      const errorText = await subscriptionResponse.text();
+      console.error('Asaas subscription error:', errorText);
+      throw new Error(`Asaas subscription API error: ${errorText}`);
     }
 
-    const asaasPayment = await asaasResponse.json();
+    const asaasSubscription = await subscriptionResponse.json();
+    console.log('Asaas subscription created:', asaasSubscription);
 
-    console.log('Asaas payment created:', asaasPayment);
+    // Buscar a primeira cobrança gerada pela assinatura
+    const paymentsResponse = await fetch(`https://api.asaas.com/v3/payments?subscription=${asaasSubscription.id}`, {
+      headers: {
+        'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+      },
+    });
 
-    // Buscar QR Code PIX
-    const pixResponse = await fetch(`https://api.asaas.com/v3/payments/${asaasPayment.id}/pixQrCode`, {
+    const paymentsData = await paymentsResponse.json();
+    const firstPayment = paymentsData.data[0];
+
+    console.log('First payment from subscription:', firstPayment);
+
+    // Buscar QR Code PIX da primeira cobrança
+    const pixResponse = await fetch(`https://api.asaas.com/v3/payments/${firstPayment.id}/pixQrCode`, {
       headers: {
         'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
       },
     });
 
     const pixData = await pixResponse.json();
+    
+    // Calcular próxima data de renovação (30 dias após o primeiro vencimento)
+    const nextRenewalDate = new Date(firstPayment.dueDate);
+    nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
 
-    // Atualizar pagamento com dados do Asaas
+    // Atualizar pagamento com dados da assinatura e primeira cobrança
     const { error: updateError } = await supabaseClient
       .from('payments')
       .update({
         pix_code: pixData.payload,
         pix_qr_code: pixData.encodedImage,
+        subscription_id: asaasSubscription.id,
+        next_renewal_date: nextRenewalDate.toISOString(),
         metadata: {
           ...payment.metadata,
-          asaas_payment_id: asaasPayment.id,
-          asaas_invoice_url: asaasPayment.invoiceUrl,
+          asaas_subscription_id: asaasSubscription.id,
+          asaas_payment_id: firstPayment.id,
+          asaas_invoice_url: firstPayment.invoiceUrl,
+          cycle: 'MONTHLY',
         },
       })
       .eq('id', paymentId);
@@ -137,7 +154,9 @@ serve(async (req) => {
           id: paymentId,
           pix_code: pixData.payload,
           pix_qr_code: pixData.encodedImage,
-          invoice_url: asaasPayment.invoiceUrl,
+          invoice_url: firstPayment.invoiceUrl,
+          subscription_id: asaasSubscription.id,
+          next_renewal_date: nextRenewalDate.toISOString(),
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
