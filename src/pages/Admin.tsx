@@ -1,115 +1,76 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Shield, UserX, UserCheck, Trash2, Ban } from "lucide-react";
+import { toast } from "sonner";
+import { UserX, UserCheck, Trash2, Archive, RotateCcw } from "lucide-react";
 
 interface User {
   id: string;
   full_name: string;
-  email: string;
+  email: string | null;
   whatsapp: string;
-  cpf: string;
   status: string;
-  created_at: string;
   deleted_at: string | null;
+  created_at: string;
+  referred_by: string | null;
+}
+
+interface UserWithReferrals extends User {
   direct_referrals: number;
 }
 
-export default function Admin() {
-  const navigate = useNavigate();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [actionType, setActionType] = useState<string>("");
+const Admin = () => {
+  const [selectedUser, setSelectedUser] = useState<UserWithReferrals | null>(null);
+  const [action, setAction] = useState<string>("");
   const [reason, setReason] = useState("");
   const [showDialog, setShowDialog] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    checkAdminAndLoadUsers();
-  }, []);
+  // Verificar se o usuário atual é admin
+  const { data: currentUser } = useQuery({
+    queryKey: ["current-user"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-  const checkAdminAndLoadUsers = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        navigate("/login");
-        return;
-      }
-
-      // Verificar se é admin
-      const { data: adminCheck } = await supabase.rpc("has_role", {
+      const { data: isAdmin } = await supabase.rpc('has_role', {
         _user_id: user.id,
-        _role: "admin",
+        _role: 'admin'
       });
 
-      if (!adminCheck) {
-        toast.error("Acesso negado. Apenas administradores.");
-        navigate("/dashboard");
-        return;
+      if (!isAdmin) {
+        throw new Error("Unauthorized: Admin access required");
       }
 
-      setIsAdmin(true);
-      await loadUsers();
-    } catch (error) {
-      console.error("Error checking admin:", error);
-      toast.error("Erro ao verificar permissões");
-      navigate("/dashboard");
-    }
-  };
+      return user;
+    },
+  });
 
-  const loadUsers = async () => {
-    try {
-      // Buscar todos os usuários com contagem de indicados diretos
-      const { data: usersData, error: usersError } = await supabase
+  // Buscar todos os usuários com contagem de indicados
+  const { data: users, isLoading } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const { data: allUsers, error } = await supabase
         .from("users")
-        .select(`
-          id,
-          full_name,
-          email,
-          whatsapp,
-          cpf,
-          status,
-          created_at,
-          deleted_at
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (usersError) throw usersError;
+      if (error) throw error;
 
       // Buscar contagem de indicados diretos para cada usuário
       const usersWithReferrals = await Promise.all(
-        (usersData || []).map(async (user) => {
+        allUsers.map(async (user) => {
           const { count } = await supabase
-            .from("user_network")
-            .select("id", { count: "exact", head: true })
-            .eq("parent_id", user.id);
+            .from("users")
+            .select("*", { count: "exact", head: true })
+            .eq("referred_by", user.id)
+            .is("deleted_at", null);
 
           return {
             ...user,
@@ -118,44 +79,54 @@ export default function Admin() {
         })
       );
 
-      setUsers(usersWithReferrals);
-    } catch (error) {
-      console.error("Error loading users:", error);
-      toast.error("Erro ao carregar usuários");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return usersWithReferrals;
+    },
+    enabled: !!currentUser,
+  });
 
-  const handleAction = async () => {
-    if (!selectedUser) return;
-
-    try {
+  // Mutation para gerenciar usuários
+  const manageUserMutation = useMutation({
+    mutationFn: async ({
+      action,
+      userId,
+      reason,
+    }: {
+      action: string;
+      userId: string;
+      reason: string;
+    }) => {
       const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-        body: {
-          action: actionType,
-          userId: selectedUser.id,
-          reason: reason || undefined,
-        },
+        body: { action, userId, reason },
       });
 
       if (error) throw error;
-
-      toast.success(data.message || "Ação executada com sucesso");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       setShowDialog(false);
       setSelectedUser(null);
       setReason("");
-      await loadUsers();
-    } catch (error: any) {
-      console.error("Error executing action:", error);
-      toast.error(error.message || "Erro ao executar ação");
-    }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleAction = (user: UserWithReferrals, actionType: string) => {
+    setSelectedUser(user);
+    setAction(actionType);
+    setShowDialog(true);
   };
 
-  const openActionDialog = (user: User, action: string) => {
-    setSelectedUser(user);
-    setActionType(action);
-    setShowDialog(true);
+  const confirmAction = () => {
+    if (!selectedUser) return;
+    manageUserMutation.mutate({
+      action,
+      userId: selectedUser.id,
+      reason,
+    });
   };
 
   const getStatusBadge = (status: string, deletedAt: string | null) => {
@@ -164,198 +135,205 @@ export default function Admin() {
     }
     switch (status) {
       case "active":
-        return <Badge variant="default">Ativo</Badge>;
+        return <Badge className="bg-green-500">Ativo</Badge>;
       case "suspended":
         return <Badge variant="secondary">Suspenso</Badge>;
       case "pending_payment":
-        return <Badge variant="outline">Pagamento Pendente</Badge>;
+        return <Badge variant="outline">Pendente</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
   };
 
-  const getActionLabel = () => {
-    switch (actionType) {
-      case "suspend":
-        return "Suspender Usuário";
-      case "reactivate":
-        return "Reativar Usuário";
-      case "soft_delete":
-        return "Exclusão Lógica";
-      case "hard_delete":
-        return "Exclusão Permanente";
-      default:
-        return "Ação";
-    }
+  const getActionButtons = (user: UserWithReferrals) => {
+    const isDeleted = !!user.deleted_at;
+    const isSuspended = user.status === "suspended";
+    const canHardDelete = user.direct_referrals === 0;
+
+    return (
+      <div className="flex gap-2 flex-wrap">
+        {!isDeleted && !isSuspended && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleAction(user, "suspend")}
+            className="text-yellow-600"
+          >
+            <UserX className="w-4 h-4 mr-1" />
+            Suspender
+          </Button>
+        )}
+
+        {!isDeleted && isSuspended && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleAction(user, "reactivate")}
+            className="text-green-600"
+          >
+            <UserCheck className="w-4 h-4 mr-1" />
+            Reativar
+          </Button>
+        )}
+
+        {!isDeleted && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleAction(user, "soft_delete")}
+            className="text-orange-600"
+          >
+            <Archive className="w-4 h-4 mr-1" />
+            Exclusão Lógica
+          </Button>
+        )}
+
+        {isDeleted && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleAction(user, "reactivate")}
+            className="text-blue-600"
+          >
+            <RotateCcw className="w-4 h-4 mr-1" />
+            Restaurar
+          </Button>
+        )}
+
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={() => handleAction(user, "hard_delete")}
+          disabled={!canHardDelete}
+          title={
+            !canHardDelete
+              ? "Não é possível deletar usuário com indicados"
+              : "Exclusão permanente"
+          }
+        >
+          <Trash2 className="w-4 h-4 mr-1" />
+          Deletar
+        </Button>
+      </div>
+    );
   };
 
   const getActionDescription = () => {
-    switch (actionType) {
+    switch (action) {
       case "suspend":
         return "O usuário será suspenso e não poderá fazer login. Esta ação é reversível.";
       case "reactivate":
         return "O usuário será reativado e poderá fazer login novamente.";
       case "soft_delete":
-        return "O usuário será marcado como deletado mas seus dados permanecerão no sistema. Esta ação é reversível.";
+        return "O usuário será marcado como deletado mas seus dados serão mantidos. Esta ação é reversível.";
       case "hard_delete":
-        return "ATENÇÃO: O usuário e todos os seus dados serão PERMANENTEMENTE deletados. Esta ação NÃO é reversível.";
+        return "ATENÇÃO: Esta ação é IRREVERSÍVEL! Todos os dados do usuário serão permanentemente deletados do sistema.";
       default:
         return "";
     }
   };
 
-  if (loading) {
+  if (!currentUser) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Carregando...</div>
-      </div>
+      <DashboardLayout>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-muted-foreground">
+              Você não tem permissão para acessar esta página.
+            </p>
+          </CardContent>
+        </Card>
+      </DashboardLayout>
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
-
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center gap-2 mb-6">
-        <Shield className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold">Painel Administrativo</h1>
-      </div>
-
-      <div className="bg-card rounded-lg border shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>WhatsApp</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Indicados</TableHead>
-              <TableHead>Cadastro</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.full_name}</TableCell>
-                <TableCell>{user.email || "-"}</TableCell>
-                <TableCell>{user.whatsapp}</TableCell>
-                <TableCell>{getStatusBadge(user.status, user.deleted_at)}</TableCell>
-                <TableCell>{user.direct_referrals}</TableCell>
-                <TableCell>
-                  {new Date(user.created_at).toLocaleDateString("pt-BR")}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    {user.status === "active" && !user.deleted_at && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openActionDialog(user, "suspend")}
-                      >
-                        <Ban className="h-4 w-4 mr-1" />
-                        Suspender
-                      </Button>
-                    )}
-
-                    {user.status === "suspended" && !user.deleted_at && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openActionDialog(user, "reactivate")}
-                      >
-                        <UserCheck className="h-4 w-4 mr-1" />
-                        Reativar
-                      </Button>
-                    )}
-
-                    {!user.deleted_at && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openActionDialog(user, "soft_delete")}
-                      >
-                        <UserX className="h-4 w-4 mr-1" />
-                        Excl. Lógica
-                      </Button>
-                    )}
-
-                    {user.deleted_at && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => openActionDialog(user, "reactivate")}
-                      >
-                        <UserCheck className="h-4 w-4 mr-1" />
-                        Restaurar
-                      </Button>
-                    )}
-
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={user.direct_referrals > 0}
-                      onClick={() => openActionDialog(user, "hard_delete")}
-                      title={
-                        user.direct_referrals > 0
-                          ? "Não é possível deletar usuário com indicados"
-                          : "Excluir permanentemente"
-                      }
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Excluir
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <DashboardLayout>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gerenciamento de Usuários</CardTitle>
+            <CardDescription>
+              Gerencie usuários do sistema: suspender, deletar ou reativar contas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p>Carregando usuários...</p>
+            ) : (
+              <div className="space-y-4">
+                {users?.map((user) => (
+                  <Card key={user.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold">{user.full_name}</h3>
+                            {getStatusBadge(user.status, user.deleted_at)}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Email: {user.email || "N/A"}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            WhatsApp: {user.whatsapp}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Indicados Diretos: {user.direct_referrals}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Criado em: {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {getActionButtons(user)}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{getActionLabel()}</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <p>{getActionDescription()}</p>
-              {selectedUser && (
-                <div className="bg-muted p-3 rounded-md">
-                  <p className="font-medium">{selectedUser.full_name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedUser.email || selectedUser.whatsapp}
-                  </p>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="reason">Motivo (opcional)</Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Descreva o motivo desta ação..."
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={3}
-                />
-              </div>
+            <AlertDialogTitle>
+              {action === "hard_delete" && "⚠️ "} Confirmar Ação
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {getActionDescription()}
+              <br />
+              <br />
+              Usuário: <strong>{selectedUser?.full_name}</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium">Motivo (opcional)</label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Descreva o motivo desta ação..."
+              className="mt-2"
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setReason("")}>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleAction}
-              className={
-                actionType === "hard_delete" ? "bg-destructive hover:bg-destructive/90" : ""
-              }
+              onClick={confirmAction}
+              className={action === "hard_delete" ? "bg-destructive" : ""}
             >
               Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </DashboardLayout>
   );
-}
+};
+
+export default Admin;
