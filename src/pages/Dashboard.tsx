@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, TrendingUp, Share2, Loader2 } from "lucide-react";
+import { Users, DollarSign, TrendingUp, Share2, Loader2, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UsernameManager } from "@/components/UsernameManager";
 import { useAuth } from "@/contexts/AuthContext";
+import { QRCodeSVG } from "qrcode.react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const Dashboard = () => {
   const { toast } = useToast();
   const { profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalReferrals: 0,
@@ -119,7 +123,10 @@ const Dashboard = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-yellow))]/20 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card 
+            className="backdrop-blur-xl bg-[hsl(var(--glass-yellow))]/20 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            onClick={() => navigate('/rede')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-yellow-foreground))]">Total de Indicações</CardTitle>
               <Users className="h-5 w-5 text-[hsl(var(--glass-yellow-foreground))]/70" />
@@ -132,7 +139,10 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-blue))]/20 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card 
+            className="backdrop-blur-xl bg-[hsl(var(--glass-blue))]/20 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            onClick={() => navigate('/financeiro')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-blue-foreground))]">Comissões Totais</CardTitle>
               <DollarSign className="h-5 w-5 text-[hsl(var(--glass-blue-foreground))]/70" />
@@ -147,7 +157,10 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card 
+            className="backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            onClick={() => navigate('/financeiro')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-green-foreground))]">Disponível para Saque</CardTitle>
               <TrendingUp className="h-5 w-5 text-[hsl(var(--glass-green-foreground))]/70" />
@@ -162,7 +175,10 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-purple))]/20 border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card 
+            className="backdrop-blur-xl bg-[hsl(var(--glass-purple))]/20 border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            onClick={() => navigate('/rede')}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-purple-foreground))]">Rede MMN</CardTitle>
               <Share2 className="h-5 w-5 text-[hsl(var(--glass-purple-foreground))]/70" />
@@ -194,7 +210,7 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle>Seu Link de Indicação</CardTitle>
             <CardDescription>
-              Compartilhe este link para convidar novos usuários
+              Compartilhe este link ou QR Code para convidar novos usuários
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -224,6 +240,34 @@ const Dashboard = () => {
               >
                 Copiar
               </button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 flex items-center gap-2">
+                    <QrCode className="h-4 w-4" />
+                    QR Code
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>QR Code de Indicação</DialogTitle>
+                    <DialogDescription>
+                      Mostre este QR Code para seu indicado escanear
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex justify-center p-6">
+                    <QRCodeSVG
+                      value={
+                        profile.username
+                          ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.username}`
+                          : `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.id}`
+                      }
+                      size={256}
+                      level="H"
+                      includeMargin
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>

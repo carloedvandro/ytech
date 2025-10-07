@@ -20,6 +20,7 @@ const Network = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkUser[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [stats, setStats] = useState({
     level1: 0,
     level2: 0,
@@ -98,13 +99,27 @@ const Network = () => {
 
   const getLevelColor = (level: number) => {
     switch (level) {
-      case 1: return "text-primary";
-      case 2: return "text-secondary";
-      case 3: return "text-accent";
-      case 4: return "text-muted-foreground";
+      case 1: return "text-[hsl(var(--glass-yellow-foreground))]";
+      case 2: return "text-[hsl(var(--glass-blue-foreground))]";
+      case 3: return "text-[hsl(var(--glass-green-foreground))]";
+      case 4: return "text-[hsl(var(--glass-purple-foreground))]";
       default: return "text-foreground";
     }
   };
+
+  const getLevelBg = (level: number) => {
+    switch (level) {
+      case 1: return "backdrop-blur-xl bg-[hsl(var(--glass-yellow))]/20 border-[hsl(var(--glass-yellow))]/30";
+      case 2: return "backdrop-blur-xl bg-[hsl(var(--glass-blue))]/20 border-[hsl(var(--glass-blue))]/30";
+      case 3: return "backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30";
+      case 4: return "backdrop-blur-xl bg-[hsl(var(--glass-purple))]/20 border-[hsl(var(--glass-purple))]/30";
+      default: return "";
+    }
+  };
+
+  const filteredNetwork = selectedLevel 
+    ? network.filter(user => user.level === selectedLevel)
+    : network;
 
   if (loading) {
     return (
@@ -127,50 +142,65 @@ const Network = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <Card>
+          <Card 
+            className={`${getLevelBg(1)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 1 ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
+            onClick={() => setSelectedLevel(selectedLevel === 1 ? null : 1)}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nível 1</CardTitle>
-              <Users className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-yellow-foreground))]">Nível 1</CardTitle>
+              <Users className="h-4 w-4 text-[hsl(var(--glass-yellow-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{stats.level1}</div>
+              <div className="text-2xl font-bold text-[hsl(var(--glass-yellow-foreground))]">{stats.level1}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className={`${getLevelBg(2)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 2 ? 'ring-2 ring-[hsl(var(--glass-blue-foreground))]' : ''}`}
+            onClick={() => setSelectedLevel(selectedLevel === 2 ? null : 2)}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nível 2</CardTitle>
-              <Users className="h-4 w-4 text-secondary" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-blue-foreground))]">Nível 2</CardTitle>
+              <Users className="h-4 w-4 text-[hsl(var(--glass-blue-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-secondary">{stats.level2}</div>
+              <div className="text-2xl font-bold text-[hsl(var(--glass-blue-foreground))]">{stats.level2}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className={`${getLevelBg(3)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 3 ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
+            onClick={() => setSelectedLevel(selectedLevel === 3 ? null : 3)}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nível 3</CardTitle>
-              <Users className="h-4 w-4 text-accent" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-green-foreground))]">Nível 3</CardTitle>
+              <Users className="h-4 w-4 text-[hsl(var(--glass-green-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">{stats.level3}</div>
+              <div className="text-2xl font-bold text-[hsl(var(--glass-green-foreground))]">{stats.level3}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className={`${getLevelBg(4)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 4 ? 'ring-2 ring-[hsl(var(--glass-purple-foreground))]' : ''}`}
+            onClick={() => setSelectedLevel(selectedLevel === 4 ? null : 4)}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nível 4</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-purple-foreground))]">Nível 4</CardTitle>
+              <Users className="h-4 w-4 text-[hsl(var(--glass-purple-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.level4}</div>
+              <div className="text-2xl font-bold text-[hsl(var(--glass-purple-foreground))]">{stats.level4}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="backdrop-blur-xl bg-background/50 border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            onClick={() => setSelectedLevel(null)}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total</CardTitle>
-              <TrendingUp className="h-4 w-4 text-foreground" />
+              <TrendingUp className="h-4 w-4" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
@@ -180,22 +210,30 @@ const Network = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Usuários da Rede</CardTitle>
+            <CardTitle>
+              {selectedLevel ? `Usuários do Nível ${selectedLevel}` : "Usuários da Rede"}
+            </CardTitle>
             <CardDescription>
-              Todos os usuários indicados direta ou indiretamente por você
+              {selectedLevel 
+                ? `Mostrando apenas os usuários do nível ${selectedLevel}. Clique no card novamente para ver todos.`
+                : "Todos os usuários indicados direta ou indiretamente por você. Clique em um nível para filtrar."
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {network.length === 0 ? (
+            {filteredNetwork.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
-                Você ainda não possui usuários na sua rede
+                {selectedLevel 
+                  ? `Nenhum usuário no nível ${selectedLevel}`
+                  : "Você ainda não possui usuários na sua rede"
+                }
               </p>
             ) : (
               <div className="space-y-4">
-                {network.map((user) => (
+                {filteredNetwork.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className={`flex items-center justify-between p-4 border rounded-lg ${getLevelBg(user.level)} transition-all duration-300`}
                   >
                     <div className="flex-1">
                       <h3 className="font-semibold">{user.full_name}</h3>
