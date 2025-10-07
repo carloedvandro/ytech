@@ -120,20 +120,28 @@ const Login = () => {
         return;
       }
 
-      // Guardar dados para login após verificação
-      setPendingAuth({
+      console.log('✅ Código enviado com sucesso');
+
+      // Guardar dados para login após verificação ANTES de mostrar o modal
+      const authInfo = {
         email: data.email,
         password: data.password,
         whatsapp: profile.whatsapp,
-      });
+      };
+      
+      console.log('💾 Salvando pendingAuth:', authInfo);
+      setPendingAuth(authInfo);
+      
+      console.log('🔓 Ativando modal 2FA');
+      setShow2FA(true);
+      
+      console.log('📊 Estados atualizados - show2FA: true, pendingAuth:', authInfo);
+      setLoading(false);
 
       toast({
         title: "Código enviado!",
         description: "Verifique seu WhatsApp",
       });
-
-      setShow2FA(true);
-      setLoading(false);
 
     } catch (error: any) {
       console.error('❌ Erro inesperado no login:', error);
@@ -242,14 +250,12 @@ const Login = () => {
         </Card>
       </div>
 
-      {pendingAuth && (
-        <TwoFactorModal
-          open={show2FA}
-          whatsapp={pendingAuth.whatsapp}
-          onVerified={handleTwoFactorVerified}
-          onCancel={handleTwoFactorCancel}
-        />
-      )}
+      <TwoFactorModal
+        open={show2FA && !!pendingAuth}
+        whatsapp={pendingAuth?.whatsapp || ''}
+        onVerified={handleTwoFactorVerified}
+        onCancel={handleTwoFactorCancel}
+      />
     </>
   );
 };
