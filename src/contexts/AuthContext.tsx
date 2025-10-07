@@ -78,9 +78,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Limpar estado local primeiro
+      setUser(null);
+      setSession(null);
+      setProfile(null);
       
+      // Tentar fazer logout no Supabase
+      // Se falhar (ex: sessão já expirada), não é um erro crítico
+      const { error } = await supabase.auth.signOut();
+      
+      // Só mostrar erro se não for "session_not_found"
+      if (error && error.message !== 'Session from session_id claim in JWT does not exist') {
+        console.error('Erro ao fazer logout:', error);
+        // Não bloquear o logout por este erro
+      }
+      
+      // Limpar localStorage manualmente
+      localStorage.removeItem('sb-fkdaaxaybuynohmnatdv-auth-token');
+      
+      toast({
+        title: 'Logout realizado',
+        description: 'Até logo!',
+      });
+    } catch (error: any) {
+      console.error('Erro inesperado no logout:', error);
+      // Ainda assim limpar o estado local
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -88,12 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: 'Logout realizado',
         description: 'Até logo!',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao fazer logout',
-        description: error.message,
-        variant: 'destructive',
       });
     }
   };

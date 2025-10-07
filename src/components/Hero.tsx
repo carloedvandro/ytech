@@ -70,6 +70,17 @@ export const Hero = () => {
               Como Funciona
             </Button>
           </div>
+          
+          {/* Login link */}
+          <div className="pt-4">
+            <Button
+              variant="link"
+              className="text-white hover:text-white/80 underline text-base"
+              onClick={() => window.location.href = "/login"}
+            >
+              Já tem conta? Faça login
+            </Button>
+          </div>
         </div>
       </div>
     </section>;
