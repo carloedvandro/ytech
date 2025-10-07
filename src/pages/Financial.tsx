@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
@@ -25,6 +26,7 @@ interface UserPlan {
 
 const Financial = () => {
   const { toast } = useToast();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [commissions, setCommissions] = useState<Commission[]>([]);
@@ -38,12 +40,12 @@ const Financial = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    if (!user?.id) return;
+    
     loadFinancialData();
     checkAdminRole();
 
     // Escutar por novas comissões em tempo real
-    const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
-    
     const channel = supabase
       .channel('financial-commissions-changes')
       .on(
@@ -52,7 +54,7 @@ const Financial = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'commissions',
-          filter: `user_id=eq.${userData.id}`
+          filter: `user_id=eq.${user.id}`
         },
         (payload) => {
           console.log('Nova comissão recebida no financeiro!', payload);
@@ -68,17 +70,16 @@ const Financial = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   const checkAdminRole = async () => {
     try {
-      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
-      if (!userData.id) return;
+      if (!user?.id) return;
 
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userData.id)
+        .eq("user_id", user.id)
         .eq("role", "admin")
         .maybeSingle();
 
@@ -92,20 +93,20 @@ const Financial = () => {
 
   const loadFinancialData = async () => {
     try {
-      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+      if (!user?.id) return;
 
       // Buscar dados atualizados do usuário
       const { data: userInfo } = await supabase
-        .from("users")
+        .from("profiles")
         .select("status, metadata")
-        .eq("id", userData.id)
-        .single();
+        .eq("id", user.id)
+        .maybeSingle();
 
       // Buscar último pagamento com assinatura ativa do usuário
       const { data: lastPayment } = await supabase
         .from("payments")
         .select("next_renewal_date, subscription_id, status")
-        .eq("user_id", userData.id)
+        .eq("user_id", user.id)
         .eq("status", "completed")
         .not("subscription_id", "is", null)
         .order("paid_at", { ascending: false })
@@ -125,7 +126,7 @@ const Financial = () => {
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
         .select("*")
-        .eq("user_id", userData.id)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (commissionsError) throw commissionsError;
@@ -183,13 +184,13 @@ const Financial = () => {
 
     setProcessing(true);
     try {
-      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+      if (!user?.id) return;
 
       // Criar solicitação de saque
       const { data: transaction, error } = await supabase
         .from("transactions")
         .insert({
-          user_id: userData.id,
+          user_id: user.id,
           type: "withdrawal",
           amount: balance.available,
           net_amount: balance.available * 0.97,

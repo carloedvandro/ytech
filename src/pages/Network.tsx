@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Users, TrendingUp } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
@@ -16,6 +17,7 @@ interface NetworkUser {
 
 const Network = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkUser[]>([]);
   const [stats, setStats] = useState({
@@ -32,7 +34,7 @@ const Network = () => {
 
   const loadNetwork = async () => {
     try {
-      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
+      if (!user?.id) return;
 
       // Buscar TODA a rede do usuário (não só indicados diretos)
       const { data: networkData, error: networkError } = await supabase
@@ -41,16 +43,17 @@ const Network = () => {
           level,
           user_id,
           path,
-          users!user_network_user_id_fkey (
+          profiles!user_network_user_id_fkey (
             id,
             full_name,
-            email,
+            cpf,
+            whatsapp,
             status,
             created_at
           )
         `)
-        .contains("path", [userData.id])
-        .neq("user_id", userData.id) // Excluir o próprio usuário
+        .contains("path", [user.id])
+        .neq("user_id", user.id) // Excluir o próprio usuário
         .order("level", { ascending: true });
 
       if (networkError) throw networkError;
@@ -59,13 +62,14 @@ const Network = () => {
       const { data: myLevel } = await supabase
         .from("user_network")
         .select("level")
-        .eq("user_id", userData.id)
+        .eq("user_id", user.id)
         .maybeSingle();
 
       const userLevel = myLevel?.level || 1;
 
       const formattedNetwork = networkData?.map((item: any) => ({
-        ...item.users,
+        ...item.profiles,
+        email: user.email, // Usar email do auth
         level: item.level - userLevel, // Calcular nível relativo
       })) || [];
 
