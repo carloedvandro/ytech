@@ -118,9 +118,15 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Entre com suas credenciais</CardDescription>
+        <CardHeader className="space-y-4">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-primary mb-2">YTech</h1>
+            <p className="text-sm text-muted-foreground">Yrwen Technology</p>
+          </div>
+          <div className="space-y-1">
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Entre com suas credenciais</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
