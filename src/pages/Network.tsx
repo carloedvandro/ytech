@@ -261,7 +261,24 @@ const Network = () => {
                     className={`flex items-center justify-between p-4 border rounded-lg ${getLevelBg(user.level)} transition-all duration-300`}
                   >
                     <div className="flex-1">
-                      <h3 className="font-semibold">{user.full_name}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold">{user.full_name}</h3>
+                        {user.status === 'active' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            Ativo
+                          </span>
+                        )}
+                        {user.status === 'pending_payment' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            Pendente
+                          </span>
+                        )}
+                        {user.status === 'suspended' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                            Suspenso
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                     <div className="text-right">
@@ -269,7 +286,7 @@ const Network = () => {
                         Nível {user.level}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString()}
+                        {new Date(user.created_at).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
