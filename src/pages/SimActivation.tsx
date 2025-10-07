@@ -25,16 +25,20 @@ export default function SimActivation() {
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: { width: 250, height: 150 }
+          qrbox: { width: 400, height: 200 },
+          aspectRatio: 2.0
         },
         (decodedText) => {
-          setBarcode(decodedText);
-          html5QrCode.stop();
-          setScanning(false);
-          toast.success("Código de barras lido com sucesso!");
+          // Aceitar apenas códigos maiores (mais de 10 caracteres)
+          if (decodedText.length > 10) {
+            setBarcode(decodedText);
+            html5QrCode.stop();
+            setScanning(false);
+            toast.success(`Código de barras lido: ${decodedText}`);
+          }
         },
         (errorMessage) => {
-          console.log(errorMessage);
+          // Silenciar erros de leitura durante o scan
         }
       );
     } catch (err) {
@@ -109,7 +113,13 @@ export default function SimActivation() {
               <form onSubmit={handleChipSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Código de Barras do Chip</Label>
-                  {!scanning && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      Posicione a câmera sobre o <strong>código de barras maior</strong> (o de baixo da etiqueta)
+                    </AlertDescription>
+                  </Alert>
+                  {!scanning && !barcode && (
                     <Button
                       type="button"
                       onClick={startScanning}
@@ -120,11 +130,23 @@ export default function SimActivation() {
                       Iniciar Leitura do Código de Barras
                     </Button>
                   )}
-                  <div id="reader" className={scanning ? "w-full" : "hidden"}></div>
+                  <div id="reader" className={scanning ? "w-full border-2 border-primary rounded-lg" : "hidden"}></div>
                   {barcode && (
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm font-medium">Código lido:</p>
-                      <p className="font-mono text-sm mt-1">{barcode}</p>
+                    <div className="p-6 bg-primary/10 border-2 border-primary rounded-lg space-y-2">
+                      <p className="text-sm font-bold text-primary">✓ Código lido com sucesso:</p>
+                      <p className="font-mono text-xl font-bold break-all">{barcode}</p>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setBarcode("");
+                          setScanning(false);
+                        }}
+                        className="w-full mt-2"
+                        variant="outline"
+                        size="sm"
+                      >
+                        Ler novamente
+                      </Button>
                     </div>
                   )}
                 </div>
