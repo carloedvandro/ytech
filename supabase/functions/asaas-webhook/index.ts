@@ -201,7 +201,7 @@ serve(async (req) => {
 
           // Atualizar renovação
           if (payment.subscription_id) {
-            const currentDate = new Date(event.payment.dueDate);
+            const currentDate = new Date(); // Data atual do pagamento
             const nextRenewalDate = new Date(currentDate);
             nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
             
@@ -209,7 +209,7 @@ serve(async (req) => {
               .from('payments')
               .update({ next_renewal_date: nextRenewalDate.toISOString() })
               .eq('subscription_id', payment.subscription_id);
-            console.log('✓ Renewal updated');
+            console.log('✓ Renewal updated to:', nextRenewalDate.toISOString());
           }
 
           // Ativar usuário
