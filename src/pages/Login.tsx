@@ -43,12 +43,17 @@ const Login = () => {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
+      console.log('Iniciando login...');
+      
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
+      console.log('Resposta do login:', { authData, error });
+
       if (error) {
+        console.error('Erro de autenticação:', error);
         toast({
           title: "Erro ao fazer login",
           description: error.message === 'Invalid login credentials' 
@@ -56,38 +61,53 @@ const Login = () => {
             : error.message,
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
-      if (!authData.user) {
+      if (!authData.user || !authData.session) {
+        console.error('Dados de autenticação incompletos');
         toast({
           title: "Erro ao fazer login",
           description: "Erro inesperado. Tente novamente.",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
+      console.log('Login bem-sucedido, atualizando profile...');
+
       // Atualizar last_login no profile
-      await supabase
-        .from("profiles")
-        .update({ last_login: new Date().toISOString() })
-        .eq("id", authData.user.id);
+      try {
+        await supabase
+          .from("profiles")
+          .update({ last_login: new Date().toISOString() })
+          .eq("id", authData.user.id);
+      } catch (profileError) {
+        console.error('Erro ao atualizar profile:', profileError);
+        // Não bloquear o login se falhar ao atualizar o profile
+      }
 
       toast({
         title: "Login realizado!",
         description: "Bem-vindo de volta!",
       });
 
-      // O useEffect vai navegar automaticamente quando o user for definido
+      console.log('Navegando para dashboard...');
+      
+      // Navegação explícita após pequeno delay para garantir que a sessão foi persistida
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 100);
+
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Erro inesperado no login:', error);
       toast({
         title: "Erro ao fazer login",
-        description: error.message,
+        description: error.message || "Erro inesperado. Tente novamente.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
