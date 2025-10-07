@@ -355,14 +355,15 @@ const Dashboard = () => {
         </Card>
 
         {/* Meu Mini Site */}
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50">
+          <AnimatedGradient colors={["#ec4899", "#f472b6", "#fb923c"]} speed={0.05} blur="medium" />
+          <CardHeader className="relative z-10">
             <CardTitle>Meu Mini Site</CardTitle>
             <CardDescription>
               Compartilhe seu site personalizado com todos os planos e seu link de indicação
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="relative z-10 space-y-4">
             {!activeProfile.username ? (
               <Alert>
                 <AlertTitle>Configure seu username primeiro</AlertTitle>
