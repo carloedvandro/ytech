@@ -6,11 +6,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2, Clock, QrCode } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Payment = () => {
   const { paymentId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [payment, setPayment] = useState<any>(null);
   const [plan, setPlan] = useState<any>(null);
@@ -33,13 +35,12 @@ const Payment = () => {
 
   const checkAdminRole = async () => {
     try {
-      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
-      if (!userData.id) return;
+      if (!user?.id) return;
 
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userData.id)
+        .eq("user_id", user.id)
         .eq("role", "admin")
         .maybeSingle();
 

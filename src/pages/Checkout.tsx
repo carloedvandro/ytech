@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CreditCard } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { useAuth } from "@/contexts/AuthContext";
 
 const addressSchema = z.object({
   cep: z.string().regex(/^\d{8}$/, "CEP deve ter 8 dígitos"),
@@ -28,6 +29,7 @@ const Checkout = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const planId = searchParams.get("plan");
 
   const [plan, setPlan] = useState<any>(null);
@@ -73,15 +75,23 @@ const Checkout = () => {
   };
 
   const onSubmit = async (data: AddressForm) => {
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para continuar",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
     setProcessing(true);
     try {
-      const userData = JSON.parse(localStorage.getItem("user_session") || "{}");
-
       // Criar pagamento
       const { data: payment, error: paymentError } = await supabase
         .from("payments")
         .insert({
-          user_id: userData.id,
+          user_id: user.id,
           plan_id: planId,
           amount: plan.price,
           status: "pending",

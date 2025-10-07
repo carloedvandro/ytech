@@ -214,7 +214,7 @@ serve(async (req) => {
 
           // Ativar usuário
           await supabaseClient
-            .from('users')
+            .from('profiles')
             .update({ status: 'active' })
             .eq('id', userId);
           console.log('✓ User activated');

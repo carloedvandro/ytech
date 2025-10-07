@@ -26,7 +26,7 @@ serve(async (req) => {
     // Buscar dados do pagamento
     const { data: payment, error: paymentError } = await supabaseClient
       .from('payments')
-      .select('*, users!payments_user_id_fkey(*), plans!payments_plan_id_fkey(*)')
+      .select('*, profiles!payments_user_id_fkey(*), plans!payments_plan_id_fkey(*)')
       .eq('id', paymentId)
       .single();
 
@@ -34,11 +34,11 @@ serve(async (req) => {
 
     // Primeiro, criar ou buscar o cliente no Asaas
     const customerData = {
-      name: payment.users.full_name,
-      cpfCnpj: payment.users.cpf.replace(/\D/g, ''),
-      email: payment.users.email,
-      phone: payment.users.whatsapp.replace(/\D/g, ''),
-      externalReference: payment.users.id,
+      name: payment.profiles.full_name,
+      cpfCnpj: payment.profiles.cpf.replace(/\D/g, ''),
+      email: payment.profiles.email,
+      phone: payment.profiles.whatsapp.replace(/\D/g, ''),
+      externalReference: payment.profiles.id,
     };
 
     const customerResponse = await fetch('https://api.asaas.com/v3/customers', {
@@ -55,7 +55,7 @@ serve(async (req) => {
       const errorText = await customerResponse.text();
       // Se o cliente já existe, tentar buscar pelo CPF
       if (errorText.includes('cpfCnpj already exists')) {
-        const searchResponse = await fetch(`https://api.asaas.com/v3/customers?cpfCnpj=${payment.users.cpf.replace(/\D/g, '')}`, {
+        const searchResponse = await fetch(`https://api.asaas.com/v3/customers?cpfCnpj=${payment.profiles.cpf.replace(/\D/g, '')}`, {
           headers: {
             'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
           },
