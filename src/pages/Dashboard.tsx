@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { MarketingMaterialGenerator } from "@/components/marketing/MarketingMaterialGenerator";
 import { ExternalLink } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
-import { motion } from "framer-motion";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -190,12 +189,10 @@ const Dashboard = () => {
         )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+          <div
             onClick={() => navigate('/network')}
-            className="cursor-pointer"
+            className="cursor-pointer animate-fade-in"
+            style={{ animationDelay: '0.2s' }}
           >
             <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <AnimatedGradient colors={["#fbbf24", "#f59e0b", "#d97706"]} speed={0.05} blur="medium" />
@@ -210,14 +207,12 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+          <div
             onClick={() => navigate('/financial')}
-            className="cursor-pointer"
+            className="cursor-pointer animate-fade-in"
+            style={{ animationDelay: '0.4s' }}
           >
             <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
@@ -234,14 +229,12 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
+          <div
             onClick={() => navigate('/financial')}
-            className="cursor-pointer"
+            className="cursor-pointer animate-fade-in"
+            style={{ animationDelay: '0.6s' }}
           >
             <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
@@ -258,14 +251,12 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.8 }}
+          <div
             onClick={() => navigate('/network')}
-            className="cursor-pointer"
+            className="cursor-pointer animate-fade-in"
+            style={{ animationDelay: '0.8s' }}
           >
             <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <AnimatedGradient colors={["#8b5cf6", "#a78bfa", "#c4b5fd"]} speed={0.05} blur="medium" />
@@ -278,7 +269,7 @@ const Dashboard = () => {
                 <p className="text-xs text-foreground/70 mt-1">Sistema ativo</p>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </div>
 
         <Card>
