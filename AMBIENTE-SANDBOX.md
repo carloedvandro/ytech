@@ -4,12 +4,15 @@
 
 ### 1️⃣ Configurar Secrets do Sandbox
 
-Antes de usar o sandbox, você precisa adicionar as chaves de API do ambiente sandbox:
+Antes de usar o sandbox, você precisa adicionar as chaves de API:
 
 ```bash
 # No Lovable Cloud, adicione estes secrets:
 ASAAS_SANDBOX_API_KEY=sua_chave_sandbox_asaas
-MEGA_SANDBOX_API_KEY=sua_chave_sandbox_mega
+MEGA_API_KEY=sua_chave_mega_producao
+
+# Nota: A Mega API não tem ambiente sandbox separado.
+# Use a mesma chave de produção (as notificações ficam desativadas no sandbox).
 ```
 
 ### 2️⃣ Alternar para Sandbox

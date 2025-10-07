@@ -22,8 +22,8 @@ const ENVIRONMENTS = {
       baseUrl: 'https://sandbox.asaas.com/api/v3',
     },
     mega: {
-      apiKey: Deno.env.get('MEGA_SANDBOX_API_KEY') || '',
-      baseUrl: 'https://api.megaapi.com.br/sandbox',
+      apiKey: Deno.env.get('MEGA_API_KEY') || '', // Mega não tem sandbox separado, usa a mesma chave
+      baseUrl: 'https://api.megaapi.com.br',
     },
     notifications: {
       enabled: false, // Não enviar WhatsApp em sandbox
