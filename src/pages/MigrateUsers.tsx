@@ -8,7 +8,9 @@ import { Loader2, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 export default function MigrateUsers() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [resendingPasswords, setResendingPasswords] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [passwordResult, setPasswordResult] = useState<any>(null);
 
   const executeMigration = async () => {
     setLoading(true);
@@ -44,6 +46,43 @@ export default function MigrateUsers() {
       setResult({ error: error.message });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendPasswords = async () => {
+    setResendingPasswords(true);
+    setPasswordResult(null);
+
+    try {
+      console.log('📱 Reenviando senhas temporárias...');
+      
+      const { data, error } = await supabase.functions.invoke('resend-temp-passwords', {
+        body: {}
+      });
+
+      if (error) {
+        console.error('❌ Erro ao reenviar senhas:', error);
+        throw error;
+      }
+
+      console.log('✅ Senhas reenviadas:', data);
+      setPasswordResult(data);
+
+      toast({
+        title: "Senhas enviadas!",
+        description: `${data.results.success} senhas enviadas com sucesso`,
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao reenviar senhas:', error);
+      toast({
+        title: "Erro ao enviar senhas",
+        description: error.message,
+        variant: "destructive",
+      });
+      setPasswordResult({ error: error.message });
+    } finally {
+      setResendingPasswords(false);
     }
   };
 
@@ -143,6 +182,84 @@ export default function MigrateUsers() {
               </div>
             </div>
           )}
+
+          {/* Reenviar senhas */}
+          <div className="border-t pt-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">🔑 Reenviar Senhas Temporárias</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Se os usuários não receberam as senhas via WhatsApp, clique no botão abaixo para reenviar.
+                  Novas senhas temporárias serão geradas e enviadas.
+                </p>
+              </div>
+
+              <Button
+                onClick={resendPasswords}
+                disabled={resendingPasswords}
+                variant="secondary"
+                size="lg"
+                className="w-full"
+              >
+                {resendingPasswords && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                Reenviar Senhas via WhatsApp
+              </Button>
+
+              {/* Resultado do reenvio */}
+              {passwordResult && !passwordResult.error && (
+                <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-green-900 dark:text-green-100 mb-2">
+                        ✅ Senhas reenviadas com sucesso!
+                      </p>
+                      <div className="space-y-1 text-sm text-green-800 dark:text-green-200">
+                        <p>✓ {passwordResult.results.success} senhas enviadas</p>
+                        <p>✗ {passwordResult.results.failed} falhas</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {passwordResult?.results?.errors && passwordResult.results.errors.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                        Alguns erros ocorreram:
+                      </p>
+                      <ul className="space-y-1 text-sm text-amber-800 dark:text-amber-200">
+                        {passwordResult.results.errors.map((err: any, idx: number) => (
+                          <li key={idx} className="font-mono text-xs">
+                            {err.email}: {err.error}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {passwordResult?.error && (
+                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-red-900 dark:text-red-100 mb-2">
+                        ❌ Erro ao reenviar senhas
+                      </p>
+                      <p className="text-sm text-red-800 dark:text-red-200 font-mono">
+                        {passwordResult.error}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Próximos passos */}
           {result?.results?.success > 0 && (

@@ -66,7 +66,17 @@ const messageTemplates = {
     `Seu pagamento está pendente há ${data.daysPending} dias.\n\n` +
     `Plano: ${data.planName}\n` +
     `Valor: R$ ${data.amount.toFixed(2)}\n\n` +
-    `Complete o pagamento para manter seus benefícios ativos!`
+    `Complete o pagamento para manter seus benefícios ativos!`,
+
+  password_reset: (data: any) =>
+    `🔐 *Sua Nova Senha Temporária*\n\n` +
+    `Olá ${data.name}!\n\n` +
+    `Sua conta foi migrada com sucesso para nosso novo sistema.\n\n` +
+    `📧 *Email:* ${data.email}\n` +
+    `🔑 *Senha Temporária:* ${data.temporaryPassword}\n\n` +
+    `⚠️ *IMPORTANTE:* Por segurança, altere sua senha após o primeiro login.\n\n` +
+    `🔗 *Acesse a plataforma:*\n${data.loginUrl || 'https://ytech.lovable.app/login'}\n\n` +
+    `Bem-vindo(a) de volta! 🚀`
 };
 
 Deno.serve(async (req) => {

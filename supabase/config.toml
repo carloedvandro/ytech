@@ -18,3 +18,6 @@ verify_jwt = false
 [functions.admin-manage-user]
 verify_jwt = true
 
+[functions.resend-temp-passwords]
+verify_jwt = false
+
