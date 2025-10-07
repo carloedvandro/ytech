@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Loader2, Users, TrendingUp, CheckCircle, Clock, XCircle, Calendar, AlertTriangle } from "lucide-react";
+import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
@@ -288,14 +289,15 @@ const Network = () => {
         {/* Estatísticas por Status */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card 
-            className={`backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'active' ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
+            className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'active' ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
             onClick={() => setSelectedStatus(selectedStatus === 'active' ? null : 'active')}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-green-foreground))]">Usuários Ativos</CardTitle>
               <CheckCircle className="h-5 w-5 text-[hsl(var(--glass-green-foreground))]/70" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-3xl font-bold text-[hsl(var(--glass-green-foreground))]">{stats.active}</div>
               <p className="text-xs text-[hsl(var(--glass-green-foreground))]/70 mt-1">
                 {stats.total > 0 ? `${((stats.active / stats.total) * 100).toFixed(1)}% da rede` : 'Nenhum usuário'}
@@ -304,14 +306,15 @@ const Network = () => {
           </Card>
 
           <Card 
-            className={`backdrop-blur-xl bg-[hsl(var(--glass-yellow))]/20 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'pending_payment' ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
+            className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'pending_payment' ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
             onClick={() => setSelectedStatus(selectedStatus === 'pending_payment' ? null : 'pending_payment')}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#fbbf24", "#f59e0b", "#d97706"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-yellow-foreground))]">Pendentes de Pagamento</CardTitle>
               <Clock className="h-5 w-5 text-[hsl(var(--glass-yellow-foreground))]/70" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-3xl font-bold text-[hsl(var(--glass-yellow-foreground))]">{stats.pending}</div>
               <p className="text-xs text-[hsl(var(--glass-yellow-foreground))]/70 mt-1">
                 {stats.total > 0 ? `${((stats.pending / stats.total) * 100).toFixed(1)}% da rede` : 'Nenhum usuário'}
@@ -320,14 +323,15 @@ const Network = () => {
           </Card>
 
           <Card 
-            className={`backdrop-blur-xl bg-red-500/20 border-red-500/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'suspended' ? 'ring-2 ring-red-500' : ''}`}
+            className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-red-500/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'suspended' ? 'ring-2 ring-red-500' : ''}`}
             onClick={() => setSelectedStatus(selectedStatus === 'suspended' ? null : 'suspended')}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#ef4444", "#f87171", "#fca5a5"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">Suspensos</CardTitle>
               <XCircle className="h-5 w-5 text-red-700/70 dark:text-red-400/70" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-3xl font-bold text-red-700 dark:text-red-400">{stats.suspended}</div>
               <p className="text-xs text-red-700/70 dark:text-red-400/70 mt-1">
                 {stats.total > 0 ? `${((stats.suspended / stats.total) * 100).toFixed(1)}% da rede` : 'Nenhum usuário'}
@@ -409,66 +413,71 @@ const Network = () => {
         {/* Estatísticas por Nível */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card 
-            className={`${getLevelBg(1)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 1 ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
+            className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 1 ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
             onClick={() => setSelectedLevel(selectedLevel === 1 ? null : 1)}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#fbbf24", "#f59e0b", "#d97706"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-yellow-foreground))]">Nível 1</CardTitle>
               <Users className="h-4 w-4 text-[hsl(var(--glass-yellow-foreground))]/70" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold text-[hsl(var(--glass-yellow-foreground))]">{stats.level1}</div>
             </CardContent>
           </Card>
 
           <Card 
-            className={`${getLevelBg(2)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 2 ? 'ring-2 ring-[hsl(var(--glass-blue-foreground))]' : ''}`}
+            className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 2 ? 'ring-2 ring-[hsl(var(--glass-blue-foreground))]' : ''}`}
             onClick={() => setSelectedLevel(selectedLevel === 2 ? null : 2)}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-blue-foreground))]">Nível 2</CardTitle>
               <Users className="h-4 w-4 text-[hsl(var(--glass-blue-foreground))]/70" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold text-[hsl(var(--glass-blue-foreground))]">{stats.level2}</div>
             </CardContent>
           </Card>
 
           <Card 
-            className={`${getLevelBg(3)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 3 ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
+            className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 3 ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
             onClick={() => setSelectedLevel(selectedLevel === 3 ? null : 3)}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-green-foreground))]">Nível 3</CardTitle>
               <Users className="h-4 w-4 text-[hsl(var(--glass-green-foreground))]/70" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold text-[hsl(var(--glass-green-foreground))]">{stats.level3}</div>
             </CardContent>
           </Card>
 
           <Card 
-            className={`${getLevelBg(4)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 4 ? 'ring-2 ring-[hsl(var(--glass-purple-foreground))]' : ''}`}
+            className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 4 ? 'ring-2 ring-[hsl(var(--glass-purple-foreground))]' : ''}`}
             onClick={() => setSelectedLevel(selectedLevel === 4 ? null : 4)}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#8b5cf6", "#a78bfa", "#c4b5fd"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-purple-foreground))]">Nível 4</CardTitle>
               <Users className="h-4 w-4 text-[hsl(var(--glass-purple-foreground))]/70" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold text-[hsl(var(--glass-purple-foreground))]">{stats.level4}</div>
             </CardContent>
           </Card>
 
           <Card 
-            className="backdrop-blur-xl bg-background/50 border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+            className="relative overflow-hidden backdrop-blur-xl bg-background/50 border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
             onClick={() => setSelectedLevel(null)}
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <AnimatedGradient colors={["#6366f1", "#8b5cf6", "#ec4899"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total</CardTitle>
               <TrendingUp className="h-4 w-4" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
