@@ -104,13 +104,17 @@ export default function AdminActivations() {
     });
   };
 
-  const filteredActivations = activations?.filter((activation) =>
-    activation.profiles.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    activation.profiles.whatsapp.includes(searchTerm) ||
-    activation.barcode?.includes(searchTerm) ||
-    activation.imei?.includes(searchTerm) ||
-    activation.eid?.includes(searchTerm)
-  );
+  const filteredActivations = activations?.filter((activation) => {
+    if (!searchTerm.trim()) return true; // Mostrar todos se não houver busca
+    
+    return (
+      activation.profiles.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      activation.profiles.whatsapp.includes(searchTerm) ||
+      activation.barcode?.includes(searchTerm) ||
+      activation.imei?.includes(searchTerm) ||
+      activation.eid?.includes(searchTerm)
+    );
+  });
 
   if (isLoading) {
     return (
