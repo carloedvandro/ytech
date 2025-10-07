@@ -1,8 +1,11 @@
-import { Home, Users, DollarSign, LogOut, Shield, KeyRound } from "lucide-react";
+import { Home, Users, DollarSign, LogOut, Shield, KeyRound, FlaskConical } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEnvironment } from "@/contexts/EnvironmentContext";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Sidebar,
   SidebarContent,
@@ -35,6 +38,7 @@ const menuItems = [
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const { open } = useSidebar();
   const { signOut } = useAuth();
+  const { environment, setEnvironment, isSandbox } = useEnvironment();
 
   // Verificar se o usuário é admin
   const { data: isAdmin } = useQuery({
@@ -51,11 +55,25 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
     },
   });
 
+  const handleEnvironmentToggle = (checked: boolean) => {
+    setEnvironment(checked ? "sandbox" : "production");
+  };
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Y-TECH 5G</SidebarGroupLabel>
+          <div className="space-y-1">
+            <SidebarGroupLabel>Y-TECH 5G</SidebarGroupLabel>
+            {isSandbox && open && (
+              <div className="px-3 pb-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-orange-500">
+                  <FlaskConical className="h-3 w-3" />
+                  <span>AMBIENTE SANDBOX</span>
+                </div>
+              </div>
+            )}
+          </div>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -76,19 +94,43 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
               ))}
 
               {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/admin"
-                      className={({ isActive }) =>
-                        isActive ? "bg-accent text-accent-foreground" : ""
-                      }
-                    >
-                      <Shield className="h-4 w-4" />
-                      {open && <span>Admin</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/admin"
+                        className={({ isActive }) =>
+                          isActive ? "bg-accent text-accent-foreground" : ""
+                        }
+                      >
+                        <Shield className="h-4 w-4" />
+                        {open && <span>Admin</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  {/* Seletor de Ambiente (apenas para admins) */}
+                  <SidebarMenuItem>
+                    <div className="px-2 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <FlaskConical className="h-4 w-4 text-orange-500" />
+                          {open && (
+                            <Label htmlFor="sandbox-mode" className="text-xs cursor-pointer">
+                              Modo Sandbox
+                            </Label>
+                          )}
+                        </div>
+                        <Switch
+                          id="sandbox-mode"
+                          checked={isSandbox}
+                          onCheckedChange={handleEnvironmentToggle}
+                          className="data-[state=checked]:bg-orange-500"
+                        />
+                      </div>
+                    </div>
+                  </SidebarMenuItem>
+                </>
               )}
 
               <SidebarMenuItem>

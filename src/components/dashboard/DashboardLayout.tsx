@@ -4,12 +4,14 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { PlanSelector } from "./PlanSelector";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEnvironment } from "@/contexts/EnvironmentContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, loading } = useAuth();
+  const { isSandbox } = useEnvironment();
   const [showPlanSelector, setShowPlanSelector] = useState(false);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className={`min-h-screen flex w-full ${isSandbox ? "ring-4 ring-orange-500" : ""}`}>
         <DashboardSidebar user={profile} />
         
         <div className="flex-1 flex flex-col">
