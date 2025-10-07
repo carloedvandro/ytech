@@ -134,82 +134,19 @@ const Users = () => {
 
     try {
       const amount = parseFloat(adjustmentAmount);
-      const balanceBefore = userBalance || 0;
-      const balanceAfter = adjustmentType === "add" 
-        ? balanceBefore + amount 
-        : balanceBefore - amount;
 
-      if (adjustmentType === "remove" && balanceAfter < 0) {
-        toast.error("Saldo insuficiente para remoção");
-        return;
-      }
-
-      // Buscar admin atual
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error("Admin não autenticado");
-
-      // Registrar ajuste
-      const { error: adjustmentError } = await supabase
-        .from("admin_balance_adjustments")
-        .insert({
-          user_id: selectedUser.id,
-          admin_id: currentUser.id,
+      // Chamar edge function para ajustar saldo
+      const { data, error } = await supabase.functions.invoke('admin-adjust-balance', {
+        body: {
+          userId: selectedUser.id,
           amount,
           type: adjustmentType,
-          reason: adjustmentReason,
-          balance_before: balanceBefore,
-          balance_after: balanceAfter,
-        });
-
-      if (adjustmentError) throw adjustmentError;
-
-      // Se for adicionar saldo, criar uma comissão fictícia
-      if (adjustmentType === "add") {
-        const { error: commError } = await supabase
-          .from("commissions")
-          .insert({
-            user_id: selectedUser.id,
-            referred_user_id: selectedUser.id,
-            payment_id: `admin_adjustment_${Date.now()}`,
-            amount,
-            level: 0,
-            status: "available",
-            released_at: new Date().toISOString(),
-          });
-
-        if (commError) throw commError;
-      }
-
-      // Se for remover, atualizar comissões disponíveis
-      if (adjustmentType === "remove") {
-        // Buscar comissões disponíveis ordenadas por data
-        const { data: availableComms, error: fetchError } = await supabase
-          .from("commissions")
-          .select("*")
-          .eq("user_id", selectedUser.id)
-          .eq("status", "available")
-          .order("created_at", { ascending: true });
-
-        if (fetchError) throw fetchError;
-
-        let remaining = amount;
-        for (const comm of availableComms || []) {
-          if (remaining <= 0) break;
-
-          const commAmount = Number(comm.amount);
-          if (commAmount <= remaining) {
-            // Marcar como retirada
-            await supabase
-              .from("commissions")
-              .update({ 
-                status: "withdrawn",
-                withdrawn_at: new Date().toISOString() 
-              })
-              .eq("id", comm.id);
-            remaining -= commAmount;
-          }
+          reason: adjustmentReason
         }
-      }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro ao ajustar saldo');
 
       toast.success(
         adjustmentType === "add" 
@@ -223,7 +160,7 @@ const Users = () => {
       refetch();
     } catch (error) {
       console.error("Error adjusting balance:", error);
-      toast.error("Erro ao ajustar saldo");
+      toast.error(error instanceof Error ? error.message : "Erro ao ajustar saldo");
     }
   };
 
