@@ -28,10 +28,11 @@ const Login = () => {
   const [show2FA, setShow2FA] = useState(false);
   const [pendingAuth, setPendingAuth] = useState<{ email: string; password: string; whatsapp: string } | null>(null);
   const hasRedirected = useRef(false);
+  const isVerifying2FA = useRef(false); // Flag para indicar que estamos no processo de 2FA
 
   // Redirect to dashboard if already logged in - with protection against loops
   useEffect(() => {
-    if (!authLoading && user && !hasRedirected.current) {
+    if (!authLoading && user && !hasRedirected.current && !isVerifying2FA.current) {
       hasRedirected.current = true;
       console.log('User already logged in, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
@@ -48,6 +49,8 @@ const Login = () => {
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
+    isVerifying2FA.current = true; // Ativar flag de verificação 2FA
+    
     try {
       console.log('🔑 Validando credenciais...');
       
@@ -67,6 +70,7 @@ const Login = () => {
           variant: "destructive",
         });
         setLoading(false);
+        isVerifying2FA.current = false; // Desativar flag em caso de erro
         return;
       }
 
@@ -78,6 +82,7 @@ const Login = () => {
           variant: "destructive",
         });
         setLoading(false);
+        isVerifying2FA.current = false; // Desativar flag em caso de erro
         return;
       }
 
@@ -99,6 +104,7 @@ const Login = () => {
           variant: "destructive",
         });
         setLoading(false);
+        isVerifying2FA.current = false; // Desativar flag em caso de erro
         return;
       }
 
@@ -117,6 +123,7 @@ const Login = () => {
           variant: "destructive",
         });
         setLoading(false);
+        isVerifying2FA.current = false; // Desativar flag em caso de erro
         return;
       }
 
@@ -151,6 +158,7 @@ const Login = () => {
         variant: "destructive",
       });
       setLoading(false);
+      isVerifying2FA.current = false; // Desativar flag em caso de erro
     }
   };
 
@@ -180,6 +188,7 @@ const Login = () => {
         description: "Bem-vindo de volta!",
       });
 
+      isVerifying2FA.current = false; // Desativar flag após sucesso
       hasRedirected.current = true;
       window.location.href = '/dashboard';
 
@@ -193,6 +202,7 @@ const Login = () => {
       setLoading(false);
       setShow2FA(false);
       setPendingAuth(null);
+      isVerifying2FA.current = false; // Desativar flag em caso de erro
     }
   };
 
@@ -200,6 +210,7 @@ const Login = () => {
     setShow2FA(false);
     setPendingAuth(null);
     setLoading(false);
+    isVerifying2FA.current = false; // Desativar flag ao cancelar
   };
 
   return (
