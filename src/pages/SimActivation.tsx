@@ -17,6 +17,7 @@ export default function SimActivation() {
   const [barcode, setBarcode] = useState("");
   const [imei, setImei] = useState("");
   const [eid, setEid] = useState("");
+  const [screenshot, setScreenshot] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const startScanning = async () => {
@@ -214,16 +215,29 @@ export default function SimActivation() {
             <TabsContent value="esim" className="space-y-4">
               <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>📱 Informações Importantes</AlertTitle>
+                <AlertTitle>📱 Como encontrar IMEI e EID</AlertTitle>
                 <AlertDescription className="space-y-2 mt-2">
-                  <p>• Localize o <strong>IMEI</strong> nas configurações do seu dispositivo</p>
-                  <p>• O <strong>EID</strong> está disponível nas configurações de eSIM</p>
-                  <p>• Certifique-se de que seu dispositivo suporta eSIM</p>
-                  <p>• Após o envio, aguarde a confirmação de ativação</p>
+                  <p className="font-bold">1. Digite <code className="bg-primary/20 px-2 py-1 rounded">*#06#</code> no seu telefone</p>
+                  <p>2. Anote ou tire um print dos códigos <strong>IMEI</strong> e <strong>EID</strong></p>
+                  <p>3. Preencha os campos abaixo ou faça upload do print</p>
+                  <p className="text-xs mt-2">💡 Certifique-se de que seu dispositivo suporta eSIM</p>
                 </AlertDescription>
               </Alert>
 
               <form onSubmit={handleEsimSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="screenshot">Print da tela *#06# (Opcional)</Label>
+                  <Input
+                    id="screenshot"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Se preferir, tire um print após digitar *#06# e faça o upload
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="imei">IMEI</Label>
                   <Input

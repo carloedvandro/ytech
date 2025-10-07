@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     console.log('✅ Ativação salva:', activation.id);
 
     // Prepare WhatsApp message
-    const adminWhatsapp = '5511999999999'; // TODO: Configurar número do administrador
+    const adminWhatsapp = '5511970492228';
     
     let message = `🆕 *NOVA SOLICITAÇÃO DE ATIVAÇÃO*\n\n`;
     message += `👤 *Cliente:* ${profile.full_name}\n`;
