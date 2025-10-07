@@ -147,7 +147,17 @@ const Network = () => {
     try {
       if (!activeProfile?.id) return;
 
-      // Buscar TODA a rede do usuário (não só indicados diretos)
+      // Buscar o nível do usuário logado para calcular o nível máximo permitido
+      const { data: myLevel } = await supabase
+        .from("user_network")
+        .select("level")
+        .eq("user_id", activeProfile.id)
+        .maybeSingle();
+
+      const userLevel = myLevel?.level || 1;
+      const maxLevel = userLevel + 4; // Usuário vê apenas 4 níveis abaixo
+
+      // Buscar APENAS os 4 níveis abaixo do usuário (privacidade)
       const { data: networkData, error: networkError } = await supabase
         .from("user_network")
         .select(`
@@ -166,18 +176,10 @@ const Network = () => {
         `)
         .contains("path", [activeProfile.id])
         .neq("user_id", activeProfile.id)
+        .lte("level", maxLevel)
         .order("level", { ascending: true });
 
       if (networkError) throw networkError;
-
-      // Buscar o nível do usuário logado para calcular níveis relativos
-      const { data: myLevel } = await supabase
-        .from("user_network")
-        .select("level")
-        .eq("user_id", activeProfile.id)
-        .maybeSingle();
-
-      const userLevel = myLevel?.level || 1;
 
       // Buscar datas de renovação para cada usuário
       const userIds = networkData?.map((item: any) => item.user_id) || [];
