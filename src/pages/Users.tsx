@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserCog, DollarSign, Search } from "lucide-react";
+import { UserCog, DollarSign, Search, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
@@ -28,13 +29,31 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
+  const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [adjustmentType, setAdjustmentType] = useState<"add" | "remove">("add");
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
+  const [activating, setActivating] = useState(false);
   const navigate = useNavigate();
   const { setImpersonatedUser } = useImpersonation();
 
   // Buscar todos os usuários
+  // Buscar planos
+  const { data: plans } = useQuery({
+    queryKey: ["plans"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("plans")
+        .select("*")
+        .eq("active", true)
+        .order("price", { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: users, isLoading, refetch } = useQuery({
     queryKey: ["admin-all-users"],
     queryFn: async () => {
@@ -76,6 +95,35 @@ const Users = () => {
     });
     toast.success(`Agora você está acessando como ${user.full_name}`);
     navigate("/dashboard");
+  };
+
+  const handleActivateUser = async () => {
+    if (!selectedUser || !selectedPlanId) {
+      toast.error("Selecione um plano");
+      return;
+    }
+
+    setActivating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão não encontrada");
+
+      const { data, error } = await supabase.functions.invoke('admin-activate-user', {
+        body: { userId: selectedUser.id, planId: selectedPlanId },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Usuário ${selectedUser.full_name} ativado com sucesso!`);
+      setShowActivateDialog(false);
+      setSelectedPlanId("");
+      refetch();
+    } catch (error) {
+      console.error("Error activating user:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao ativar usuário");
+    } finally {
+      setActivating(false);
+    }
   };
 
   const handleBalanceAdjustment = async () => {
@@ -266,6 +314,20 @@ const Users = () => {
                             <DollarSign className="w-4 h-4 mr-1" />
                             Ajustar Saldo
                           </Button>
+                          {user.status === "pending_payment" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowActivateDialog(true);
+                              }}
+                              className="text-purple-600"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Ativar
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -276,6 +338,46 @@ const Users = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de ativação de usuário */}
+      <Dialog open={showActivateDialog} onOpenChange={setShowActivateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ativar Usuário</DialogTitle>
+            <DialogDescription>
+              Ative manualmente o usuário {selectedUser?.full_name} escolhendo um plano.
+              As comissões serão geradas automaticamente para toda a rede.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="plan">Selecione o Plano</Label>
+              <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans?.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} - R$ {Number(plan.price).toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowActivateDialog(false)} disabled={activating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleActivateUser} disabled={activating || !selectedPlanId}>
+              {activating ? "Ativando..." : "Ativar Usuário"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de ajuste de saldo */}
       <Dialog open={showBalanceDialog} onOpenChange={setShowBalanceDialog}>
