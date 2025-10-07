@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CheckCircle, Clock, Smartphone, Loader2 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 
 interface SimActivation {
   id: string;
@@ -270,7 +270,7 @@ export default function AdminActivations() {
               <div className="p-4 bg-muted rounded-lg flex justify-center">
                 <div className="text-center space-y-2">
                   <p className="text-sm font-medium">Preview do QR Code:</p>
-                  <QRCodeSVG value={qrCodeData} size={200} />
+                  <QRCode value={qrCodeData} size={200} />
                 </div>
               </div>
             )}

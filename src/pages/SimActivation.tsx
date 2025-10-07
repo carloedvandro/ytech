@@ -12,7 +12,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 
 export default function SimActivation() {
   const { user, profile } = useAuth();
@@ -226,7 +226,7 @@ export default function SimActivation() {
                 {activeActivation.qr_code_url && (
                   <div className="flex justify-center p-6 bg-white rounded-lg">
                     <div className="text-center space-y-3">
-                      <QRCodeSVG value={activeActivation.qr_code_url} size={250} />
+                      <QRCode value={activeActivation.qr_code_url} size={250} />
                       <p className="text-sm text-muted-foreground">
                         Aponte a câmera do seu aparelho para este QR Code
                       </p>
