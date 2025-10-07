@@ -272,14 +272,15 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50">
+          <AnimatedGradient colors={["#06b6d4", "#22d3ee", "#67e8f9"]} speed={0.05} blur="medium" />
+          <CardHeader className="relative z-10">
             <CardTitle>Seu Username</CardTitle>
             <CardDescription>
               Escolha um username único para seu link de indicação
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <UsernameManager
               userId={activeProfile.id}
               currentUsername={activeProfile.username || null}
@@ -288,14 +289,15 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50">
+          <AnimatedGradient colors={["#f97316", "#fb923c", "#fdba74"]} speed={0.05} blur="medium" />
+          <CardHeader className="relative z-10">
             <CardTitle>Seu Link de Indicação</CardTitle>
             <CardDescription>
               Compartilhe este link ou QR Code para convidar novos usuários
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -446,14 +448,15 @@ const Dashboard = () => {
         </Card>
 
         {/* Material de Divulgação */}
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50">
+          <AnimatedGradient colors={["#14b8a6", "#2dd4bf", "#5eead4"]} speed={0.05} blur="medium" />
+          <CardHeader className="relative z-10">
             <CardTitle>Material de Divulgação</CardTitle>
             <CardDescription>
               Gere materiais personalizados para divulgar seus planos (limite de 5 por dia)
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             {!activeProfile.username ? (
               <Alert>
                 <AlertTitle>Configure seu username primeiro</AlertTitle>
