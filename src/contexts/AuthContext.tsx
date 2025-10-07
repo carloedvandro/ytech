@@ -111,45 +111,78 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+    let initialCheckDone = false;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id);
+        console.log('🔐 Auth state change:', event, 'User:', session?.user?.id);
+        
+        if (!mounted) return;
         
         setSession(session);
         setUser(session?.user ?? null);
         
         // Defer profile fetch to avoid blocking auth callback
         if (session?.user) {
-          // Pass email directly to avoid race condition
+          console.log('📝 Fetching profile for:', session.user.id);
           setTimeout(() => {
-            fetchProfile(session.user.id, session.user.email);
+            if (mounted) {
+              fetchProfile(session.user.id, session.user.email);
+            }
           }, 0);
         } else {
+          console.log('❌ No session, clearing profile');
           setProfile(null);
         }
         
-        setLoading(false);
+        // Only set loading false if initial check is done
+        if (initialCheckDone && mounted) {
+          setLoading(false);
+        }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.id);
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id, session.user.email);
-        }, 0);
-      }
-      
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        console.log('🔍 Initial session check:', { 
+          hasSession: !!session, 
+          userId: session?.user?.id,
+          error: error?.message 
+        });
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          console.log('📝 Initial profile fetch for:', session.user.id);
+          fetchProfile(session.user.id, session.user.email).finally(() => {
+            if (mounted) {
+              initialCheckDone = true;
+              setLoading(false);
+            }
+          });
+        } else {
+          initialCheckDone = true;
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('❌ Error getting session:', err);
+        if (mounted) {
+          initialCheckDone = true;
+          setLoading(false);
+        }
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

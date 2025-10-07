@@ -46,17 +46,21 @@ const Login = () => {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      console.log('Iniciando login...');
+      console.log('🔑 Iniciando login...');
       
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
-      console.log('Resposta do login:', { authData, error });
+      console.log('📊 Resposta do login:', { 
+        hasUser: !!authData.user,
+        hasSession: !!authData.session,
+        error: error?.message 
+      });
 
       if (error) {
-        console.error('Erro de autenticação:', error);
+        console.error('❌ Erro de autenticação:', error);
         toast({
           title: "Erro ao fazer login",
           description: error.message === 'Invalid login credentials' 
@@ -69,7 +73,7 @@ const Login = () => {
       }
 
       if (!authData.user || !authData.session) {
-        console.error('Dados de autenticação incompletos');
+        console.error('❌ Dados de autenticação incompletos');
         toast({
           title: "Erro ao fazer login",
           description: "Erro inesperado. Tente novamente.",
@@ -79,7 +83,11 @@ const Login = () => {
         return;
       }
 
-      console.log('Login bem-sucedido, atualizando profile...');
+      console.log('✅ Login bem-sucedido!');
+      console.log('💾 Sessão armazenada:', {
+        accessToken: authData.session.access_token?.substring(0, 20) + '...',
+        expiresAt: new Date(authData.session.expires_at! * 1000).toISOString()
+      });
 
       // Atualizar last_login no profile
       try {
@@ -88,7 +96,7 @@ const Login = () => {
           .update({ last_login: new Date().toISOString() })
           .eq("id", authData.user.id);
       } catch (profileError) {
-        console.error('Erro ao atualizar profile:', profileError);
+        console.error('⚠️ Erro ao atualizar profile:', profileError);
         // Não bloquear o login se falhar ao atualizar o profile
       }
 
@@ -98,17 +106,24 @@ const Login = () => {
       });
 
       // Esperar a sessão ser confirmada antes de navegar
-      console.log('Aguardando confirmação da sessão...');
+      console.log('⏳ Aguardando confirmação da sessão...');
       
       // Pequeno delay para garantir que o AuthContext processe a sessão
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      console.log('Navegando para dashboard...');
+      // Verificar se a sessão foi salva
+      const { data: { session: savedSession } } = await supabase.auth.getSession();
+      console.log('🔍 Verificando sessão salva:', {
+        hasSavedSession: !!savedSession,
+        userId: savedSession?.user?.id
+      });
+      
+      console.log('🚀 Navegando para dashboard...');
       hasRedirected.current = true;
       navigate('/dashboard', { replace: true });
 
     } catch (error: any) {
-      console.error('Erro inesperado no login:', error);
+      console.error('❌ Erro inesperado no login:', error);
       toast({
         title: "Erro ao fazer login",
         description: error.message || "Erro inesperado. Tente novamente.",
