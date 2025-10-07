@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Loader2, Users, TrendingUp, CheckCircle, Clock, XCircle, Calendar, AlertTriangle } from "lucide-react";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
@@ -39,6 +40,11 @@ const Network = () => {
   const [showRenewalDialog, setShowRenewalDialog] = useState(false);
   const [newRenewalDate, setNewRenewalDate] = useState("");
   const [updatingRenewal, setUpdatingRenewal] = useState(false);
+  
+  const { ref: statsRef, isVisible: statsVisible } = useScrollReveal({ threshold: 0.1 });
+  const { ref: chartRef, isVisible: chartVisible } = useScrollReveal({ threshold: 0.1 });
+  const { ref: levelsRef, isVisible: levelsVisible } = useScrollReveal({ threshold: 0.1 });
+  const { ref: tableRef, isVisible: tableVisible } = useScrollReveal({ threshold: 0.1 });
   const [stats, setStats] = useState({
     level1: 0,
     level2: 0,
@@ -286,7 +292,7 @@ const Network = () => {
         </div>
 
         {/* Estatísticas por Status */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div ref={statsRef} className={`grid gap-4 md:grid-cols-3 transition-all duration-1000 ${statsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <Card 
             className={`backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'active' ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
             onClick={() => setSelectedStatus(selectedStatus === 'active' ? null : 'active')}
@@ -338,7 +344,7 @@ const Network = () => {
 
         {/* Gráfico de Status */}
         {stats.total > 0 && (
-          <Card>
+          <Card ref={chartRef} className={`transition-all duration-1000 ${chartVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <CardHeader>
               <CardTitle>Distribuição por Status</CardTitle>
               <CardDescription>
@@ -407,7 +413,7 @@ const Network = () => {
         )}
 
         {/* Estatísticas por Nível */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div ref={levelsRef} className={`grid gap-4 md:grid-cols-2 lg:grid-cols-5 transition-all duration-1000 ${levelsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <Card 
             className={`${getLevelBg(1)} shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 1 ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
             onClick={() => setSelectedLevel(selectedLevel === 1 ? null : 1)}
@@ -474,7 +480,7 @@ const Network = () => {
           </Card>
         </div>
 
-        <Card>
+        <Card ref={tableRef} className={`transition-all duration-1000 ${tableVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <CardHeader>
             <CardTitle>
               {selectedLevel || selectedStatus 
