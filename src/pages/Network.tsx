@@ -46,6 +46,7 @@ const Network = () => {
           profiles!user_network_user_id_fkey (
             id,
             full_name,
+            email,
             cpf,
             whatsapp,
             status,
@@ -67,21 +68,8 @@ const Network = () => {
 
       const userLevel = myLevel?.level || 1;
 
-      // Buscar emails dos usuários da auth
-      const { data: authUsersData } = await supabase.auth.admin.listUsers();
-      
-      const emailMap = new Map<string, string>();
-      if (authUsersData?.users) {
-        authUsersData.users.forEach(u => {
-          if (u.id && u.email) {
-            emailMap.set(u.id, u.email);
-          }
-        });
-      }
-
       const formattedNetwork = networkData?.map((item: any) => ({
         ...item.profiles,
-        email: emailMap.get(item.user_id) || 'N/A',
         level: item.level - userLevel, // Calcular nível relativo
       })) || [];
 

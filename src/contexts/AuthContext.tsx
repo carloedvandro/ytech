@@ -44,9 +44,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       
       if (data) {
+        // Se não tem email, buscar do session
+        const email = data.email || session?.user?.email;
+        
+        // Atualizar email se necessário
+        if (!data.email && session?.user?.email) {
+          await supabase
+            .from('profiles')
+            .update({ email: session.user.email })
+            .eq('id', userId);
+        }
+        
         setProfile({
           ...data,
-          email: session?.user?.email
+          email
         });
       }
     } catch (error: any) {
