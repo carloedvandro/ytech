@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { PlanSelector } from "./PlanSelector";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
           <header className="h-14 border-b bg-background flex items-center px-4 gap-4">
             <SidebarTrigger />
             <div className="flex-1" />
+            <ThemeToggle />
             <div className="text-sm text-muted-foreground">
               Olá, <span className="font-medium text-foreground">{profile.full_name}</span>
             </div>
