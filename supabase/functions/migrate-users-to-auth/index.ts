@@ -44,24 +44,26 @@ serve(async (req) => {
       errors: [] as any[]
     };
 
-    // 2. Migrar cada usuário
+    // 2. Migrar usuários em duas etapas para evitar problemas de foreign key
+    const userMapping = new Map<string, string>(); // old_id -> new_id
+
+    // ETAPA 1: Criar todos os auth users SEM referred_by
     for (const oldUser of oldUsers || []) {
       try {
-        console.log(`Migrating user: ${oldUser.email} (${oldUser.id})`);
+        console.log(`[Step 1] Creating auth user: ${oldUser.email} (${oldUser.id})`);
 
-        // 2.1. Gerar senha temporária
         const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
 
-        // 2.2. Criar usuário no auth.users
+        // Criar usuário no auth.users SEM referred_by no metadata
         const { data: authUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
           email: oldUser.email,
           password: tempPassword,
-          email_confirm: true, // Auto-confirmar email
+          email_confirm: true,
           user_metadata: {
             full_name: oldUser.full_name,
             cpf: oldUser.cpf,
             whatsapp: oldUser.whatsapp,
-            referred_by: oldUser.referred_by,
+            // NÃO incluir referred_by aqui para evitar erro de FK
           }
         });
 
@@ -81,29 +83,105 @@ serve(async (req) => {
 
         console.log(`✓ Auth user created: ${authUser.user.id}`);
 
-        // 2.3. Criar profile (o trigger deve fazer isso automaticamente, mas vamos garantir)
-        const { error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .upsert({
-            id: authUser.user.id,
-            full_name: oldUser.full_name,
-            cpf: oldUser.cpf,
-            whatsapp: oldUser.whatsapp,
-            username: oldUser.username,
-            referred_by: oldUser.referred_by,
-            status: oldUser.status,
-            metadata: oldUser.metadata,
-            created_at: oldUser.created_at,
-            updated_at: oldUser.updated_at,
-            last_login: oldUser.last_login,
-          });
+        // Mapear old ID -> new ID
+        userMapping.set(oldUser.id, authUser.user.id);
 
-        if (profileError) {
-          console.error(`Error creating profile for ${oldUser.email}:`, profileError);
-          // Não falha a migração por causa do profile
+        // O trigger handle_new_auth_user vai criar o profile e user_network automaticamente
+        // mas SEM referred_by ainda
+
+        // Marcar como migrado
+        await supabaseAdmin
+          .from('users')
+          .update({
+            migrated_to_auth: true,
+            auth_user_id: authUser.user.id
+          })
+          .eq('id', oldUser.id);
+
+        // Guardar senha temporária para enviar depois
+        oldUser.tempPassword = tempPassword;
+        oldUser.newAuthId = authUser.user.id;
+
+      } catch (userError: any) {
+        console.error(`Error in step 1 for ${oldUser.email}:`, userError);
+        results.errors.push({ user: oldUser.email, error: userError.message });
+        results.failed++;
+      }
+    }
+
+    console.log(`✓ Step 1 complete. Created ${userMapping.size} auth users`);
+
+    // ETAPA 2: Atualizar referred_by e outras referências
+    for (const oldUser of oldUsers || []) {
+      if (!oldUser.newAuthId) continue; // Pular usuários que falharam na etapa 1
+
+      try {
+        console.log(`[Step 2] Updating references for: ${oldUser.email}`);
+
+        const newAuthId = oldUser.newAuthId;
+
+        // Atualizar profile com referred_by correto
+        if (oldUser.referred_by) {
+          const newReferredBy = userMapping.get(oldUser.referred_by);
+          if (newReferredBy) {
+            await supabaseAdmin
+              .from('profiles')
+              .update({ 
+                referred_by: newReferredBy,
+                username: oldUser.username,
+                status: oldUser.status,
+                metadata: oldUser.metadata,
+                created_at: oldUser.created_at,
+                updated_at: oldUser.updated_at,
+                last_login: oldUser.last_login,
+              })
+              .eq('id', newAuthId);
+            
+            console.log(`  ✓ Updated profile with referred_by: ${newReferredBy}`);
+          }
+        } else {
+          // Atualizar outros campos mesmo sem referred_by
+          await supabaseAdmin
+            .from('profiles')
+            .update({ 
+              username: oldUser.username,
+              status: oldUser.status,
+              metadata: oldUser.metadata,
+              created_at: oldUser.created_at,
+              updated_at: oldUser.updated_at,
+              last_login: oldUser.last_login,
+            })
+            .eq('id', newAuthId);
         }
 
-        // 2.4. Atualizar referências em outras tabelas
+        // Atualizar user_network se tiver referred_by
+        if (oldUser.referred_by) {
+          const newReferredBy = userMapping.get(oldUser.referred_by);
+          if (newReferredBy) {
+            // Buscar path e level do parent
+            const { data: parentNetwork } = await supabaseAdmin
+              .from('user_network')
+              .select('path, level')
+              .eq('user_id', newReferredBy)
+              .single();
+
+            if (parentNetwork) {
+              // Atualizar user_network com parent correto
+              await supabaseAdmin
+                .from('user_network')
+                .update({
+                  parent_id: newReferredBy,
+                  level: parentNetwork.level + 1,
+                  path: [...parentNetwork.path, newAuthId]
+                })
+                .eq('user_id', newAuthId);
+              
+              console.log(`  ✓ Updated user_network with parent`);
+            }
+          }
+        }
+
+        // Atualizar referências em outras tabelas
         const updates = [
           // Atualizar commissions
           supabaseAdmin.from('commissions')
@@ -146,16 +224,9 @@ serve(async (req) => {
 
         await Promise.all(updates);
 
-        // 2.5. Marcar usuário antigo como migrado
-        await supabaseAdmin
-          .from('users')
-          .update({
-            migrated_to_auth: true,
-            auth_user_id: authUser.user.id
-          })
-          .eq('id', oldUser.id);
+        console.log(`  ✓ Updated all table references`);
 
-        // 2.6. Enviar senha temporária por WhatsApp
+        // Enviar senha temporária por WhatsApp
         try {
           await supabaseAdmin.functions.invoke('send-whatsapp-notification', {
             body: {
