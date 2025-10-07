@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, Smartphone, AlertCircle, Loader2 } from "lucide-react";
+import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function SimActivation() {
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<"chip" | "esim">("chip");
   const [scanning, setScanning] = useState(false);
   const [barcode, setBarcode] = useState("");
@@ -19,6 +23,26 @@ export default function SimActivation() {
   const [eid, setEid] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Verificar se o usuário tem fatura em dia (status = active)
+  const canActivate = profile?.status === 'active';
+
+  // Buscar ativações do usuário
+  const { data: activations } = useQuery({
+    queryKey: ["user-activations", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("sim_activations")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const startScanning = async () => {
     setScanning(true);
@@ -144,6 +168,9 @@ export default function SimActivation() {
     }
   };
 
+  // Encontrar última ativação ativa
+  const activeActivation = activations?.find(a => a.status === 'activated');
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
@@ -153,15 +180,82 @@ export default function SimActivation() {
         </p>
       </div>
 
+      {!canActivate && (
+        <Alert className="mb-6" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Acesso Restrito</AlertTitle>
+          <AlertDescription>
+            Esta área está disponível apenas para clientes com fatura em dia. 
+            Por favor, regularize sua situação para ativar seu chip ou eSIM.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {activeActivation && (
+        <Card className="mb-6 border-green-500 bg-green-50 dark:bg-green-950">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+              <CardTitle className="text-green-700 dark:text-green-400">
+                {activeActivation.activation_type === 'chip' ? 'Chip Ativado!' : 'eSIM Ativado!'}
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {activeActivation.activation_type === 'chip' ? (
+              <Alert className="bg-white dark:bg-slate-900">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle>✅ Chip pronto para uso!</AlertTitle>
+                <AlertDescription className="space-y-2 mt-2">
+                  <p>• Agora você pode <strong>ABRIR o pacote</strong></p>
+                  <p>• <strong>REMOVER</strong> o chip do plástico</p>
+                  <p>• <strong>INSERIR</strong> no seu aparelho</p>
+                  <p>• O chip está pronto para funcionar!</p>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="space-y-4">
+                <Alert className="bg-white dark:bg-slate-900">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertTitle>📱 Leia o QR Code para ativar seu eSIM</AlertTitle>
+                  <AlertDescription className="mt-2">
+                    Use a câmera do seu dispositivo para ler o QR Code abaixo e completar a ativação do eSIM
+                  </AlertDescription>
+                </Alert>
+                
+                {activeActivation.qr_code_url && (
+                  <div className="flex justify-center p-6 bg-white rounded-lg">
+                    <div className="text-center space-y-3">
+                      <QRCodeSVG value={activeActivation.qr_code_url} size={250} />
+                      <p className="text-sm text-muted-foreground">
+                        Aponte a câmera do seu aparelho para este QR Code
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50">
         <AnimatedGradient colors={["#8b5cf6", "#a78bfa", "#c4b5fd"]} speed={0.05} blur="medium" />
         <CardHeader className="relative z-10">
-          <CardTitle>Ativação</CardTitle>
+          <CardTitle>Solicitar Ativação</CardTitle>
           <CardDescription>
             Escolha o tipo de ativação que deseja realizar
           </CardDescription>
         </CardHeader>
         <CardContent className="relative z-10">
+          {!canActivate && (
+            <div className="py-12 text-center">
+              <p className="text-muted-foreground">
+                Regularize sua situação para ter acesso à ativação de chip e eSIM
+              </p>
+            </div>
+          )}
+          {canActivate && (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chip" | "esim")}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="chip">
@@ -321,6 +415,7 @@ export default function SimActivation() {
               </form>
             </TabsContent>
           </Tabs>
+          )}
         </CardContent>
       </Card>
     </div>

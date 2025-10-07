@@ -351,36 +351,45 @@ export type Database = {
       }
       sim_activations: {
         Row: {
+          activated_at: string | null
+          activated_by: string | null
           activation_type: string
           barcode: string | null
           created_at: string
           eid: string | null
           id: string
           imei: string | null
+          qr_code_url: string | null
           screenshot_url: string | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
           activation_type: string
           barcode?: string | null
           created_at?: string
           eid?: string | null
           id?: string
           imei?: string | null
+          qr_code_url?: string | null
           screenshot_url?: string | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          activated_at?: string | null
+          activated_by?: string | null
           activation_type?: string
           barcode?: string | null
           created_at?: string
           eid?: string | null
           id?: string
           imei?: string | null
+          qr_code_url?: string | null
           screenshot_url?: string | null
           status?: string
           updated_at?: string

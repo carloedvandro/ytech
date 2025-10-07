@@ -137,6 +137,20 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink
+                        to="/admin/activations"
+                        className={({ isActive }) =>
+                          isActive ? "bg-accent text-accent-foreground" : ""
+                        }
+                      >
+                        <Smartphone className="h-4 w-4" />
+                        {open && <span>Ativações</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
                         to="/admin"
                         className={({ isActive }) =>
                           isActive ? "bg-accent text-accent-foreground" : ""

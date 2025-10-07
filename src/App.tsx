@@ -17,6 +17,7 @@ import Network from "./pages/Network";
 import Financial from "./pages/Financial";
 import Admin from "./pages/Admin";
 import Users from "./pages/Users";
+import AdminActivations from "./pages/AdminActivations";
 import MigrateUsers from "./pages/MigrateUsers";
 import ChangePassword from "./pages/ChangePassword";
 import MiniSite from "./pages/MiniSite";
@@ -45,6 +46,7 @@ const App = () => (
                 <Route path="/financial" element={<AuthGuard><Financial /></AuthGuard>} />
                 <Route path="/admin" element={<AuthGuard><Admin /></AuthGuard>} />
                 <Route path="/users" element={<AuthGuard><Users /></AuthGuard>} />
+                <Route path="/admin/activations" element={<AuthGuard><AdminActivations /></AuthGuard>} />
                 <Route path="/change-password" element={<AuthGuard><ChangePassword /></AuthGuard>} />
                 <Route path="/sim-activation" element={<AuthGuard><SimActivation /></AuthGuard>} />
                 <Route path="/migrate-users" element={<MigrateUsers />} />
