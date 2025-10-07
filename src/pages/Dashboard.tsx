@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, TrendingUp, Share2, Loader2, QrCode } from "lucide-react";
+import { Users, DollarSign, TrendingUp, Share2, Loader2, QrCode, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UsernameManager } from "@/components/UsernameManager";
@@ -11,6 +11,7 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -23,6 +24,8 @@ const Dashboard = () => {
     totalCommissions: 0,
     availableBalance: 0,
   });
+  const [isOverdue, setIsOverdue] = useState(false);
+  const [renewalDate, setRenewalDate] = useState<string | null>(null);
 
   // Buscar perfil do usuário impersonado se necessário
   const { data: impersonatedProfile } = useQuery({
@@ -98,6 +101,29 @@ const Dashboard = () => {
 
       if (commissionsError) throw commissionsError;
 
+      // Buscar data de renovação
+      const { data: paymentData } = await supabase
+        .from("payments")
+        .select("next_renewal_date")
+        .eq("user_id", activeProfile.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Verificar se está em atraso
+      if (paymentData?.next_renewal_date) {
+        const renewal = new Date(paymentData.next_renewal_date);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        renewal.setHours(0, 0, 0, 0);
+        
+        setIsOverdue(renewal < now);
+        setRenewalDate(paymentData.next_renewal_date);
+      } else {
+        setIsOverdue(false);
+        setRenewalDate(null);
+      }
+
       const totalCommissions = commissionsData?.reduce(
         (sum, comm) => sum + Number(comm.amount),
         0
@@ -145,6 +171,18 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Bem-vindo ao seu painel de controle</p>
         </div>
+
+        {/* Alerta de pagamento em atraso */}
+        {isOverdue && (
+          <Alert variant="destructive" className="border-red-500/50 bg-red-500/10">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Pagamento em Atraso</AlertTitle>
+            <AlertDescription>
+              Sua assinatura está vencida desde {renewalDate ? new Date(renewalDate).toLocaleDateString('pt-BR') : ''}. 
+              Você não receberá comissões de novas indicações até regularizar seu pagamento.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card 

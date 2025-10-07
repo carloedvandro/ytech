@@ -263,36 +263,80 @@ serve(async (req) => {
             return;
           }
 
-          // Criar comissões
+          // Criar comissões (apenas para usuários ativos e com pagamento em dia)
           const commissions = [];
           const path = network.path;
+
+          // Função para verificar se usuário pode receber comissão
+          const canReceiveCommission = async (uid: string) => {
+            // Buscar perfil do usuário
+            const { data: profile } = await supabaseClient
+              .from('profiles')
+              .select('status')
+              .eq('id', uid)
+              .maybeSingle();
+
+            // Se não está ativo, não pode receber
+            if (!profile || profile.status !== 'active') {
+              console.log(`⚠️ User ${uid} is not active, skipping commission`);
+              return false;
+            }
+
+            // Buscar última data de renovação
+            const { data: lastPayment } = await supabaseClient
+              .from('payments')
+              .select('next_renewal_date')
+              .eq('user_id', uid)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            // Se não tem pagamento ou está vencido, não pode receber
+            if (lastPayment?.next_renewal_date) {
+              const renewalDate = new Date(lastPayment.next_renewal_date);
+              const now = new Date();
+              now.setHours(0, 0, 0, 0);
+              renewalDate.setHours(0, 0, 0, 0);
+
+              if (renewalDate < now) {
+                console.log(`⚠️ User ${uid} payment is overdue, skipping commission`);
+                return false;
+              }
+            }
+
+            return true;
+          };
 
           // Nível 1
           if (path.length >= 2) {
             const level1UserId = path[path.length - 2];
-            commissions.push({
-              user_id: level1UserId,
-              referred_user_id: userId,
-              payment_id: commissionReference,
-              amount: plan.commission_l1,
-              level: 1,
-              status: 'available',
-              released_at: new Date().toISOString(),
-            });
+            if (await canReceiveCommission(level1UserId)) {
+              commissions.push({
+                user_id: level1UserId,
+                referred_user_id: userId,
+                payment_id: commissionReference,
+                amount: plan.commission_l1,
+                level: 1,
+                status: 'available',
+                released_at: new Date().toISOString(),
+              });
+            }
           }
 
           // Níveis 2-4
           for (let i = 2; i <= 4 && path.length > i; i++) {
             const levelUserId = path[path.length - (i + 1)];
-            commissions.push({
-              user_id: levelUserId,
-              referred_user_id: userId,
-              payment_id: commissionReference,
-              amount: plan.commission_l2_l4,
-              level: i,
-              status: 'available',
-              released_at: new Date().toISOString(),
-            });
+            if (await canReceiveCommission(levelUserId)) {
+              commissions.push({
+                user_id: levelUserId,
+                referred_user_id: userId,
+                payment_id: commissionReference,
+                amount: plan.commission_l2_l4,
+                level: i,
+                status: 'available',
+                released_at: new Date().toISOString(),
+              });
+            }
           }
 
           if (commissions.length === 0) {
