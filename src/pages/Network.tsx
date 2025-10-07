@@ -84,10 +84,12 @@ const Network = () => {
 
       if (error) throw error;
 
+      // Aguardar a recarga dos dados antes de fechar o diálogo
+      await loadNetwork();
+      
       sonnerToast.success("Data de renovação atualizada com sucesso!");
       setShowRenewalDialog(false);
       setNewRenewalDate("");
-      loadNetwork();
     } catch (error) {
       console.error("Error updating renewal date:", error);
       sonnerToast.error(error instanceof Error ? error.message : "Erro ao atualizar data");
