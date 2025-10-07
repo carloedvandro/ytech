@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus, Link2, ShoppingCart, Users } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 
 const steps = [
   {
@@ -43,9 +44,16 @@ export const HowToJoin = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {steps.map((step, index) => {
             const Icon = step.icon;
+            const gradientColors = [
+              ["#fbbf24", "#f59e0b", "#d97706"], // amarelo
+              ["#3b82f6", "#60a5fa", "#93c5fd"], // azul
+              ["#10b981", "#34d399", "#6ee7b7"], // verde
+              ["#8b5cf6", "#a78bfa", "#c4b5fd"]  // roxo
+            ];
             return (
-              <Card key={index} className="relative overflow-hidden border-2 hover:border-primary transition-all hover:shadow-lg">
-                <CardContent className="pt-8 pb-6 px-6">
+              <Card key={index} className="relative overflow-hidden border-2 hover:border-primary transition-all hover:shadow-lg backdrop-blur-xl bg-background/50">
+                <AnimatedGradient colors={gradientColors[index]} speed={0.05} blur="medium" />
+                <CardContent className="relative z-10 pt-8 pb-6 px-6">
                   <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="text-sm font-bold text-primary">{index + 1}</span>
                   </div>

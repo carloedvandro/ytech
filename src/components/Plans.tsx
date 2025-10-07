@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 
 interface PlansProps {
   referrerUsername?: string;
@@ -57,19 +58,24 @@ export const Plans = ({ referrerUsername }: PlansProps = {}) => {
           {plans.map((plan) => (
             <Card 
               key={plan.name}
-              className={`relative overflow-hidden transition-all hover:shadow-xl ${
+              className={`relative overflow-hidden transition-all hover:shadow-xl backdrop-blur-xl bg-background/50 ${
                 plan.popular 
                   ? 'border-primary shadow-lg scale-105' 
                   : 'border-border'
               }`}
             >
+              <AnimatedGradient 
+                colors={plan.popular ? ["#8b5cf6", "#a78bfa", "#c4b5fd"] : ["#3b82f6", "#60a5fa", "#93c5fd"]} 
+                speed={0.05} 
+                blur="medium" 
+              />
               {plan.popular && (
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold rounded-bl-lg">
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold rounded-bl-lg z-10">
                   Mais Popular
                 </div>
               )}
 
-              <CardHeader className="text-center pb-8 pt-8">
+              <CardHeader className="relative z-10 text-center pb-8 pt-8">
                 <CardTitle className="text-2xl mb-2">{plan.name}</CardTitle>
                 <CardDescription className="text-lg font-medium text-primary">
                   {plan.data}
@@ -82,7 +88,7 @@ export const Plans = ({ referrerUsername }: PlansProps = {}) => {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className="relative z-10 space-y-4">
                 {plan.features.map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
@@ -91,7 +97,7 @@ export const Plans = ({ referrerUsername }: PlansProps = {}) => {
                 ))}
               </CardContent>
 
-              <CardFooter className="pt-6">
+              <CardFooter className="relative z-10 pt-6">
                 <div className="w-full text-center py-3 px-4 rounded-lg bg-muted border border-border">
                   <p className="text-sm font-medium text-muted-foreground">
                     Disponível apenas por indicação
