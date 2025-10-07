@@ -24,14 +24,6 @@ serve(async (req) => {
 
     console.log('🔄 Starting user migration to Supabase Auth...');
 
-    // 0. Desabilitar trigger temporariamente para evitar conflitos
-    console.log('⏸️  Disabling trigger temporarily...');
-    const { error: disableError } = await supabaseAdmin.rpc('disable_auth_trigger');
-    if (disableError) {
-      console.error('Error disabling trigger:', disableError);
-      throw new Error('Failed to disable trigger');
-    }
-
     // 1. Buscar todos os usuários não migrados da tabela users antiga
     const { data: oldUsers, error: fetchError } = await supabaseAdmin
       .from('users')
@@ -94,32 +86,11 @@ serve(async (req) => {
         // Mapear old ID -> new ID
         userMapping.set(oldUser.id, authUser.user.id);
 
-        // Criar profile manualmente (trigger está desabilitado)
-        await supabaseAdmin
-          .from('profiles')
-          .insert({
-            id: authUser.user.id,
-            full_name: oldUser.full_name,
-            cpf: oldUser.cpf,
-            whatsapp: oldUser.whatsapp,
-            username: oldUser.username,
-            status: oldUser.status,
-            metadata: oldUser.metadata,
-            created_at: oldUser.created_at,
-            updated_at: oldUser.updated_at,
-            last_login: oldUser.last_login,
-            // referred_by será atualizado no step 2
-          });
+        console.log(`✓ Auth user created: ${authUser.user.id}`);
 
-        // Criar user_network base (sem parent ainda)
-        await supabaseAdmin
-          .from('user_network')
-          .insert({
-            user_id: authUser.user.id,
-            parent_id: null,
-            level: 1,
-            path: [authUser.user.id]
-          });
+        // O trigger handle_new_auth_user criou profile e user_network básicos
+        // Vamos aguardar um pouco para garantir que o trigger executou
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Marcar como migrado
         await supabaseAdmin
@@ -142,6 +113,9 @@ serve(async (req) => {
     }
 
     console.log(`✓ Step 1 complete. Created ${userMapping.size} auth users`);
+
+    // Aguardar um pouco para garantir que todos os triggers executaram
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // ETAPA 2: Atualizar referred_by e outras referências
     for (const oldUser of oldUsers || []) {
@@ -285,13 +259,6 @@ serve(async (req) => {
         results.errors.push({ user: oldUser.email, error: userError.message });
         results.failed++;
       }
-    }
-
-    // Reabilitar trigger
-    console.log('▶️  Re-enabling trigger...');
-    const { error: enableError } = await supabaseAdmin.rpc('enable_auth_trigger');
-    if (enableError) {
-      console.error('Error enabling trigger:', enableError);
     }
 
     console.log('🎉 Migration complete:', results);
