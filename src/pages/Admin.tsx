@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { UserX, UserCheck, Trash2, Archive, RotateCcw } from "lucide-react";
+import { UserX, UserCheck, Trash2, Archive, RotateCcw, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface User {
   id: string;
@@ -31,15 +32,13 @@ const Admin = () => {
   const [reason, setReason] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const queryClient = useQueryClient();
+  const { user, profile } = useAuth();
 
   // Verificar se o usuário atual é admin
-  const { data: currentUser } = useQuery({
-    queryKey: ["current-user"],
+  const { data: isAdmin, isLoading: isLoadingAdmin } = useQuery({
+    queryKey: ["is-admin", user?.id],
     queryFn: async () => {
-      const storedUser = localStorage.getItem("user_session");
-      if (!storedUser) throw new Error("Not authenticated");
-
-      const user = JSON.parse(storedUser);
+      if (!user?.id) return false;
       
       const { data: adminRole, error } = await supabase
         .from("user_roles")
@@ -48,12 +47,14 @@ const Admin = () => {
         .eq("role", "admin")
         .maybeSingle();
 
-      if (error || !adminRole) {
-        throw new Error("Unauthorized: Admin access required");
+      if (error) {
+        console.error("Erro ao verificar permissão de admin:", error);
+        return false;
       }
 
-      return user;
+      return !!adminRole;
     },
+    enabled: !!user?.id,
   });
 
   // Buscar todos os usuários com contagem de indicados
@@ -85,7 +86,7 @@ const Admin = () => {
 
       return usersWithReferrals;
     },
-    enabled: !!currentUser,
+    enabled: !!user?.id && isAdmin === true,
   });
 
   // Mutation para gerenciar usuários
@@ -237,7 +238,17 @@ const Admin = () => {
     }
   };
 
-  if (!currentUser) {
+  if (isLoadingAdmin) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!isAdmin) {
     return (
       <DashboardLayout>
         <Card>
