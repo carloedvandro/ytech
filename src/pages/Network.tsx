@@ -4,11 +4,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
-import { Loader2, Users, TrendingUp, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Loader2, Users, TrendingUp, CheckCircle, Clock, XCircle, Calendar, AlertTriangle } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toast as sonnerToast } from "sonner";
 
 interface NetworkUser {
   id: string;
@@ -17,6 +23,8 @@ interface NetworkUser {
   status: string;
   created_at: string;
   level: number;
+  next_renewal_date?: string | null;
+  subscription_id?: string | null;
 }
 
 const Network = () => {
@@ -27,6 +35,10 @@ const Network = () => {
   const [network, setNetwork] = useState<NetworkUser[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<NetworkUser | null>(null);
+  const [showRenewalDialog, setShowRenewalDialog] = useState(false);
+  const [newRenewalDate, setNewRenewalDate] = useState("");
+  const [updatingRenewal, setUpdatingRenewal] = useState(false);
   const [stats, setStats] = useState({
     level1: 0,
     level2: 0,
@@ -37,6 +49,66 @@ const Network = () => {
     pending: 0,
     suspended: 0,
   });
+
+  // Verificar se é admin
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is-admin", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", profile.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!profile?.id,
+  });
+
+  const handleUpdateRenewalDate = async () => {
+    if (!selectedUser || !newRenewalDate) {
+      sonnerToast.error("Selecione uma data válida");
+      return;
+    }
+
+    setUpdatingRenewal(true);
+    try {
+      const { error } = await supabase.functions.invoke('admin-update-renewal-date', {
+        body: { 
+          userId: selectedUser.id,
+          newRenewalDate: new Date(newRenewalDate).toISOString(),
+          subscriptionId: selectedUser.subscription_id
+        },
+      });
+
+      if (error) throw error;
+
+      sonnerToast.success("Data de renovação atualizada com sucesso!");
+      setShowRenewalDialog(false);
+      setNewRenewalDate("");
+      loadNetwork();
+    } catch (error) {
+      console.error("Error updating renewal date:", error);
+      sonnerToast.error(error instanceof Error ? error.message : "Erro ao atualizar data");
+    } finally {
+      setUpdatingRenewal(false);
+    }
+  };
+
+  const isOverdue = (renewalDate: string | null | undefined) => {
+    if (!renewalDate) return false;
+    return new Date(renewalDate) < new Date();
+  };
+
+  const formatRenewalDate = (renewalDate: string | null | undefined) => {
+    if (!renewalDate) return "Sem data";
+    try {
+      return format(new Date(renewalDate), "dd/MM/yyyy", { locale: ptBR });
+    } catch {
+      return "Data inválida";
+    }
+  };
 
   // Buscar perfil do usuário impersonado se necessário
   const { data: impersonatedProfile } = useQuery({
@@ -86,7 +158,7 @@ const Network = () => {
           )
         `)
         .contains("path", [activeProfile.id])
-        .neq("user_id", activeProfile.id) // Excluir o próprio usuário
+        .neq("user_id", activeProfile.id)
         .order("level", { ascending: true });
 
       if (networkError) throw networkError;
@@ -100,10 +172,31 @@ const Network = () => {
 
       const userLevel = myLevel?.level || 1;
 
-      const formattedNetwork = networkData?.map((item: any) => ({
-        ...item.profiles,
-        level: item.level - userLevel, // Calcular nível relativo
-      })) || [];
+      // Buscar datas de renovação para cada usuário
+      const userIds = networkData?.map((item: any) => item.user_id) || [];
+      const { data: paymentsData } = await supabase
+        .from("payments")
+        .select("user_id, next_renewal_date, subscription_id")
+        .in("user_id", userIds)
+        .order("created_at", { ascending: false });
+
+      // Criar mapa de pagamentos (pegar o mais recente de cada usuário)
+      const paymentMap = new Map();
+      paymentsData?.forEach((payment) => {
+        if (!paymentMap.has(payment.user_id)) {
+          paymentMap.set(payment.user_id, payment);
+        }
+      });
+
+      const formattedNetwork = networkData?.map((item: any) => {
+        const payment = paymentMap.get(item.user_id);
+        return {
+          ...item.profiles,
+          level: item.level - userLevel,
+          next_renewal_date: payment?.next_renewal_date,
+          subscription_id: payment?.subscription_id,
+        };
+      }) || [];
 
       setNetwork(formattedNetwork);
 
@@ -406,7 +499,7 @@ const Network = () => {
                     className={`flex items-center justify-between p-4 border rounded-lg ${getLevelBg(user.level)} transition-all duration-300`}
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="font-semibold">{user.full_name}</h3>
                         {user.status === 'active' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -423,8 +516,36 @@ const Network = () => {
                             Suspenso
                           </span>
                         )}
+                        {user.next_renewal_date && isOverdue(user.next_renewal_date) && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                            <AlertTriangle className="h-3 w-3" />
+                            Em Atraso
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
+                      {user.next_renewal_date && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <p className={`text-xs ${isOverdue(user.next_renewal_date) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}`}>
+                            Renovação: {formatRenewalDate(user.next_renewal_date)}
+                          </p>
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setNewRenewalDate(user.next_renewal_date ? format(new Date(user.next_renewal_date), "yyyy-MM-dd") : "");
+                                setShowRenewalDialog(true);
+                              }}
+                            >
+                              Alterar
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className={`font-bold ${getLevelColor(user.level)}`}>
@@ -441,6 +562,41 @@ const Network = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog para alterar data de renovação */}
+      <Dialog open={showRenewalDialog} onOpenChange={setShowRenewalDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Data de Renovação</DialogTitle>
+            <DialogDescription>
+              Usuário: {selectedUser?.full_name}
+              <br />
+              Data atual: {formatRenewalDate(selectedUser?.next_renewal_date)}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="renewal-date">Nova Data de Renovação</Label>
+              <Input
+                id="renewal-date"
+                type="date"
+                value={newRenewalDate}
+                onChange={(e) => setNewRenewalDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRenewalDialog(false)} disabled={updatingRenewal}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateRenewalDate} disabled={updatingRenewal || !newRenewalDate}>
+              {updatingRenewal ? "Atualizando..." : "Atualizar Data"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

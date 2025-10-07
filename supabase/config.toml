@@ -21,6 +21,9 @@ verify_jwt = true
 [functions.admin-activate-user]
 verify_jwt = true
 
+[functions.admin-update-renewal-date]
+verify_jwt = true
+
 [functions.resend-temp-passwords]
 verify_jwt = false
 
