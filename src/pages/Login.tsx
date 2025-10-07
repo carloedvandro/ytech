@@ -84,43 +84,25 @@ const Login = () => {
       }
 
       console.log('✅ Login bem-sucedido!');
-      console.log('💾 Sessão armazenada:', {
-        accessToken: authData.session.access_token?.substring(0, 20) + '...',
-        expiresAt: new Date(authData.session.expires_at! * 1000).toISOString()
-      });
 
-      // Atualizar last_login no profile
-      try {
-        await supabase
-          .from("profiles")
-          .update({ last_login: new Date().toISOString() })
-          .eq("id", authData.user.id);
-      } catch (profileError) {
-        console.error('⚠️ Erro ao atualizar profile:', profileError);
-        // Não bloquear o login se falhar ao atualizar o profile
-      }
+      // Atualizar last_login no profile (não bloqueante)
+      supabase
+        .from("profiles")
+        .update({ last_login: new Date().toISOString() })
+        .eq("id", authData.user.id);
 
       toast({
         title: "Login realizado!",
         description: "Bem-vindo de volta!",
       });
 
-      // Esperar a sessão ser confirmada antes de navegar
-      console.log('⏳ Aguardando confirmação da sessão...');
+      console.log('🚀 Redirecionando para dashboard...');
       
-      // Pequeno delay para garantir que o AuthContext processe a sessão
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Verificar se a sessão foi salva
-      const { data: { session: savedSession } } = await supabase.auth.getSession();
-      console.log('🔍 Verificando sessão salva:', {
-        hasSavedSession: !!savedSession,
-        userId: savedSession?.user?.id
-      });
-      
-      console.log('🚀 Navegando para dashboard...');
+      // Marcar como redirecionado e navegar imediatamente
       hasRedirected.current = true;
-      navigate('/dashboard', { replace: true });
+      
+      // Usar window.location para garantir navegação completa
+      window.location.href = '/dashboard';
 
     } catch (error: any) {
       console.error('❌ Erro inesperado no login:', error);
