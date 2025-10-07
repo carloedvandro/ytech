@@ -15,9 +15,14 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const megaApiHost = 'apinocode01.megaapi.com.br';
-    const megaInstanceKey = 'megacode-MOylIChpYA5';
-    const megaToken = 'MOylIChpYA5';
+    // SEGURANÇA: Credenciais devem estar nos secrets do Supabase
+    const megaApiHost = Deno.env.get('MEGA_API_HOST');
+    const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
+    const megaToken = Deno.env.get('MEGA_API_KEY');
+
+    if (!megaApiHost || !megaInstanceKey || !megaToken) {
+      throw new Error('Credenciais Mega API não configuradas. Configure os secrets: MEGA_API_HOST, MEGA_INSTANCE_KEY, MEGA_API_KEY');
+    }
 
     const { whatsapp } = await req.json();
 
