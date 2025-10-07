@@ -46,11 +46,19 @@ serve(async (req) => {
     console.log('Atualizando data de renovação:', { userId, newRenewalDate, subscriptionId });
 
     // Atualizar data na tabela payments
-    const { error: updateError } = await supabase
+    let query = supabase
       .from('payments')
       .update({ next_renewal_date: newRenewalDate })
-      .eq('user_id', userId)
-      .eq('subscription_id', subscriptionId);
+      .eq('user_id', userId);
+    
+    // Se subscription_id for null, usar .is(), senão usar .eq()
+    if (subscriptionId === null || subscriptionId === undefined) {
+      query = query.is('subscription_id', null);
+    } else {
+      query = query.eq('subscription_id', subscriptionId);
+    }
+
+    const { error: updateError } = await query;
 
     if (updateError) {
       console.error('Erro ao atualizar no banco:', updateError);
