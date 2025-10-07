@@ -76,7 +76,7 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do chip enviados com sucesso! Você receberá a confirmação em breve.");
-      setBarcode("");
+      // Manter o código visível após envio
       setScanning(false);
     } catch (error) {
       console.error('Erro ao enviar ativação:', error);
@@ -135,9 +135,7 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
-      setImei("");
-      setEid("");
-      setScreenshot(null);
+      // Manter os dados visíveis após envio para conferência
     } catch (error) {
       console.error('Erro ao enviar ativação:', error);
       toast.error("Erro ao enviar dados. Tente novamente.");
@@ -233,6 +231,17 @@ export default function SimActivation() {
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Enviar Dados do Chip
                 </Button>
+                
+                {barcode && !isSubmitting && (
+                  <Button 
+                    type="button"
+                    onClick={() => setBarcode("")}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    Nova Ativação
+                  </Button>
+                )}
               </form>
             </TabsContent>
 
@@ -294,6 +303,21 @@ export default function SimActivation() {
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Enviar Dados do eSIM
                 </Button>
+                
+                {(imei || eid) && !isSubmitting && (
+                  <Button 
+                    type="button"
+                    onClick={() => {
+                      setImei("");
+                      setEid("");
+                      setScreenshot(null);
+                    }}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    Nova Ativação
+                  </Button>
+                )}
               </form>
             </TabsContent>
           </Tabs>

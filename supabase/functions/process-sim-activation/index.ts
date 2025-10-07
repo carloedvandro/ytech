@@ -104,16 +104,37 @@ Deno.serve(async (req) => {
     // Send WhatsApp notification (only if enabled in environment)
     if (ENV_CONFIG.notifications.enabled) {
       try {
-        const megaResponse = await fetch(`${ENV_CONFIG.mega.baseUrl}/messages/send`, {
+        const megaApiHost = Deno.env.get('MEGA_API_HOST');
+        const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
+        
+        if (!megaApiHost || !megaInstanceKey) {
+          console.error('⚠️ MEGA_API_HOST ou MEGA_INSTANCE_KEY não configurado');
+          throw new Error('Credenciais Mega API não configuradas');
+        }
+
+        // Format WhatsApp number (remove formatting)
+        const formattedNumber = adminWhatsapp.replace(/\D/g, '');
+        
+        // Use correct Mega API endpoint format (same as other functions)
+        const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
+        
+        console.log('📤 Enviando WhatsApp para:', formattedNumber);
+        
+        const megaResponse = await fetch(megaUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${ENV_CONFIG.mega.apiKey}`,
           },
           body: JSON.stringify({
-            instance_key: Deno.env.get('MEGA_INSTANCE_KEY'),
-            number: adminWhatsapp,
-            message: message,
+            number: formattedNumber,
+            options: {
+              delay: 0,
+              presence: 'composing'
+            },
+            textMessage: {
+              text: message
+            }
           }),
         });
 
