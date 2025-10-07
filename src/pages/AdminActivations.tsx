@@ -44,7 +44,7 @@ export default function AdminActivations() {
         .from("sim_activations")
         .select(`
           *,
-          profiles!sim_activations_user_id_fkey(full_name, whatsapp, email)
+          profiles(full_name, whatsapp, email)
         `)
         .order("created_at", { ascending: false });
 
