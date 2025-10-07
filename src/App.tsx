@@ -19,6 +19,7 @@ import Admin from "./pages/Admin";
 import Users from "./pages/Users";
 import MigrateUsers from "./pages/MigrateUsers";
 import ChangePassword from "./pages/ChangePassword";
+import MiniSite from "./pages/MiniSite";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
                 <Route path="/users" element={<AuthGuard><Users /></AuthGuard>} />
                 <Route path="/change-password" element={<AuthGuard><ChangePassword /></AuthGuard>} />
                 <Route path="/migrate-users" element={<MigrateUsers />} />
+                <Route path="/site/:username" element={<MiniSite />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -2,6 +2,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 
+interface PlansProps {
+  referrerUsername?: string;
+}
+
 const plans = [
   {
     name: "Plano Smartphone",
@@ -33,7 +37,7 @@ const plans = [
   }
 ];
 
-export const Plans = () => {
+export const Plans = ({ referrerUsername }: PlansProps = {}) => {
   return (
     <section id="planos" className="py-20 px-4 bg-muted/30">
       <div className="container mx-auto max-w-7xl">

@@ -12,6 +12,9 @@ import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { MarketingMaterialGenerator } from "@/components/marketing/MarketingMaterialGenerator";
+import { ExternalLink } from "lucide-react";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -331,6 +334,137 @@ const Dashboard = () => {
                 </DialogContent>
               </Dialog>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Meu Mini Site */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Meu Mini Site</CardTitle>
+            <CardDescription>
+              Compartilhe seu site personalizado com todos os planos e seu link de indicação
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!activeProfile.username ? (
+              <Alert>
+                <AlertTitle>Configure seu username primeiro</AlertTitle>
+                <AlertDescription>
+                  Você precisa configurar um username único para ter acesso ao seu mini site.
+                </AlertDescription>
+              </Alert>
+            ) : activeProfile.status !== 'active' ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Conta inativa</AlertTitle>
+                <AlertDescription>
+                  Ative sua conta para acessar seu mini site.
+                </AlertDescription>
+              </Alert>
+            ) : isOverdue ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Pagamento em atraso</AlertTitle>
+                <AlertDescription>
+                  Regularize seu pagamento para continuar usando seu mini site.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`https://ytech.yrwentechnology.com.br/site/${activeProfile.username}`}
+                    className="flex-1 px-4 py-2 border rounded-md bg-muted"
+                  />
+                  <Button
+                    onClick={() => {
+                      const link = `https://ytech.yrwentechnology.com.br/site/${activeProfile.username}`;
+                      navigator.clipboard.writeText(link);
+                      toast({
+                        title: "Link copiado!",
+                        description: "O link do seu mini site foi copiado",
+                      });
+                    }}
+                  >
+                    Copiar
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => window.open(`/site/${activeProfile.username}`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Ver Site
+                  </Button>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <QrCode className="h-4 w-4 mr-2" />
+                      QR Code do Mini Site
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>QR Code do Mini Site</DialogTitle>
+                      <DialogDescription>
+                        Compartilhe este QR Code para que as pessoas acessem seu site
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-center p-6">
+                      <QRCodeSVG
+                        value={`https://ytech.yrwentechnology.com.br/site/${activeProfile.username}`}
+                        size={256}
+                        level="H"
+                        includeMargin
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Material de Divulgação */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Material de Divulgação</CardTitle>
+            <CardDescription>
+              Gere materiais personalizados para divulgar seus planos (limite de 5 por dia)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!activeProfile.username ? (
+              <Alert>
+                <AlertTitle>Configure seu username primeiro</AlertTitle>
+                <AlertDescription>
+                  Você precisa configurar um username único para gerar materiais.
+                </AlertDescription>
+              </Alert>
+            ) : activeProfile.status !== 'active' ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Conta inativa</AlertTitle>
+                <AlertDescription>
+                  Ative sua conta para gerar materiais de divulgação.
+                </AlertDescription>
+              </Alert>
+            ) : isOverdue ? (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Pagamento em atraso</AlertTitle>
+                <AlertDescription>
+                  Regularize seu pagamento para continuar gerando materiais.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <MarketingMaterialGenerator 
+                username={activeProfile.username}
+                fullName={activeProfile.full_name}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

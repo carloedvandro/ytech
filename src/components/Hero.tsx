@@ -1,6 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield } from "lucide-react";
-export const Hero = () => {
+
+interface HeroProps {
+  referrerUsername?: string;
+}
+
+export const Hero = ({ referrerUsername }: HeroProps = {}) => {
+  const signupUrl = referrerUsername 
+    ? `/cadastro?ref=${referrerUsername}` 
+    : '/cadastro';
   return <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-secondary px-4 py-20">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden opacity-20">
@@ -57,7 +65,7 @@ export const Hero = () => {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6 bg-white text-primary hover:bg-white/90 shadow-lg" 
-              onClick={() => window.location.href = "/cadastro"}
+              onClick={() => window.location.href = signupUrl}
             >
               Quero Participar
             </Button>

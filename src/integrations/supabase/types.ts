@@ -167,6 +167,30 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_material_generations: {
+        Row: {
+          created_at: string
+          generated_content: string
+          id: string
+          material_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          generated_content: string
+          id?: string
+          material_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          generated_content?: string
+          id?: string
+          material_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
