@@ -1,4 +1,4 @@
-import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical } from "lucide-react";
+import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical, Smartphone } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ interface DashboardSidebarProps {
 
 const menuItems = [
   { title: "Início", url: "/dashboard", icon: Home },
+  { title: "SIM CARD e eSIM", url: "/sim-activation", icon: Smartphone },
   { title: "Minha Rede", url: "/network", icon: UsersIcon },
   { title: "Financeiro", url: "/financial", icon: DollarSign },
   { title: "Trocar Senha", url: "/change-password", icon: KeyRound },
