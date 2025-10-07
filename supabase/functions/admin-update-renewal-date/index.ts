@@ -45,20 +45,32 @@ serve(async (req) => {
 
     console.log('Atualizando data de renovação:', { userId, newRenewalDate, subscriptionId });
 
-    // Atualizar data na tabela payments
-    let query = supabase
+    // Buscar o payment mais recente do usuário
+    const { data: latestPayment, error: fetchError } = await supabase
       .from('payments')
-      .update({ next_renewal_date: newRenewalDate })
-      .eq('user_id', userId);
-    
-    // Se subscription_id for null, usar .is(), senão usar .eq()
-    if (subscriptionId === null || subscriptionId === undefined) {
-      query = query.is('subscription_id', null);
-    } else {
-      query = query.eq('subscription_id', subscriptionId);
+      .select('id, subscription_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('Erro ao buscar payment:', fetchError);
+      throw new Error('Erro ao buscar registro de pagamento');
     }
 
-    const { error: updateError } = await query;
+    if (!latestPayment) {
+      console.error('Nenhum payment encontrado para o usuário');
+      throw new Error('Nenhum registro de pagamento encontrado para este usuário');
+    }
+
+    console.log('Payment encontrado:', latestPayment);
+
+    // Atualizar o payment específico por ID
+    const { error: updateError } = await supabase
+      .from('payments')
+      .update({ next_renewal_date: newRenewalDate })
+      .eq('id', latestPayment.id);
 
     if (updateError) {
       console.error('Erro ao atualizar no banco:', updateError);
@@ -67,8 +79,11 @@ serve(async (req) => {
 
     console.log('Data atualizada no banco com sucesso');
 
+    // Usar o subscription_id do registro encontrado (não do parâmetro)
+    const actualSubscriptionId = latestPayment.subscription_id;
+
     // Se tiver subscription_id, atualizar no Asaas
-    if (subscriptionId) {
+    if (actualSubscriptionId) {
       const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || Deno.env.get('ASAAS_SANDBOX_API_KEY');
       const asaasUrl = asaasApiKey?.includes('prod') 
         ? 'https://api.asaas.com/v3' 
@@ -76,7 +91,7 @@ serve(async (req) => {
 
       try {
         // Buscar subscription no Asaas
-        const asaasResponse = await fetch(`${asaasUrl}/subscriptions/${subscriptionId}`, {
+        const asaasResponse = await fetch(`${asaasUrl}/subscriptions/${actualSubscriptionId}`, {
           method: 'GET',
           headers: {
             'access_token': asaasApiKey!,
@@ -90,7 +105,7 @@ serve(async (req) => {
         }
 
         // Atualizar próximo vencimento no Asaas
-        const updateAsaasResponse = await fetch(`${asaasUrl}/subscriptions/${subscriptionId}`, {
+        const updateAsaasResponse = await fetch(`${asaasUrl}/subscriptions/${actualSubscriptionId}`, {
           method: 'POST',
           headers: {
             'access_token': asaasApiKey!,
