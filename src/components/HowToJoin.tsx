@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus, Link2, ShoppingCart, Users } from "lucide-react";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 const steps = [
   {
@@ -25,9 +26,11 @@ const steps = [
 ];
 
 export const HowToJoin = () => {
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
+  
   return (
     <section id="como-participar" className="py-20 px-4 bg-background">
-      <div className="container mx-auto max-w-7xl">
+      <div ref={ref} className={`container mx-auto max-w-7xl transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground">
             Como Participar?

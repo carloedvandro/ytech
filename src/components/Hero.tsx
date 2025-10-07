@@ -1,15 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield } from "lucide-react";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 interface HeroProps {
   referrerUsername?: string;
 }
 
 export const Hero = ({ referrerUsername }: HeroProps = {}) => {
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.2 });
   const signupUrl = referrerUsername 
     ? `/cadastro?ref=${referrerUsername}` 
     : '/cadastro';
-  return <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-secondary px-4 py-20">
+  return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-secondary px-4 py-20">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden opacity-20">
         <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-secondary blur-3xl animate-pulse"></div>
@@ -17,7 +19,7 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
       </div>
 
       <div className="container relative z-10 mx-auto max-w-7xl">
-        <div className="text-center space-y-8">
+        <div className={`text-center space-y-8 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
             <Zap className="w-4 h-4 text-white" />
