@@ -1,11 +1,14 @@
-import { Home, Users, DollarSign, LogOut, Shield, KeyRound, FlaskConical } from "lucide-react";
+import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnvironment } from "@/contexts/EnvironmentContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +33,7 @@ interface DashboardSidebarProps {
 
 const menuItems = [
   { title: "Início", url: "/dashboard", icon: Home },
-  { title: "Minha Rede", url: "/network", icon: Users },
+  { title: "Minha Rede", url: "/network", icon: UsersIcon },
   { title: "Financeiro", url: "/financial", icon: DollarSign },
   { title: "Trocar Senha", url: "/change-password", icon: KeyRound },
 ];
@@ -39,6 +42,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const { open } = useSidebar();
   const { signOut } = useAuth();
   const { environment, setEnvironment, isSandbox } = useEnvironment();
+  const { impersonatedUser, setImpersonatedUser, isImpersonating } = useImpersonation();
 
   // Verificar se o usuário é admin
   const { data: isAdmin } = useQuery({
@@ -59,6 +63,11 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
     setEnvironment(checked ? "sandbox" : "production");
   };
 
+  const handleStopImpersonation = () => {
+    setImpersonatedUser(null);
+    window.location.reload();
+  };
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -71,6 +80,21 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                   <FlaskConical className="h-3 w-3" />
                   <span>AMBIENTE SANDBOX</span>
                 </div>
+              </div>
+            )}
+            {isImpersonating && open && (
+              <div className="px-3 pb-2">
+                <Badge variant="secondary" className="w-full justify-center text-xs">
+                  Acessando como: {impersonatedUser?.full_name}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleStopImpersonation}
+                  className="w-full mt-2 text-xs"
+                >
+                  Voltar ao Admin
+                </Button>
               </div>
             )}
           </div>
@@ -95,6 +119,20 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
 
               {isAdmin && (
                 <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/users"
+                        className={({ isActive }) =>
+                          isActive ? "bg-accent text-accent-foreground" : ""
+                        }
+                      >
+                        <UsersIcon className="h-4 w-4" />
+                        {open && <span>Usuários</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink

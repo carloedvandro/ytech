@@ -5,20 +5,51 @@ import { DashboardSidebar } from "./DashboardSidebar";
 import { PlanSelector } from "./PlanSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnvironment } from "@/contexts/EnvironmentContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile, loading } = useAuth();
   const { isSandbox } = useEnvironment();
+  const { impersonatedUser, isImpersonating } = useImpersonation();
   const [showPlanSelector, setShowPlanSelector] = useState(false);
+
+  // Buscar perfil do usuário impersonado se necessário
+  const { data: impersonatedProfile } = useQuery({
+    queryKey: ["impersonated-profile", impersonatedUser?.id],
+    queryFn: async () => {
+      if (!impersonatedUser) return null;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", impersonatedUser.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: isImpersonating && !!impersonatedUser,
+  });
+
+  // Usar perfil impersonado ou perfil real
+  const activeProfile = isImpersonating && impersonatedProfile ? impersonatedProfile : profile;
 
   useEffect(() => {
     if (loading) return;
 
     if (!profile) {
       navigate("/login");
+      return;
+    }
+
+    // Não forçar seleção de plano se estiver impersonando
+    if (isImpersonating) {
+      setShowPlanSelector(false);
       return;
     }
 
@@ -29,9 +60,9 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
     } else {
       setShowPlanSelector(false);
     }
-  }, [profile, loading, navigate, location.pathname]);
+  }, [profile, loading, navigate, location.pathname, isImpersonating]);
 
-  if (loading || !profile) return null;
+  if (loading || !profile || !activeProfile) return null;
 
   return (
     <SidebarProvider>
@@ -44,7 +75,7 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
             <div className="flex-1" />
             <ThemeToggle />
             <div className="text-sm text-muted-foreground">
-              Olá, <span className="font-medium text-foreground">{profile.full_name}</span>
+              Olá, <span className="font-medium text-foreground">{activeProfile.full_name}</span>
             </div>
           </header>
 

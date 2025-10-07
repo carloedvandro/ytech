@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_balance_adjustments: {
+        Row: {
+          admin_id: string
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string | null
+          id: string
+          reason: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asaas_webhook_events: {
         Row: {
           asaas_payment_id: string | null

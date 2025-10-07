@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { BalanceAdjustmentsHistory } from "@/components/BalanceAdjustmentsHistory";
 
 interface Commission {
   id: string;
@@ -27,6 +29,7 @@ interface UserPlan {
 const Financial = () => {
   const { toast } = useToast();
   const { user, profile } = useAuth();
+  const { impersonatedUser, isImpersonating } = useImpersonation();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [commissions, setCommissions] = useState<Commission[]>([]);
@@ -39,8 +42,11 @@ const Financial = () => {
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // ID do usuário ativo (impersonado ou real)
+  const activeUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
+
   useEffect(() => {
-    if (!user?.id) return;
+    if (!activeUserId) return;
     
     loadFinancialData();
     checkAdminRole();
@@ -54,7 +60,7 @@ const Financial = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'commissions',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${activeUserId}`
         },
         (payload) => {
           console.log('Nova comissão recebida no financeiro!', payload);
@@ -70,7 +76,7 @@ const Financial = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [activeUserId]);
 
   const checkAdminRole = async () => {
     try {
@@ -93,20 +99,20 @@ const Financial = () => {
 
   const loadFinancialData = async () => {
     try {
-      if (!user?.id) return;
+      if (!activeUserId) return;
 
       // Buscar dados atualizados do usuário
       const { data: userInfo } = await supabase
         .from("profiles")
         .select("status, metadata")
-        .eq("id", user.id)
+        .eq("id", activeUserId)
         .maybeSingle();
 
       // Buscar último pagamento com assinatura ativa do usuário
       const { data: lastPayment } = await supabase
         .from("payments")
         .select("next_renewal_date, subscription_id, status")
-        .eq("user_id", user.id)
+        .eq("user_id", activeUserId)
         .eq("status", "completed")
         .not("subscription_id", "is", null)
         .order("paid_at", { ascending: false })
@@ -126,8 +132,8 @@ const Financial = () => {
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
         .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .eq("user_id", activeUserId)
+        .order("created_at", { ascending: false});
 
       if (commissionsError) throw commissionsError;
 
@@ -317,6 +323,10 @@ const Financial = () => {
           </Card>
         </div>
 
+        {/* Histórico de Ajustes de Saldo pelo Admin */}
+        {activeUserId && (
+          <BalanceAdjustmentsHistory userId={activeUserId} />
+        )}
 
         <Card>
           <CardHeader>
