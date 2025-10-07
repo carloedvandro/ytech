@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle, ArrowLeft } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
@@ -16,6 +17,7 @@ import { QRCodeSVG as QRCode } from "qrcode.react";
 
 export default function SimActivation() {
   const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"chip" | "esim">("chip");
   const [scanning, setScanning] = useState(false);
   const [barcode, setBarcode] = useState("");
@@ -26,6 +28,33 @@ export default function SimActivation() {
 
   // Verificar se o usuário tem fatura em dia (status = active)
   const canActivate = profile?.status === 'active';
+
+  // Recuperar dados salvos do localStorage ao carregar
+  useEffect(() => {
+    const savedData = localStorage.getItem('sim-activation-data');
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        if (data.barcode) setBarcode(data.barcode);
+        if (data.imei) setImei(data.imei);
+        if (data.eid) setEid(data.eid);
+        if (data.activeTab) setActiveTab(data.activeTab);
+      } catch (error) {
+        console.error('Erro ao recuperar dados salvos:', error);
+      }
+    }
+  }, []);
+
+  // Salvar dados no localStorage sempre que mudarem
+  useEffect(() => {
+    const dataToSave = {
+      barcode,
+      imei,
+      eid,
+      activeTab,
+    };
+    localStorage.setItem('sim-activation-data', JSON.stringify(dataToSave));
+  }, [barcode, imei, eid, activeTab]);
 
   // Buscar ativações do usuário
   const { data: activations } = useQuery({
@@ -100,6 +129,8 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do chip enviados com sucesso! Você receberá a confirmação em breve.");
+      // Limpar dados salvos após envio bem-sucedido
+      localStorage.removeItem('sim-activation-data');
       // Manter o código visível após envio
       setScanning(false);
     } catch (error) {
@@ -159,6 +190,8 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
+      // Limpar dados salvos após envio bem-sucedido
+      localStorage.removeItem('sim-activation-data');
       // Manter os dados visíveis após envio para conferência
     } catch (error) {
       console.error('Erro ao enviar ativação:', error);
@@ -171,13 +204,32 @@ export default function SimActivation() {
   // Encontrar última ativação ativa
   const activeActivation = activations?.find(a => a.status === 'activated');
 
+  const handleClearData = () => {
+    setBarcode("");
+    setImei("");
+    setEid("");
+    setScreenshot(null);
+    localStorage.removeItem('sim-activation-data');
+    toast.success("Dados limpos com sucesso");
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">SIM CARD e eSIM</h1>
-        <p className="text-muted-foreground mt-2">
-          Ative seu chip ou eSIM de forma rápida e segura
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">SIM CARD e eSIM</h1>
+          <p className="text-muted-foreground mt-2">
+            Ative seu chip ou eSIM de forma rápida e segura
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao Dashboard
+        </Button>
       </div>
 
       {!canActivate && (
@@ -327,14 +379,25 @@ export default function SimActivation() {
                 </Button>
                 
                 {barcode && !isSubmitting && (
-                  <Button 
-                    type="button"
-                    onClick={() => setBarcode("")}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    Nova Ativação
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      type="button"
+                      onClick={() => {
+                        setBarcode("");
+                        localStorage.removeItem('sim-activation-data');
+                      }}
+                      variant="outline"
+                    >
+                      Nova Ativação
+                    </Button>
+                    <Button 
+                      type="button"
+                      onClick={handleClearData}
+                      variant="destructive"
+                    >
+                      Limpar Tudo
+                    </Button>
+                  </div>
                 )}
               </form>
             </TabsContent>
@@ -399,18 +462,27 @@ export default function SimActivation() {
                 </Button>
                 
                 {(imei || eid) && !isSubmitting && (
-                  <Button 
-                    type="button"
-                    onClick={() => {
-                      setImei("");
-                      setEid("");
-                      setScreenshot(null);
-                    }}
-                    className="w-full"
-                    variant="outline"
-                  >
-                    Nova Ativação
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      type="button"
+                      onClick={() => {
+                        setImei("");
+                        setEid("");
+                        setScreenshot(null);
+                        localStorage.removeItem('sim-activation-data');
+                      }}
+                      variant="outline"
+                    >
+                      Nova Ativação
+                    </Button>
+                    <Button 
+                      type="button"
+                      onClick={handleClearData}
+                      variant="destructive"
+                    >
+                      Limpar Tudo
+                    </Button>
+                  </div>
                 )}
               </form>
             </TabsContent>
