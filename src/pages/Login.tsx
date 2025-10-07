@@ -28,7 +28,8 @@ const Login = () => {
   // Redirect to dashboard if already logged in
   useEffect(() => {
     if (!authLoading && user) {
-      navigate('/dashboard');
+      console.log('User already logged in, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
@@ -96,10 +97,9 @@ const Login = () => {
 
       console.log('Navegando para dashboard...');
       
-      // Navegação explícita após pequeno delay para garantir que a sessão foi persistida
-      setTimeout(() => {
-        navigate('/dashboard', { replace: true });
-      }, 100);
+      // O AuthContext já vai redirecionar via useEffect quando detectar o user
+      // Não navegar manualmente aqui para evitar race conditions
+      setLoading(false);
 
     } catch (error: any) {
       console.error('Erro inesperado no login:', error);

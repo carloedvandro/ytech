@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, userEmail?: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -44,14 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       
       if (data) {
-        // Se não tem email, buscar do session
-        const email = data.email || session?.user?.email;
+        // Se não tem email, usar o email passado como parâmetro
+        const email = data.email || userEmail;
         
         // Atualizar email se necessário
-        if (!data.email && session?.user?.email) {
+        if (!data.email && userEmail) {
           await supabase
             .from('profiles')
-            .update({ email: session.user.email })
+            .update({ email: userEmail })
             .eq('id', userId);
         }
         
@@ -62,11 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      toast({
-        title: 'Erro ao carregar perfil',
-        description: error.message,
-        variant: 'destructive',
-      });
+      // Não mostrar toast de erro no profile fetch para não confundir o usuário
     }
   };
 
@@ -117,14 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         // Defer profile fetch to avoid blocking auth callback
         if (session?.user) {
+          // Pass email directly to avoid race condition
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            fetchProfile(session.user.id, session.user.email);
           }, 0);
         } else {
           setProfile(null);
@@ -136,12 +135,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         setTimeout(() => {
-          fetchProfile(session.user.id);
+          fetchProfile(session.user.id, session.user.email);
         }, 0);
       }
       
