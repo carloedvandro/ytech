@@ -30,3 +30,27 @@ verify_jwt = true
 [functions.resend-temp-passwords]
 verify_jwt = false
 
+[functions.generate-marketing-material]
+verify_jwt = true
+
+[functions.admin-restore-user]
+verify_jwt = true
+
+[functions.mega-webhook]
+verify_jwt = false
+
+[functions.migrate-users-to-auth]
+verify_jwt = false
+
+[functions.send-whatsapp-notification]
+verify_jwt = false
+
+[functions.send-whatsapp-verification]
+verify_jwt = false
+
+[functions.validate-cpf]
+verify_jwt = false
+
+[functions.verify-whatsapp-code]
+verify_jwt = false
+
