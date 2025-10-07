@@ -129,8 +129,6 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do chip enviados com sucesso! Você receberá a confirmação em breve.");
-      // Limpar dados salvos após envio bem-sucedido
-      localStorage.removeItem('sim-activation-data');
       // Manter o código visível após envio
       setScanning(false);
     } catch (error) {
@@ -190,8 +188,6 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
-      // Limpar dados salvos após envio bem-sucedido
-      localStorage.removeItem('sim-activation-data');
       // Manter os dados visíveis após envio para conferência
     } catch (error) {
       console.error('Erro ao enviar ativação:', error);
