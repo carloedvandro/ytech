@@ -54,3 +54,6 @@ verify_jwt = false
 [functions.verify-whatsapp-code]
 verify_jwt = false
 
+[functions.process-sim-activation]
+verify_jwt = true
+

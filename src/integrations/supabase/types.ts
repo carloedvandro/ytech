@@ -349,6 +349,42 @@ export type Database = {
           },
         ]
       }
+      sim_activations: {
+        Row: {
+          activation_type: string
+          barcode: string | null
+          created_at: string
+          eid: string | null
+          id: string
+          imei: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activation_type: string
+          barcode?: string | null
+          created_at?: string
+          eid?: string | null
+          id?: string
+          imei?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activation_type?: string
+          barcode?: string | null
+          created_at?: string
+          eid?: string | null
+          id?: string
+          imei?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number

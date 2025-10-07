@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, Smartphone, AlertCircle } from "lucide-react";
+import { Camera, Smartphone, AlertCircle, Loader2 } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function SimActivation() {
   const [activeTab, setActiveTab] = useState<"chip" | "esim">("chip");
@@ -16,6 +17,7 @@ export default function SimActivation() {
   const [barcode, setBarcode] = useState("");
   const [imei, setImei] = useState("");
   const [eid, setEid] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const startScanning = async () => {
     setScanning(true);
@@ -48,24 +50,75 @@ export default function SimActivation() {
     }
   };
 
-  const handleChipSubmit = (e: React.FormEvent) => {
+  const handleChipSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcode) {
       toast.error("Por favor, leia o código de barras primeiro");
       return;
     }
-    // Aqui você implementará a lógica de envio para o backend
-    toast.success("Dados do chip enviados com sucesso!");
+
+    setIsSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Você precisa estar logado");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('process-sim-activation', {
+        body: {
+          activationType: 'chip',
+          barcode: barcode,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Dados do chip enviados com sucesso! Você receberá a confirmação em breve.");
+      setBarcode("");
+      setScanning(false);
+    } catch (error) {
+      console.error('Erro ao enviar ativação:', error);
+      toast.error("Erro ao enviar dados. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEsimSubmit = (e: React.FormEvent) => {
+  const handleEsimSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!imei || !eid) {
       toast.error("Por favor, preencha todos os campos");
       return;
     }
-    // Aqui você implementará a lógica de envio para o backend
-    toast.success("Dados do eSIM enviados com sucesso!");
+
+    setIsSubmitting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Você precisa estar logado");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('process-sim-activation', {
+        body: {
+          activationType: 'esim',
+          imei: imei,
+          eid: eid,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
+      setImei("");
+      setEid("");
+    } catch (error) {
+      console.error('Erro ao enviar ativação:', error);
+      toast.error("Erro ao enviar dados. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -151,7 +204,8 @@ export default function SimActivation() {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={!barcode}>
+                <Button type="submit" className="w-full" disabled={!barcode || isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Enviar Dados do Chip
                 </Button>
               </form>
@@ -198,7 +252,8 @@ export default function SimActivation() {
                   </p>
                 </div>
 
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Enviar Dados do eSIM
                 </Button>
               </form>
