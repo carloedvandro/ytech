@@ -125,7 +125,7 @@ const Dashboard = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card 
             className="backdrop-blur-xl bg-[hsl(var(--glass-yellow))]/20 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-            onClick={() => navigate('/rede')}
+            onClick={() => navigate('/network')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-yellow-foreground))]">Total de Indicações</CardTitle>
@@ -141,7 +141,7 @@ const Dashboard = () => {
 
           <Card 
             className="backdrop-blur-xl bg-[hsl(var(--glass-blue))]/20 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-            onClick={() => navigate('/financeiro')}
+            onClick={() => navigate('/financial')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-blue-foreground))]">Comissões Totais</CardTitle>
@@ -159,7 +159,7 @@ const Dashboard = () => {
 
           <Card 
             className="backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-            onClick={() => navigate('/financeiro')}
+            onClick={() => navigate('/financial')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-green-foreground))]">Disponível para Saque</CardTitle>
@@ -177,7 +177,7 @@ const Dashboard = () => {
 
           <Card 
             className="backdrop-blur-xl bg-[hsl(var(--glass-purple))]/20 border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-            onClick={() => navigate('/rede')}
+            onClick={() => navigate('/network')}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-[hsl(var(--glass-purple-foreground))]">Rede MMN</CardTitle>
