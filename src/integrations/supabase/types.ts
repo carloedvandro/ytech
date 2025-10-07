@@ -357,6 +357,7 @@ export type Database = {
           eid: string | null
           id: string
           imei: string | null
+          screenshot_url: string | null
           status: string
           updated_at: string
           user_id: string
@@ -368,6 +369,7 @@ export type Database = {
           eid?: string | null
           id?: string
           imei?: string | null
+          screenshot_url?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -379,6 +381,7 @@ export type Database = {
           eid?: string | null
           id?: string
           imei?: string | null
+          screenshot_url?: string | null
           status?: string
           updated_at?: string
           user_id?: string

@@ -101,11 +101,34 @@ export default function SimActivation() {
         return;
       }
 
+      let screenshotUrl = null;
+
+      // Upload screenshot if provided
+      if (screenshot) {
+        const fileExt = screenshot.name.split('.').pop();
+        const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('sim-activation-screenshots')
+          .upload(fileName, screenshot);
+
+        if (uploadError) {
+          console.error('Erro ao fazer upload do arquivo:', uploadError);
+          toast.error("Erro ao fazer upload do arquivo. Continuando sem ele...");
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('sim-activation-screenshots')
+            .getPublicUrl(fileName);
+          screenshotUrl = publicUrl;
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('process-sim-activation', {
         body: {
           activationType: 'esim',
           imei: imei,
           eid: eid,
+          screenshotUrl: screenshotUrl,
         },
       });
 
@@ -114,6 +137,7 @@ export default function SimActivation() {
       toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
       setImei("");
       setEid("");
+      setScreenshot(null);
     } catch (error) {
       console.error('Erro ao enviar ativação:', error);
       toast.error("Erro ao enviar dados. Tente novamente.");

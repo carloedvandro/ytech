@@ -11,6 +11,7 @@ interface ActivationRequest {
   barcode?: string;
   imei?: string;
   eid?: string;
+  screenshotUrl?: string;
 }
 
 Deno.serve(async (req) => {
@@ -41,7 +42,7 @@ Deno.serve(async (req) => {
       throw new Error('Usuário não autenticado');
     }
 
-    const { activationType, barcode, imei, eid }: ActivationRequest = await req.json();
+    const { activationType, barcode, imei, eid, screenshotUrl }: ActivationRequest = await req.json();
 
     console.log('📱 Processando ativação:', { activationType, user: user.id });
 
@@ -65,6 +66,7 @@ Deno.serve(async (req) => {
         barcode: activationType === 'chip' ? barcode : null,
         imei: activationType === 'esim' ? imei : null,
         eid: activationType === 'esim' ? eid : null,
+        screenshot_url: screenshotUrl || null,
         status: 'pending',
       })
       .select()
@@ -89,7 +91,11 @@ Deno.serve(async (req) => {
       message += `📊 *Código de Barras:*\n${barcode}\n\n`;
     } else {
       message += `📱 *IMEI:* ${imei}\n`;
-      message += `🔑 *EID:* ${eid}\n\n`;
+      message += `🔑 *EID:* ${eid}\n`;
+      if (screenshotUrl) {
+        message += `📸 *Print:* ${screenshotUrl}\n`;
+      }
+      message += `\n`;
     }
     
     message += `⏰ *Data:* ${new Date().toLocaleString('pt-BR')}\n`;
