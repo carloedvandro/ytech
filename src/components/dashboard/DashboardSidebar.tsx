@@ -1,4 +1,4 @@
-import { Home, Users, DollarSign, LogOut, Shield } from "lucide-react";
+import { Home, Users, DollarSign, LogOut, Shield, KeyRound } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ const menuItems = [
   { title: "Início", url: "/dashboard", icon: Home },
   { title: "Minha Rede", url: "/network", icon: Users },
   { title: "Financeiro", url: "/financial", icon: DollarSign },
+  { title: "Trocar Senha", url: "/change-password", icon: KeyRound },
 ];
 
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
