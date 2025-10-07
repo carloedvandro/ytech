@@ -529,7 +529,7 @@ const Network = () => {
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
-                      {user.next_renewal_date && (
+                      {user.next_renewal_date ? (
                         <div className="flex items-center gap-2 mt-2">
                           <Calendar className="h-3 w-3 text-muted-foreground" />
                           <p className={`text-xs ${isOverdue(user.next_renewal_date) ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-muted-foreground'}`}>
@@ -550,7 +550,24 @@ const Network = () => {
                             </Button>
                           )}
                         </div>
-                      )}
+                      ) : isAdmin ? (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">Sem data de renovação</p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setNewRenewalDate("");
+                              setShowRenewalDialog(true);
+                            }}
+                          >
+                            Definir Data
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                     <div className="text-right">
                       <div className={`font-bold ${getLevelColor(user.level)}`}>
