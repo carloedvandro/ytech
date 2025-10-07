@@ -199,17 +199,24 @@ serve(async (req) => {
             console.log('✓ Payment completed');
           }
 
-          // Atualizar renovação
+          // Atualizar renovação (timezone São Paulo)
           if (payment.subscription_id) {
-            const currentDate = new Date(); // Data atual do pagamento
-            const nextRenewalDate = new Date(currentDate);
+            // Criar data atual no timezone de São Paulo
+            const now = new Date();
+            const saoPauloOffset = -3 * 60; // UTC-3 em minutos
+            const localOffset = now.getTimezoneOffset();
+            const adjustedNow = new Date(now.getTime() + (localOffset - saoPauloOffset) * 60000);
+            
+            // Adicionar 30 dias
+            const nextRenewalDate = new Date(adjustedNow);
             nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
+            nextRenewalDate.setHours(0, 0, 0, 0); // Meia-noite
             
             await supabaseClient
               .from('payments')
               .update({ next_renewal_date: nextRenewalDate.toISOString() })
               .eq('subscription_id', payment.subscription_id);
-            console.log('✓ Renewal updated to:', nextRenewalDate.toISOString());
+            console.log('✓ Renewal updated to (SP):', nextRenewalDate.toISOString());
           }
 
           // Ativar usuário

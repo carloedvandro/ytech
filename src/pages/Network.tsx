@@ -98,7 +98,12 @@ const Network = () => {
 
   const isOverdue = (renewalDate: string | null | undefined) => {
     if (!renewalDate) return false;
-    return new Date(renewalDate) < new Date();
+    const now = new Date();
+    const renewal = new Date(renewalDate);
+    // Comparar apenas as datas (ignorar horas)
+    now.setHours(0, 0, 0, 0);
+    renewal.setHours(0, 0, 0, 0);
+    return renewal < now;
   };
 
   const formatRenewalDate = (renewalDate: string | null | undefined) => {
