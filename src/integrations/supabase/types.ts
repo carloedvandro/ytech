@@ -607,14 +607,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      disable_auth_trigger: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      enable_auth_trigger: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
