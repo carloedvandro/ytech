@@ -41,9 +41,9 @@ serve(async (req) => {
       throw new Error('Apenas administradores podem ajustar saldos');
     }
 
-    const { userId, amount, type, reason } = await req.json();
+    const { userId, amount, type, reason, shouldGenerateCommissions } = await req.json();
 
-    console.log('Ajustando saldo:', { userId, amount, type, reason });
+    console.log('Ajustando saldo:', { userId, amount, type, reason, shouldGenerateCommissions });
 
     // Buscar saldo atual
     const { data: commissionsData } = await supabase
@@ -83,26 +83,134 @@ serve(async (req) => {
 
     console.log('Ajuste registrado com sucesso');
 
-    // Se for adicionar saldo, criar uma comissão fictícia
+    // Se for adicionar saldo
     if (type === 'add') {
-      const { error: commError } = await supabase
-        .from('commissions')
-        .insert({
-          user_id: userId,
-          referred_user_id: userId,
-          payment_id: `admin_adjustment_${Date.now()}`,
-          amount,
-          level: 0,
-          status: 'available',
-          released_at: new Date().toISOString(),
-        });
+      if (shouldGenerateCommissions) {
+        // Buscar plano do usuário para calcular comissões
+        const { data: lastPayment } = await supabase
+          .from('payments')
+          .select('plan_id, plans(commission_l1, commission_l2_l4)')
+          .eq('user_id', userId)
+          .eq('status', 'confirmed')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-      if (commError) {
-        console.error('Erro ao criar comissão:', commError);
-        throw new Error('Erro ao adicionar saldo');
+        if (!lastPayment) {
+          throw new Error('Usuário não possui plano ativo');
+        }
+
+        const plan = lastPayment.plans as any;
+        
+        // Buscar caminho da rede do usuário
+        const { data: networkData } = await supabase
+          .from('user_network')
+          .select('path')
+          .eq('user_id', userId)
+          .single();
+
+        if (!networkData?.path) {
+          throw new Error('Caminho da rede não encontrado');
+        }
+
+        // Função para verificar se usuário pode receber comissão
+        const canReceiveCommission = async (levelUserId: string) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', levelUserId)
+            .single();
+
+          if (!profile || profile.status !== 'active') {
+            return false;
+          }
+
+          const { data: payment } = await supabase
+            .from('payments')
+            .select('next_renewal_date')
+            .eq('user_id', levelUserId)
+            .eq('status', 'confirmed')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (!payment?.next_renewal_date) {
+            return false;
+          }
+
+          const renewalDate = new Date(payment.next_renewal_date);
+          const now = new Date();
+          return renewalDate > now;
+        };
+
+        // Gerar comissões para a rede
+        const commissionsToCreate = [];
+        const paymentId = `admin_adjustment_${Date.now()}`;
+
+        for (let i = 1; i < networkData.path.length; i++) {
+          const levelUserId = networkData.path[networkData.path.length - 1 - i];
+          const level = i;
+
+          // Verificar se pode receber comissão
+          const canReceive = await canReceiveCommission(levelUserId);
+          if (!canReceive) {
+            console.log(`Usuário ${levelUserId} no nível ${level} não pode receber comissão`);
+            continue;
+          }
+
+          let commissionAmount = 0;
+          if (level === 1) {
+            commissionAmount = (amount * plan.commission_l1) / 100;
+          } else if (level >= 2 && level <= 4) {
+            commissionAmount = (amount * plan.commission_l2_l4) / 100;
+          }
+
+          if (commissionAmount > 0) {
+            commissionsToCreate.push({
+              user_id: levelUserId,
+              referred_user_id: userId,
+              payment_id: paymentId,
+              amount: commissionAmount,
+              level: level,
+              status: 'available',
+              released_at: new Date().toISOString(),
+            });
+          }
+        }
+
+        if (commissionsToCreate.length > 0) {
+          const { error: commError } = await supabase
+            .from('commissions')
+            .insert(commissionsToCreate);
+
+          if (commError) {
+            console.error('Erro ao criar comissões:', commError);
+            throw new Error('Erro ao gerar comissões');
+          }
+
+          console.log(`${commissionsToCreate.length} comissões geradas com sucesso`);
+        }
+      } else {
+        // Apenas adicionar crédito direto sem comissões
+        const { error: commError } = await supabase
+          .from('commissions')
+          .insert({
+            user_id: userId,
+            referred_user_id: userId,
+            payment_id: `admin_adjustment_${Date.now()}`,
+            amount,
+            level: 0,
+            status: 'available',
+            released_at: new Date().toISOString(),
+          });
+
+        if (commError) {
+          console.error('Erro ao criar comissão:', commError);
+          throw new Error('Erro ao adicionar saldo');
+        }
+
+        console.log('Saldo adicionado com sucesso (sem comissões)');
       }
-
-      console.log('Saldo adicionado com sucesso');
     }
 
     // Se for remover, atualizar comissões disponíveis
