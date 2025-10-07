@@ -63,6 +63,10 @@ Olá! Sou ${fullName} e quero te apresentar uma oportunidade incrível: internet
 • R$ 26 por cada pessoa que você indicar
 • R$ 5 por indicações indiretas (até 4 níveis)
 
+🎁 *INTERNET GRÁTIS!*
+Indique apenas 5 pessoas e sua internet fica DE GRAÇA!
+5 indicações × R$ 26 = R$ 130 (cobre o valor total do plano!)
+
 🔗 Conheça todos os detalhes no meu site:
 https://ytech.yrwentechnology.com.br/site/${username}
 
@@ -122,16 +126,22 @@ Comissões para indicadores:
 - R$ 26 por indicação direta
 - R$ 5 por indicações indiretas (até 4 níveis)
 
+DESTAQUE ESPECIAL - INTERNET GRÁTIS:
+- Com apenas 5 indicações diretas, a pessoa ganha R$ 130 (5 × R$ 26)
+- Isso significa que a internet fica COMPLETAMENTE GRÁTIS (planos custam R$ 129,99)
+- Enfatize que é muito fácil conseguir 5 indicações e ter internet grátis para sempre
+
 Link do mini site: https://ytech.yrwentechnology.com.br/site/${username}
 
 Crie um texto persuasivo, profissional e que destaque:
 1. Benefícios da internet 5G
-2. Flexibilidade dos planos
-3. Oportunidade de renda extra com indicações
-4. Facilidade de assinar através do mini site
+2. A oportunidade de ter INTERNET GRÁTIS com apenas 5 indicações
+3. Flexibilidade dos planos
+4. Oportunidade de renda extra com mais indicações
+5. Facilidade de assinar através do mini site
 
 Use emojis moderadamente e seja direto.
-IMPORTANTE: Sempre inclua o link do mini site no texto.`;
+IMPORTANTE: Sempre inclua o link do mini site no texto e destaque bem a possibilidade de internet grátis com 5 indicações.`;
 
     // Chamar Lovable AI
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
