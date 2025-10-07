@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Loader2, Users, TrendingUp } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { useQuery } from "@tanstack/react-query";
 
 interface NetworkUser {
   id: string;
@@ -17,7 +19,8 @@ interface NetworkUser {
 
 const Network = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { profile } = useAuth();
+  const { impersonatedUser, isImpersonating } = useImpersonation();
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkUser[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
@@ -29,13 +32,35 @@ const Network = () => {
     total: 0,
   });
 
+  // Buscar perfil do usuário impersonado se necessário
+  const { data: impersonatedProfile } = useQuery({
+    queryKey: ["impersonated-profile", impersonatedUser?.id],
+    queryFn: async () => {
+      if (!impersonatedUser) return null;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", impersonatedUser.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: isImpersonating && !!impersonatedUser,
+  });
+
+  // Usar perfil impersonado ou perfil real
+  const activeProfile = isImpersonating && impersonatedProfile ? impersonatedProfile : profile;
+
   useEffect(() => {
+    if (!activeProfile?.id) return;
     loadNetwork();
-  }, []);
+  }, [activeProfile?.id]);
 
   const loadNetwork = async () => {
     try {
-      if (!user?.id) return;
+      if (!activeProfile?.id) return;
 
       // Buscar TODA a rede do usuário (não só indicados diretos)
       const { data: networkData, error: networkError } = await supabase
@@ -54,8 +79,8 @@ const Network = () => {
             created_at
           )
         `)
-        .contains("path", [user.id])
-        .neq("user_id", user.id) // Excluir o próprio usuário
+        .contains("path", [activeProfile.id])
+        .neq("user_id", activeProfile.id) // Excluir o próprio usuário
         .order("level", { ascending: true });
 
       if (networkError) throw networkError;
@@ -64,7 +89,7 @@ const Network = () => {
       const { data: myLevel } = await supabase
         .from("user_network")
         .select("level")
-        .eq("user_id", user.id)
+        .eq("user_id", activeProfile.id)
         .maybeSingle();
 
       const userLevel = myLevel?.level || 1;

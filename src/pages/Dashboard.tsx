@@ -7,12 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UsernameManager } from "@/components/UsernameManager";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
 
 const Dashboard = () => {
   const { toast } = useToast();
   const { profile, refreshProfile } = useAuth();
+  const { impersonatedUser, isImpersonating } = useImpersonation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -21,8 +24,29 @@ const Dashboard = () => {
     availableBalance: 0,
   });
 
+  // Buscar perfil do usuário impersonado se necessário
+  const { data: impersonatedProfile } = useQuery({
+    queryKey: ["impersonated-profile", impersonatedUser?.id],
+    queryFn: async () => {
+      if (!impersonatedUser) return null;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", impersonatedUser.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: isImpersonating && !!impersonatedUser,
+  });
+
+  // Usar perfil impersonado ou perfil real
+  const activeProfile = isImpersonating && impersonatedProfile ? impersonatedProfile : profile;
+
   useEffect(() => {
-    if (!profile?.id) return;
+    if (!activeProfile?.id) return;
 
     loadStats();
 
@@ -35,7 +59,7 @@ const Dashboard = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'commissions',
-          filter: `user_id=eq.${profile.id}`
+          filter: `user_id=eq.${activeProfile.id}`
         },
         (payload) => {
           console.log('Nova comissão recebida!', payload);
@@ -51,18 +75,18 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.id]);
+  }, [activeProfile?.id]);
 
   const loadStats = async () => {
-    if (!profile?.id) return;
+    if (!activeProfile?.id) return;
 
     try {
       // Buscar total de indicações (toda a rede)
       const { data: networkData, error: networkError } = await supabase
         .from("user_network")
         .select("id")
-        .contains("path", [profile.id])
-        .neq("user_id", profile.id);
+        .contains("path", [activeProfile.id])
+        .neq("user_id", activeProfile.id);
 
       if (networkError) throw networkError;
 
@@ -70,7 +94,7 @@ const Dashboard = () => {
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
         .select("amount, status")
-        .eq("user_id", profile.id);
+        .eq("user_id", activeProfile.id);
 
       if (commissionsError) throw commissionsError;
 
@@ -110,7 +134,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!profile) {
+  if (!profile || !activeProfile) {
     return null;
   }
 
@@ -199,8 +223,8 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <UsernameManager
-              userId={profile.id}
-              currentUsername={profile.username || null}
+              userId={activeProfile.id}
+              currentUsername={activeProfile.username || null}
               onUsernameUpdate={refreshProfile}
             />
           </CardContent>
@@ -219,17 +243,17 @@ const Dashboard = () => {
                 type="text"
                 readOnly
                 value={
-                  profile.username
-                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.username}`
-                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.id}`
+                  activeProfile.username
+                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.username}`
+                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.id}`
                 }
                 className="flex-1 px-4 py-2 border rounded-md bg-muted"
               />
               <button
                 onClick={() => {
-                  const link = profile.username
-                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.username}`
-                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.id}`;
+                  const link = activeProfile.username
+                    ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.username}`
+                    : `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.id}`;
                   navigator.clipboard.writeText(link);
                   toast({
                     title: "Link copiado!",
@@ -257,9 +281,9 @@ const Dashboard = () => {
                   <div className="flex justify-center p-6">
                     <QRCodeSVG
                       value={
-                        profile.username
-                          ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.username}`
-                          : `https://ytech.yrwentechnology.com.br/cadastro?ref=${profile.id}`
+                        activeProfile.username
+                          ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.username}`
+                          : `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.id}`
                       }
                       size={256}
                       level="H"
