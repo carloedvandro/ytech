@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,10 +24,12 @@ const Login = () => {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+  const hasRedirected = useRef(false);
 
-  // Redirect to dashboard if already logged in
+  // Redirect to dashboard if already logged in - with protection against loops
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && !hasRedirected.current) {
+      hasRedirected.current = true;
       console.log('User already logged in, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     }
@@ -95,11 +97,15 @@ const Login = () => {
         description: "Bem-vindo de volta!",
       });
 
-      console.log('Navegando para dashboard...');
+      // Esperar a sessão ser confirmada antes de navegar
+      console.log('Aguardando confirmação da sessão...');
       
-      // O AuthContext já vai redirecionar via useEffect quando detectar o user
-      // Não navegar manualmente aqui para evitar race conditions
-      setLoading(false);
+      // Pequeno delay para garantir que o AuthContext processe a sessão
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      console.log('Navegando para dashboard...');
+      hasRedirected.current = true;
+      navigate('/dashboard', { replace: true });
 
     } catch (error: any) {
       console.error('Erro inesperado no login:', error);
