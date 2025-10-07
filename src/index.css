@@ -38,6 +38,16 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
     
+    /* Dashboard glass cards */
+    --glass-yellow: 45 100% 51%;
+    --glass-yellow-foreground: 45 100% 10%;
+    --glass-blue: 217 91% 60%;
+    --glass-blue-foreground: 217 91% 10%;
+    --glass-green: 142 76% 36%;
+    --glass-green-foreground: 142 76% 10%;
+    --glass-purple: 270 95% 60%;
+    --glass-purple-foreground: 270 95% 10%;
+    
     --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(262 83% 68%));
     --gradient-secondary: linear-gradient(135deg, hsl(173 80% 40%), hsl(173 80% 50%));
     --gradient-hero: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(262 83% 48%) 50%, hsl(173 80% 40%) 100%);
@@ -90,6 +100,16 @@ All colors MUST be HSL.
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 262 83% 58%;
+    
+    /* Dashboard glass cards - dark mode */
+    --glass-yellow: 45 100% 51%;
+    --glass-yellow-foreground: 45 100% 95%;
+    --glass-blue: 217 91% 60%;
+    --glass-blue-foreground: 217 91% 95%;
+    --glass-green: 142 76% 40%;
+    --glass-green-foreground: 142 76% 95%;
+    --glass-purple: 270 95% 65%;
+    --glass-purple-foreground: 270 95% 95%;
     
     --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(262 83% 68%));
     --gradient-secondary: linear-gradient(135deg, hsl(173 80% 40%), hsl(173 80% 50%));

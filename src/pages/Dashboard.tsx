@@ -119,57 +119,57 @@ const Dashboard = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-yellow))]/20 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Indicações</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-yellow-foreground))]">Total de Indicações</CardTitle>
+              <Users className="h-5 w-5 text-[hsl(var(--glass-yellow-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalReferrals}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-[hsl(var(--glass-yellow-foreground))]">{stats.totalReferrals}</div>
+              <p className="text-xs text-[hsl(var(--glass-yellow-foreground))]/70 mt-1">
                 {stats.totalReferrals === 0 ? "Nenhuma indicação ainda" : "Em toda sua rede"}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-blue))]/20 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Comissões Totais</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-blue-foreground))]">Comissões Totais</CardTitle>
+              <DollarSign className="h-5 w-5 text-[hsl(var(--glass-blue-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold text-[hsl(var(--glass-blue-foreground))]">
                 R$ {stats.totalCommissions.toFixed(2).replace(".", ",")}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-[hsl(var(--glass-blue-foreground))]/70 mt-1">
                 {stats.totalCommissions === 0 ? "Aguardando indicações" : "Acumulado"}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Disponível para Saque</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-green-foreground))]">Disponível para Saque</CardTitle>
+              <TrendingUp className="h-5 w-5 text-[hsl(var(--glass-green-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold text-[hsl(var(--glass-green-foreground))]">
                 R$ {stats.availableBalance.toFixed(2).replace(".", ",")}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-[hsl(var(--glass-green-foreground))]/70 mt-1">
                 {stats.availableBalance === 0 ? "Sem saldo disponível" : "Pronto para saque"}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="backdrop-blur-xl bg-[hsl(var(--glass-purple))]/20 border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rede MLM</CardTitle>
-              <Share2 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-purple-foreground))]">Rede MMN</CardTitle>
+              <Share2 className="h-5 w-5 text-[hsl(var(--glass-purple-foreground))]/70" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">4 níveis</div>
-              <p className="text-xs text-muted-foreground">Sistema ativo</p>
+              <div className="text-3xl font-bold text-[hsl(var(--glass-purple-foreground))]">4 níveis</div>
+              <p className="text-xs text-[hsl(var(--glass-purple-foreground))]/70 mt-1">Sistema ativo</p>
             </CardContent>
           </Card>
         </div>
