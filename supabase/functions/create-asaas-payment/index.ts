@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { ENV_CONFIG, logEnvironment, validateConfig } from "../_shared/config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +13,10 @@ serve(async (req) => {
   }
 
   try {
+    // Log e validar ambiente
+    logEnvironment();
+    validateConfig();
+
     const { paymentId } = await req.json();
 
     if (!paymentId) {
@@ -41,11 +46,11 @@ serve(async (req) => {
       externalReference: payment.profiles.id,
     };
 
-    const customerResponse = await fetch('https://api.asaas.com/v3/customers', {
+    const customerResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/customers`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+        'access_token': ENV_CONFIG.asaas.apiKey,
       },
       body: JSON.stringify(customerData),
     });
@@ -55,9 +60,9 @@ serve(async (req) => {
       const errorText = await customerResponse.text();
       // Se o cliente já existe, tentar buscar pelo CPF
       if (errorText.includes('cpfCnpj already exists')) {
-        const searchResponse = await fetch(`https://api.asaas.com/v3/customers?cpfCnpj=${payment.profiles.cpf.replace(/\D/g, '')}`, {
+        const searchResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/customers?cpfCnpj=${payment.profiles.cpf.replace(/\D/g, '')}`, {
           headers: {
-            'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+            'access_token': ENV_CONFIG.asaas.apiKey,
           },
         });
         const searchData = await searchResponse.json();
@@ -76,11 +81,11 @@ serve(async (req) => {
     const nextDueDate = new Date();
     nextDueDate.setDate(nextDueDate.getDate() + 1); // Primeiro vencimento amanhã
     
-    const subscriptionResponse = await fetch('https://api.asaas.com/v3/subscriptions', {
+    const subscriptionResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/subscriptions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+        'access_token': ENV_CONFIG.asaas.apiKey,
       },
       body: JSON.stringify({
         customer: asaasCustomer.id,
@@ -103,9 +108,9 @@ serve(async (req) => {
     console.log('Asaas subscription created:', asaasSubscription);
 
     // Buscar a primeira cobrança gerada pela assinatura
-    const paymentsResponse = await fetch(`https://api.asaas.com/v3/payments?subscription=${asaasSubscription.id}`, {
+    const paymentsResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments?subscription=${asaasSubscription.id}`, {
       headers: {
-        'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+        'access_token': ENV_CONFIG.asaas.apiKey,
       },
     });
 
@@ -115,9 +120,9 @@ serve(async (req) => {
     console.log('First payment from subscription:', firstPayment);
 
     // Buscar QR Code PIX da primeira cobrança
-    const pixResponse = await fetch(`https://api.asaas.com/v3/payments/${firstPayment.id}/pixQrCode`, {
+    const pixResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${firstPayment.id}/pixQrCode`, {
       headers: {
-        'access_token': Deno.env.get('ASAAS_API_KEY') ?? '',
+        'access_token': ENV_CONFIG.asaas.apiKey,
       },
     });
 
