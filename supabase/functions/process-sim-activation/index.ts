@@ -115,10 +115,11 @@ Deno.serve(async (req) => {
         // Format WhatsApp number (remove formatting)
         const formattedNumber = adminWhatsapp.replace(/\D/g, '');
         
-        // Use correct Mega API endpoint format (same as other functions)
+        // Use correct Mega API endpoint format (same as send-whatsapp-verification)
         const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
         
         console.log('📤 Enviando WhatsApp para:', formattedNumber);
+        console.log('📤 URL Mega API:', megaUrl);
         
         const megaResponse = await fetch(megaUrl, {
           method: 'POST',
@@ -127,12 +128,8 @@ Deno.serve(async (req) => {
             'Authorization': `Bearer ${ENV_CONFIG.mega.apiKey}`,
           },
           body: JSON.stringify({
-            number: formattedNumber,
-            options: {
-              delay: 0,
-              presence: 'composing'
-            },
-            textMessage: {
+            messageData: {
+              to: formattedNumber,
               text: message
             }
           }),
