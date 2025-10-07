@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
+import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { BalanceAdjustmentsHistory } from "@/components/BalanceAdjustmentsHistory";
 
@@ -289,34 +290,37 @@ const Financial = () => {
         )}
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+            <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold">R$ {balance.total.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">Todas as comissões</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+            <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Disponível</CardTitle>
               <TrendingUp className="h-4 w-4 text-secondary" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold text-secondary">R$ {balance.available.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">Pronto para saque</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+            <AnimatedGradient colors={["#fbbf24", "#f59e0b", "#d97706"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pendente</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="text-2xl font-bold">R$ {balance.pending.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">Aguardando liberação</p>
             </CardContent>
