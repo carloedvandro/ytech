@@ -26,12 +26,11 @@ serve(async (req) => {
 
     // 0. Desabilitar trigger temporariamente para evitar conflitos
     console.log('⏸️  Disabling trigger temporarily...');
-    await supabaseAdmin.rpc('exec_sql', { 
-      sql: 'ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;' 
-    }).catch(() => {
-      // Trigger pode não existir ainda, ignorar erro
-      console.log('Note: trigger disable failed (may not exist)');
-    });
+    const { error: disableError } = await supabaseAdmin.rpc('disable_auth_trigger');
+    if (disableError) {
+      console.error('Error disabling trigger:', disableError);
+      throw new Error('Failed to disable trigger');
+    }
 
     // 1. Buscar todos os usuários não migrados da tabela users antiga
     const { data: oldUsers, error: fetchError } = await supabaseAdmin
@@ -290,11 +289,10 @@ serve(async (req) => {
 
     // Reabilitar trigger
     console.log('▶️  Re-enabling trigger...');
-    await supabaseAdmin.rpc('exec_sql', { 
-      sql: 'ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;' 
-    }).catch(() => {
-      console.log('Note: trigger enable failed');
-    });
+    const { error: enableError } = await supabaseAdmin.rpc('enable_auth_trigger');
+    if (enableError) {
+      console.error('Error enabling trigger:', enableError);
+    }
 
     console.log('🎉 Migration complete:', results);
 
