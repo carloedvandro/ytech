@@ -15,6 +15,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { MarketingMaterialGenerator } from "@/components/marketing/MarketingMaterialGenerator";
 import { ExternalLink } from "lucide-react";
+import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
+import { motion } from "framer-motion";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -188,71 +190,95 @@ const Dashboard = () => {
         )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card 
-            className="backdrop-blur-xl bg-[hsl(var(--glass-yellow))]/20 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
             onClick={() => navigate('/network')}
+            className="cursor-pointer"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-yellow-foreground))]">Total de Indicações</CardTitle>
-              <Users className="h-5 w-5 text-[hsl(var(--glass-yellow-foreground))]/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-[hsl(var(--glass-yellow-foreground))]">{stats.totalReferrals}</div>
-              <p className="text-xs text-[hsl(var(--glass-yellow-foreground))]/70 mt-1">
-                {stats.totalReferrals === 0 ? "Nenhuma indicação ainda" : "Em toda sua rede"}
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+              <AnimatedGradient colors={["#fbbf24", "#f59e0b", "#d97706"]} speed={0.05} blur="medium" />
+              <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-foreground">Total de Indicações</CardTitle>
+                <Users className="h-5 w-5 text-foreground/70" />
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold text-foreground">{stats.totalReferrals}</div>
+                <p className="text-xs text-foreground/70 mt-1">
+                  {stats.totalReferrals === 0 ? "Nenhuma indicação ainda" : "Em toda sua rede"}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card 
-            className="backdrop-blur-xl bg-[hsl(var(--glass-blue))]/20 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
             onClick={() => navigate('/financial')}
+            className="cursor-pointer"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-blue-foreground))]">Comissões Totais</CardTitle>
-              <DollarSign className="h-5 w-5 text-[hsl(var(--glass-blue-foreground))]/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-[hsl(var(--glass-blue-foreground))]">
-                R$ {stats.totalCommissions.toFixed(2).replace(".", ",")}
-              </div>
-              <p className="text-xs text-[hsl(var(--glass-blue-foreground))]/70 mt-1">
-                {stats.totalCommissions === 0 ? "Aguardando indicações" : "Acumulado"}
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+              <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
+              <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-foreground">Comissões Totais</CardTitle>
+                <DollarSign className="h-5 w-5 text-foreground/70" />
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold text-foreground">
+                  R$ {stats.totalCommissions.toFixed(2).replace(".", ",")}
+                </div>
+                <p className="text-xs text-foreground/70 mt-1">
+                  {stats.totalCommissions === 0 ? "Aguardando indicações" : "Acumulado"}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card 
-            className="backdrop-blur-xl bg-[hsl(var(--glass-green))]/20 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
             onClick={() => navigate('/financial')}
+            className="cursor-pointer"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-green-foreground))]">Disponível para Saque</CardTitle>
-              <TrendingUp className="h-5 w-5 text-[hsl(var(--glass-green-foreground))]/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-[hsl(var(--glass-green-foreground))]">
-                R$ {stats.availableBalance.toFixed(2).replace(".", ",")}
-              </div>
-              <p className="text-xs text-[hsl(var(--glass-green-foreground))]/70 mt-1">
-                {stats.availableBalance === 0 ? "Sem saldo disponível" : "Pronto para saque"}
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+              <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
+              <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-foreground">Disponível para Saque</CardTitle>
+                <TrendingUp className="h-5 w-5 text-foreground/70" />
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold text-foreground">
+                  R$ {stats.availableBalance.toFixed(2).replace(".", ",")}
+                </div>
+                <p className="text-xs text-foreground/70 mt-1">
+                  {stats.availableBalance === 0 ? "Sem saldo disponível" : "Pronto para saque"}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card 
-            className="backdrop-blur-xl bg-[hsl(var(--glass-purple))]/20 border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
             onClick={() => navigate('/network')}
+            className="cursor-pointer"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-[hsl(var(--glass-purple-foreground))]">Rede MMN</CardTitle>
-              <Share2 className="h-5 w-5 text-[hsl(var(--glass-purple-foreground))]/70" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-[hsl(var(--glass-purple-foreground))]">4 níveis</div>
-              <p className="text-xs text-[hsl(var(--glass-purple-foreground))]/70 mt-1">Sistema ativo</p>
-            </CardContent>
-          </Card>
+            <Card className="relative overflow-hidden h-full bg-background/50 backdrop-blur-xl border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+              <AnimatedGradient colors={["#8b5cf6", "#a78bfa", "#c4b5fd"]} speed={0.05} blur="medium" />
+              <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-foreground">Rede MMN</CardTitle>
+                <Share2 className="h-5 w-5 text-foreground/70" />
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-bold text-foreground">4 níveis</div>
+                <p className="text-xs text-foreground/70 mt-1">Sistema ativo</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         <Card>
