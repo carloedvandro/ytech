@@ -185,40 +185,40 @@ serve(async (req) => {
         const updates = [
           // Atualizar commissions
           supabaseAdmin.from('commissions')
-            .update({ user_id: authUser.user.id })
+            .update({ user_id: newAuthId })
             .eq('user_id', oldUser.id),
           
           supabaseAdmin.from('commissions')
-            .update({ referred_user_id: authUser.user.id })
+            .update({ referred_user_id: newAuthId })
             .eq('referred_user_id', oldUser.id),
 
           // Atualizar payments
           supabaseAdmin.from('payments')
-            .update({ user_id: authUser.user.id })
+            .update({ user_id: newAuthId })
             .eq('user_id', oldUser.id),
 
           // Atualizar transactions
           supabaseAdmin.from('transactions')
-            .update({ user_id: authUser.user.id })
+            .update({ user_id: newAuthId })
             .eq('user_id', oldUser.id),
 
           // Atualizar user_network
           supabaseAdmin.from('user_network')
-            .update({ user_id: authUser.user.id })
+            .update({ user_id: newAuthId })
             .eq('user_id', oldUser.id),
           
           supabaseAdmin.from('user_network')
-            .update({ parent_id: authUser.user.id })
+            .update({ parent_id: newAuthId })
             .eq('parent_id', oldUser.id),
 
           // Atualizar whatsapp_messages
           supabaseAdmin.from('whatsapp_messages')
-            .update({ user_id: authUser.user.id })
+            .update({ user_id: newAuthId })
             .eq('user_id', oldUser.id),
 
           // Atualizar profiles referred_by
           supabaseAdmin.from('profiles')
-            .update({ referred_by: authUser.user.id })
+            .update({ referred_by: newAuthId })
             .eq('referred_by', oldUser.id),
         ];
 
@@ -234,10 +234,10 @@ serve(async (req) => {
               messageType: 'password_reset',
               data: {
                 name: oldUser.full_name,
-                tempPassword: tempPassword,
+                tempPassword: oldUser.tempPassword,
                 loginUrl: `${supabaseUrl.replace('.supabase.co', '')}/login`,
               },
-              userId: authUser.user.id,
+              userId: newAuthId,
             }
           });
         } catch (whatsappError) {
