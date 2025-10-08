@@ -34,7 +34,6 @@ const Users = () => {
   const [adjustmentType, setAdjustmentType] = useState<"add" | "remove">("add");
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
-  const [shouldGenerateCommissions, setShouldGenerateCommissions] = useState(false);
   const [activating, setActivating] = useState(false);
   const navigate = useNavigate();
   const { setImpersonatedUser } = useImpersonation();
@@ -162,8 +161,7 @@ const Users = () => {
           userId: selectedUser.id,
           amount,
           type: adjustmentType,
-          reason: adjustmentReason,
-          shouldGenerateCommissions
+          reason: adjustmentReason
         }
       });
 
@@ -179,7 +177,6 @@ const Users = () => {
       setShowBalanceDialog(false);
       setAdjustmentAmount("");
       setAdjustmentReason("");
-      setShouldGenerateCommissions(false);
       refetch();
     } catch (error) {
       console.error("Error adjusting balance:", error);
@@ -388,23 +385,6 @@ const Users = () => {
                 onChange={(e) => setAdjustmentReason(e.target.value)}
               />
             </div>
-
-            {adjustmentType === "add" && (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="generateCommissions"
-                    checked={shouldGenerateCommissions}
-                    onChange={(e) => setShouldGenerateCommissions(e.target.checked)}
-                    className="rounded border-input"
-                  />
-                  <Label htmlFor="generateCommissions" className="cursor-pointer font-normal">
-                    Gerar comissões para a rede (como se fosse um pagamento real)
-                  </Label>
-                </div>
-              </div>
-            )}
           </div>
 
           <DialogFooter>
