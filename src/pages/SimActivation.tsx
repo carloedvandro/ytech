@@ -391,8 +391,30 @@ export default function SimActivation() {
     try {
       setShowClearDataDialog(false);
       
-      // Se houver ativação pendente, marcar como cancelada pelo cliente
+      // Se houver ativação pendente, verificar limite de cancelamentos
       if (pendingActivation) {
+        // Verificar quantos cancelamentos o usuário já fez nas últimas 24 horas
+        const twentyFourHoursAgo = new Date();
+        twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+        
+        const { data: recentCancellations, error: countError } = await supabase
+          .from('sim_activations')
+          .select('id')
+          .eq('user_id', user?.id)
+          .eq('status', 'cancelled')
+          .gte('updated_at', twentyFourHoursAgo.toISOString());
+
+        if (countError) {
+          console.error('❌ Erro ao verificar cancelamentos:', countError);
+          throw countError;
+        }
+
+        // Se já cancelou 2 vezes nas últimas 24 horas
+        if (recentCancellations && recentCancellations.length >= 2) {
+          toast.error("Você atingiu o limite de 2 cancelamentos em 24 horas. Por favor, aguarde para poder cancelar novamente.");
+          return;
+        }
+        
         console.log('🔄 Cancelando ativação:', pendingActivation.id);
         
         const { error } = await supabase
@@ -978,6 +1000,9 @@ export default function SimActivation() {
                 Isto cancelará a ativação que está em andamento.
               </p>
               <p>Todos os dados preenchidos serão perdidos e você precisará iniciar o processo novamente.</p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-800">
+                ⚠️ <strong>Atenção:</strong> Você só pode cancelar <strong>2 ativações por dia</strong>. Após atingir o limite, será necessário aguardar 24 horas.
+              </p>
               <p className="text-sm">Deseja realmente continuar?</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
