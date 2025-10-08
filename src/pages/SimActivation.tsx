@@ -189,16 +189,57 @@ export default function SimActivation() {
 
       console.log('📊 Uploads de anexos encontrados nas últimas 24h:', recentUploads);
 
-      // Se já fez 3 uploads nas últimas 24 horas
+      // Se já fez 3 ou mais uploads nas últimas 24 horas, verificar saldo
       if (recentUploads && recentUploads.length >= 3) {
-        toast.error(
-          "Você atingiu o limite de 3 anexos por dia. " +
-          "Para enviar mais anexos, será cobrada uma taxa de R$ 3,00 por envio adicional. " +
-          "Entre em contato com o suporte para prosseguir.",
-          { duration: 8000 }
+        console.log('⚠️ Limite de 3 anexos atingido. Verificando saldo...');
+        
+        // Buscar saldo disponível do usuário
+        const { data: commissionsData } = await supabase
+          .from('commissions')
+          .select('amount, status')
+          .eq('user_id', user?.id)
+          .eq('status', 'available');
+
+        const currentBalance = commissionsData
+          ?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+
+        console.log('💰 Saldo disponível:', currentBalance);
+
+        // Se não tiver saldo suficiente (R$ 3,00)
+        if (currentBalance < 3) {
+          toast.error(
+            "Você atingiu o limite de 3 anexos gratuitos por dia e não possui saldo suficiente. " +
+            "O envio de anexos extras está bloqueado por 24 horas. " +
+            "Saldo necessário: R$ 3,00 | Seu saldo: R$ " + currentBalance.toFixed(2),
+            { duration: 10000 }
+          );
+          setIsProcessingImage(false);
+          return;
+        }
+
+        // Tem saldo suficiente - descontar R$ 3,00
+        console.log('✅ Saldo suficiente. Descontando R$ 3,00...');
+        
+        const { data: deductionData, error: deductionError } = await supabase.functions.invoke(
+          'deduct-attachment-fee',
+          { body: {} }
         );
-        setIsProcessingImage(false);
-        return;
+
+        if (deductionError || !deductionData?.success) {
+          console.error('❌ Erro ao descontar taxa:', deductionError || deductionData);
+          toast.error(
+            "Erro ao processar o desconto da taxa de anexo extra. Tente novamente.",
+            { duration: 5000 }
+          );
+          setIsProcessingImage(false);
+          return;
+        }
+
+        console.log('✅ Taxa descontada com sucesso:', deductionData);
+        toast.success(
+          `Taxa de R$ 3,00 descontada do seu saldo. Saldo restante: R$ ${deductionData.balance_after.toFixed(2)}`,
+          { duration: 5000 }
+        );
       }
       
       setScreenshot(file);
