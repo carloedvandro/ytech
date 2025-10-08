@@ -89,8 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Não bloquear o logout por este erro
       }
       
-      // Limpar localStorage manualmente
+      // Limpar todos os dados sensíveis do localStorage
       localStorage.removeItem('sb-fkdaaxaybuynohmnatdv-auth-token');
+      // Limpar dados de ativação de SIM de todos os usuários
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sim-activation-data-')) {
+          localStorage.removeItem(key);
+        }
+      });
       
       toast({
         title: 'Logout realizado',

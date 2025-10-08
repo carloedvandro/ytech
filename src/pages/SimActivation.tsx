@@ -37,9 +37,12 @@ export default function SimActivation() {
   // Verificar se o usuário tem fatura em dia (status = active)
   const canActivate = profile?.status === 'active';
 
-  // Recuperar dados salvos do localStorage ao carregar
+  // Recuperar dados salvos do localStorage ao carregar (específico do usuário)
   useEffect(() => {
-    const savedData = localStorage.getItem('sim-activation-data');
+    if (!user?.id) return;
+    
+    const storageKey = `sim-activation-data-${user.id}`;
+    const savedData = localStorage.getItem(storageKey);
     if (savedData) {
       try {
         const data = JSON.parse(savedData);
@@ -51,18 +54,21 @@ export default function SimActivation() {
         console.error('Erro ao recuperar dados salvos:', error);
       }
     }
-  }, []);
+  }, [user?.id]);
 
-  // Salvar dados no localStorage sempre que mudarem
+  // Salvar dados no localStorage sempre que mudarem (específico do usuário)
   useEffect(() => {
+    if (!user?.id) return;
+    
+    const storageKey = `sim-activation-data-${user.id}`;
     const dataToSave = {
       barcode,
       imei,
       eid,
       activeTab,
     };
-    localStorage.setItem('sim-activation-data', JSON.stringify(dataToSave));
-  }, [barcode, imei, eid, activeTab]);
+    localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+  }, [barcode, imei, eid, activeTab, user?.id]);
 
   // Buscar ativações do usuário
   const { data: activations, refetch } = useQuery({
@@ -369,6 +375,12 @@ export default function SimActivation() {
     setImei("");
     setEid("");
     setScreenshot(null);
+    
+    // Limpar localStorage específico do usuário
+    if (user?.id) {
+      localStorage.removeItem(`sim-activation-data-${user.id}`);
+    }
+    
     toast.info("Preencha os dados para sua nova ativação");
   };
 
@@ -392,7 +404,11 @@ export default function SimActivation() {
       setImei("");
       setEid("");
       setScreenshot(null);
-      localStorage.removeItem('sim-activation-data');
+      
+      // Limpar localStorage específico do usuário
+      if (user?.id) {
+        localStorage.removeItem(`sim-activation-data-${user.id}`);
+      }
       
       toast.success("Dados limpos com sucesso! Você pode enviar uma nova ativação.");
     } catch (error) {
@@ -749,7 +765,9 @@ export default function SimActivation() {
                       type="button"
                       onClick={() => {
                         setBarcode("");
-                        localStorage.removeItem('sim-activation-data');
+                        if (user?.id) {
+                          localStorage.removeItem(`sim-activation-data-${user.id}`);
+                        }
                       }}
                       variant="outline"
                     >
@@ -902,7 +920,9 @@ export default function SimActivation() {
                         setImei("");
                         setEid("");
                         setScreenshot(null);
-                        localStorage.removeItem('sim-activation-data');
+                        if (user?.id) {
+                          localStorage.removeItem(`sim-activation-data-${user.id}`);
+                        }
                       }}
                       variant="outline"
                       disabled={!!pendingActivation}
