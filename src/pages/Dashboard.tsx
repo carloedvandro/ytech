@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -324,6 +325,65 @@ const Dashboard = () => {
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Abrir imagem em nova aba
               </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button className="w-full" variant="default">
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Já li o QR Code e meu chip foi ativado
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmar Ativação do Chip</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-2">
+                      <p>Tem certeza que deseja enviar a confirmação?</p>
+                      <p className="font-semibold">Você já fez os testes de conexão?</p>
+                      <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                        <li>Abriu o navegador</li>
+                        <li>Acessou qualquer site</li>
+                        <li>Fez uma chamada de teste</li>
+                      </ul>
+                      <p className="text-sm mt-2">Se sim, aperte em continuar para notificar nossa equipe.</p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase.functions.invoke('send-whatsapp-notification', {
+                            body: {
+                              messageType: 'chip_activated_by_user',
+                              data: {
+                                fullName: profile?.full_name,
+                                whatsapp: profile?.whatsapp,
+                                activationType: simActivation.activation_type,
+                              },
+                            },
+                          });
+
+                          if (error) throw error;
+
+                          toast({
+                            title: "Confirmação enviada!",
+                            description: "Nossa equipe foi notificada sobre a ativação do seu chip.",
+                          });
+                        } catch (error) {
+                          console.error('Erro ao enviar confirmação:', error);
+                          toast({
+                            title: "Erro ao enviar confirmação",
+                            description: "Tente novamente mais tarde.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      Continuar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         )}

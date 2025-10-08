@@ -89,7 +89,19 @@ const messageTemplates = {
     `🔑 *Senha Temporária:* ${data.temporaryPassword}\n\n` +
     `⚠️ *IMPORTANTE:* Por segurança, altere sua senha após o primeiro login.\n\n` +
     `🔗 *Acesse a plataforma:*\n${data.loginUrl || 'https://ytech.lovable.app/login'}\n\n` +
-    `Bem-vindo(a) de volta! 🚀`
+    `Bem-vindo(a) de volta! 🚀`,
+
+  chip_activated_by_user: (data: any) =>
+    `✅ *Cliente Confirmou Ativação do Chip*\n\n` +
+    `👤 *Cliente:* ${data.fullName}\n` +
+    `📱 *WhatsApp:* ${data.whatsapp}\n` +
+    `📡 *Tipo:* ${data.activationType === 'esim' ? 'eSIM' : 'Chip Físico'}\n\n` +
+    `✅ *O cliente confirmou que:*\n` +
+    `• Leu o QR Code\n` +
+    `• Configurou o ${data.activationType === 'esim' ? 'eSIM' : 'chip'}\n` +
+    `• Fez testes de conexão\n` +
+    `• O chip está funcionando normalmente\n\n` +
+    `_Y-TECH Internet 5G_`
 };
 
 Deno.serve(async (req) => {
@@ -216,8 +228,49 @@ Deno.serve(async (req) => {
     }
 
     // Modo template (código original)
-    if (!whatsapp || !messageType) {
-      throw new Error('WhatsApp e tipo de mensagem são obrigatórios');
+    if (!messageType) {
+      throw new Error('Tipo de mensagem é obrigatório');
+    }
+
+    // Para notificações de chip ativado por usuário, buscar admins
+    let recipients: string[] = [];
+    if (messageType === 'chip_activated_by_user') {
+      console.log('🔍 Buscando admins para notificação...');
+      
+      const { data: adminRoles, error: adminError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+      
+      if (adminError) {
+        console.error('Erro ao buscar admins:', adminError);
+        throw adminError;
+      }
+
+      const adminIds = adminRoles?.map(r => r.user_id) || [];
+      
+      if (adminIds.length === 0) {
+        throw new Error('Nenhum admin encontrado');
+      }
+
+      const { data: adminProfiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('whatsapp')
+        .in('id', adminIds);
+      
+      if (profileError) {
+        console.error('Erro ao buscar perfis dos admins:', profileError);
+        throw profileError;
+      }
+
+      recipients = adminProfiles?.map(p => p.whatsapp).filter(Boolean) || [];
+      console.log(`📱 ${recipients.length} admin(s) serão notificados`);
+    } else {
+      // Para outros tipos de mensagem, usar o whatsapp fornecido
+      if (!whatsapp) {
+        throw new Error('WhatsApp é obrigatório para este tipo de mensagem');
+      }
+      recipients = [whatsapp];
     }
 
     // Gerar mensagem a partir do template
@@ -228,52 +281,59 @@ Deno.serve(async (req) => {
 
     const templateMessage = templateFn(data);
 
-    // Formatar número
-    const formattedNumber = whatsapp.replace(/\D/g, '');
+    // Enviar para todos os destinatários
+    const results = [];
+    for (const recipientWhatsapp of recipients) {
+      const formattedNumber = recipientWhatsapp.replace(/\D/g, '');
 
-    console.log(`📱 Enviando ${messageType} para ${formattedNumber}`);
+      console.log(`📱 Enviando ${messageType} para ${formattedNumber}`);
 
-    // Enviar via Mega API
-    const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
-    
-    const megaResponse = await fetch(megaUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${megaToken}`
-      },
-      body: JSON.stringify({
-        messageData: {
-          to: formattedNumber,
-          text: templateMessage
-        }
-      })
-    });
-
-    const megaData = await megaResponse.json();
-    console.log('Resposta Mega API:', JSON.stringify(megaData, null, 2));
-
-    if (!megaResponse.ok) {
-      console.error('Erro do Mega API:', megaData);
-      throw new Error(`Erro ao enviar mensagem: ${megaData.error || 'Erro desconhecido'}`);
-    }
-
-    // Salvar mensagem enviada
-    await supabase
-      .from('whatsapp_messages')
-      .insert({
-        user_id: userId || null,
-        whatsapp: formattedNumber,
-        message_type: messageType,
-        message_content: templateMessage,
-        status: 'sent',
-        mega_message_id: megaData.key?.id || null,
-        metadata: data
+      // Enviar via Mega API
+      const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
+      
+      const megaResponse = await fetch(megaUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${megaToken}`
+        },
+        body: JSON.stringify({
+          messageData: {
+            to: formattedNumber,
+            text: templateMessage
+          }
+        })
       });
+
+      const megaData = await megaResponse.json();
+      console.log('Resposta Mega API:', JSON.stringify(megaData, null, 2));
+
+      if (!megaResponse.ok) {
+        console.error('Erro do Mega API:', megaData);
+        results.push({ success: false, whatsapp: recipientWhatsapp, error: megaData.error });
+        continue;
+      }
+
+      // Salvar mensagem enviada
+      await supabase
+        .from('whatsapp_messages')
+        .insert({
+          user_id: userId || null,
+          whatsapp: formattedNumber,
+          message_type: messageType,
+          message_content: templateMessage,
+          status: 'sent',
+          mega_message_id: megaData.key?.id || null,
+          metadata: data
+        });
+
+      results.push({ success: true, whatsapp: recipientWhatsapp });
+    }
 
     return new Response(JSON.stringify({ 
       success: true,
-      message: 'Notificação enviada com sucesso'
+      message: 'Notificações enviadas com sucesso',
+      results
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

@@ -263,13 +263,22 @@ _Y-TECH Internet 5G_`;
         qrCodeUrl = publicUrl;
 
         // Enviar imagem via WhatsApp
-        await supabase.functions.invoke('send-whatsapp-notification', {
+        console.log('📤 Enviando QR Code via WhatsApp para:', selectedActivation.profiles.whatsapp);
+        const { data: whatsappData, error: whatsappError } = await supabase.functions.invoke('send-whatsapp-notification', {
           body: {
             to: selectedActivation.profiles.whatsapp,
             message: `🎉 *Seu eSIM foi ATIVADO!*\n\nOlá ${selectedActivation.profiles.full_name}!\n\n✅ Escaneie o QR Code abaixo para ativar seu eSIM:\n\n📱 Acesse: Configurações > Celular > Adicionar eSIM > Escanear QR Code\n\n_Y-TECH Internet 5G_`,
             imageUrl: publicUrl,
           },
         });
+
+        if (whatsappError) {
+          console.error('❌ Erro ao enviar WhatsApp:', whatsappError);
+          toast.error('Erro ao enviar WhatsApp com QR Code');
+        } else {
+          console.log('✅ WhatsApp com QR Code enviado com sucesso!', whatsappData);
+          toast.success('QR Code enviado via WhatsApp!');
+        }
       }
 
       activateMutation.mutate({
