@@ -128,22 +128,22 @@ export default function AdminActivations() {
 
       console.log("✅ Ativação confirmada com sucesso!");
 
-      // Enviar mensagem via WhatsApp
-      try {
-        const tipoProduto = activation.activation_type === "chip" ? "Chip SIM" : "eSIM";
-        const mensagem = `🎉 *Seu ${tipoProduto} foi ATIVADO!*
+      // Enviar mensagem via WhatsApp apenas para chip físico
+      // Para eSIM, a mensagem com QR code já foi enviada no handleActivation
+      if (activation.activation_type === "chip") {
+        try {
+          const mensagem = `🎉 *Seu Chip SIM foi ATIVADO!*
 
 Olá ${activation.profiles.full_name}! 
 
-✅ Ótimas notícias! Seu ${tipoProduto} já está ativo e pronto para uso.
+✅ Ótimas notícias! Seu Chip SIM já está ativo e pronto para uso.
 
 📞 *Número da sua linha:* ${phoneNumber}
 
 📱 *O que fazer agora:*
-${activation.activation_type === "chip" 
-  ? "1️⃣ Insira o chip no seu aparelho\n2️⃣ Aguarde alguns segundos para conectar à rede\n3️⃣ Teste acessando a internet" 
-  : "1️⃣ Escaneie o QR code que enviamos\n2️⃣ Configure o eSIM no seu aparelho\n3️⃣ Aguarde a conexão com a rede\n4️⃣ Teste acessando a internet"
-}
+1️⃣ Insira o chip no seu aparelho
+2️⃣ Aguarde alguns segundos para conectar à rede
+3️⃣ Teste acessando a internet
 
 🌐 *Teste sua conexão:*
 • Abra o navegador
@@ -154,27 +154,28 @@ ${activation.activation_type === "chip"
 
 _Y-TECH Internet 5G_`;
 
-        console.log("📤 Enviando WhatsApp para:", activation.profiles.whatsapp);
+          console.log("📤 Enviando WhatsApp para:", activation.profiles.whatsapp);
 
-        const { error: whatsappError } = await supabase.functions.invoke(
-          'send-whatsapp-notification',
-          {
-            body: {
-              to: activation.profiles.whatsapp,
-              message: mensagem,
-            },
+          const { error: whatsappError } = await supabase.functions.invoke(
+            'send-whatsapp-notification',
+            {
+              body: {
+                to: activation.profiles.whatsapp,
+                message: mensagem,
+              },
+            }
+          );
+
+          if (whatsappError) {
+            console.error("⚠️ Erro ao enviar WhatsApp:", whatsappError);
+          } else {
+            console.log("✅ WhatsApp enviado com sucesso!");
           }
-        );
-
-        if (whatsappError) {
+        } catch (whatsappError) {
           console.error("⚠️ Erro ao enviar WhatsApp:", whatsappError);
-          // Não falhar a operação se o WhatsApp falhar
-        } else {
-          console.log("✅ WhatsApp enviado com sucesso!");
         }
-      } catch (whatsappError) {
-        console.error("⚠️ Erro ao enviar WhatsApp:", whatsappError);
-        // Não falhar a operação se o WhatsApp falhar
+      } else {
+        console.log("ℹ️ Para eSIM, mensagem com QR code já foi enviada anteriormente");
       }
     },
     onSuccess: () => {
