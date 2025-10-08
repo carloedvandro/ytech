@@ -334,6 +334,9 @@ const Dashboard = () => {
                       <p className="text-sm text-muted-foreground mt-2">
                         Aguarde a confirmação da nossa equipe. Você será notificado assim que seu chip for ativado.
                       </p>
+                      <p className="text-sm text-muted-foreground mt-2 font-semibold">
+                        ⏱️ Prazo de ativação: até 48 horas úteis (geralmente ativado em menor tempo)
+                      </p>
                     </div>
                   </div>
                 </div>

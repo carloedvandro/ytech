@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle, ArrowLeft, ExternalLink } from "lucide-react";
+import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle, ArrowLeft, ExternalLink, Plus } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
@@ -31,6 +31,7 @@ export default function SimActivation() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
   const [showTypeSelectionDialog, setShowTypeSelectionDialog] = useState(false);
+  const [showClearDataDialog, setShowClearDataDialog] = useState(false);
   const [userConfirmedActivation, setUserConfirmedActivation] = useState(false);
 
   // Verificar se o usuário tem fatura em dia (status = active)
@@ -437,6 +438,9 @@ export default function SimActivation() {
           <AlertDescription className="space-y-2">
             <p>Seus dados de {pendingActivation.activation_type === 'chip' ? 'Chip SIM' : 'eSIM'} já foram enviados e estão sendo processados pela nossa equipe.</p>
             <p className="font-semibold">Por favor, aguarde a confirmação. Você receberá uma notificação em breve.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              ⏱️ <strong>Prazo de ativação:</strong> até 48 horas úteis (geralmente ativado em menor tempo)
+            </p>
           </AlertDescription>
         </Alert>
       )}
@@ -907,7 +911,7 @@ export default function SimActivation() {
                     </Button>
                     <Button 
                       type="button"
-                      onClick={handleClearData}
+                      onClick={() => setShowClearDataDialog(true)}
                       variant="destructive"
                     >
                       Limpar Tudo
@@ -920,6 +924,31 @@ export default function SimActivation() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de confirmação para limpar dados */}
+      <AlertDialog open={showClearDataDialog} onOpenChange={setShowClearDataDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p className="font-semibold text-orange-600 dark:text-orange-400">
+                Isto cancelará a ativação que está em andamento.
+              </p>
+              <p>Todos os dados preenchidos serão perdidos e você precisará iniciar o processo novamente.</p>
+              <p className="text-sm">Deseja realmente continuar?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearData}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sim, limpar tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
