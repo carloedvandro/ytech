@@ -371,13 +371,33 @@ export default function SimActivation() {
     toast.info("Preencha os dados para sua nova ativação");
   };
 
-  const handleClearData = () => {
-    setBarcode("");
-    setImei("");
-    setEid("");
-    setScreenshot(null);
-    localStorage.removeItem('sim-activation-data');
-    toast.success("Dados limpos com sucesso");
+  const handleClearData = async () => {
+    try {
+      // Se houver ativação pendente, deletar
+      if (pendingActivation) {
+        const { error } = await supabase
+          .from('sim_activations')
+          .delete()
+          .eq('id', pendingActivation.id);
+
+        if (error) throw error;
+        
+        // Recarregar dados
+        await refetch();
+      }
+
+      // Limpar dados locais
+      setBarcode("");
+      setImei("");
+      setEid("");
+      setScreenshot(null);
+      localStorage.removeItem('sim-activation-data');
+      
+      toast.success("Dados limpos com sucesso! Você pode enviar uma nova ativação.");
+    } catch (error) {
+      console.error('Erro ao limpar dados:', error);
+      toast.error("Erro ao limpar dados. Tente novamente.");
+    }
   };
 
   return (
