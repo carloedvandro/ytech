@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle, ArrowLeft, ExternalLink } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { toast } from "sonner";
@@ -27,6 +28,9 @@ export default function SimActivation() {
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
+  const [showTypeSelectionDialog, setShowTypeSelectionDialog] = useState(false);
 
   // Verificar se o usuário tem fatura em dia (status = active)
   const canActivate = profile?.status === 'active';
@@ -59,7 +63,7 @@ export default function SimActivation() {
   }, [barcode, imei, eid, activeTab]);
 
   // Buscar ativações do usuário
-  const { data: activations } = useQuery({
+  const { data: activations, refetch } = useQuery({
     queryKey: ["user-activations", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -281,6 +285,68 @@ export default function SimActivation() {
   // Encontrar última ativação ativa
   const activeActivation = activations?.find(a => a.status === 'activated');
 
+  const handleConfirmActivation = async () => {
+    if (!activeActivation) return;
+
+    try {
+      // Enviar notificação WhatsApp para administradores
+      const { error } = await supabase.functions.invoke('send-whatsapp-notification', {
+        body: {
+          messageType: 'chip_activated_by_user',
+          userId: user?.id,
+          userName: profile?.full_name || 'Cliente',
+          userWhatsapp: profile?.whatsapp
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao enviar notificação:', error);
+        toast.error("Erro ao enviar notificação, mas continuaremos o processo.");
+      }
+
+      toast.success("Confirmação enviada com sucesso! Nossa equipe foi notificada.");
+      setShowConfirmDialog(false);
+      
+      // Recarregar dados
+      refetch();
+    } catch (error) {
+      console.error('Erro ao confirmar ativação:', error);
+      toast.error("Erro ao enviar confirmação. Tente novamente.");
+    }
+  };
+
+  const handleDeleteActivation = async () => {
+    if (!activeActivation) return;
+
+    try {
+      const { error } = await supabase
+        .from('sim_activations')
+        .delete()
+        .eq('id', activeActivation.id);
+
+      if (error) throw error;
+
+      toast.success("Ativação deletada com sucesso!");
+      setShowReactivateDialog(false);
+      setShowTypeSelectionDialog(true);
+      refetch();
+    } catch (error) {
+      console.error('Erro ao deletar ativação:', error);
+      toast.error("Erro ao deletar ativação. Tente novamente.");
+    }
+  };
+
+  const handleSelectActivationType = (type: 'sim' | 'esim') => {
+    setShowTypeSelectionDialog(false);
+    setActiveTab(type === 'sim' ? 'chip' : 'esim');
+    // Limpar estados
+    setBarcode("");
+    setImei("");
+    setEid("");
+    setScreenshot(null);
+    toast.info("Preencha os dados para sua nova ativação");
+  };
+
   const handleClearData = () => {
     setBarcode("");
     setImei("");
@@ -438,6 +504,72 @@ export default function SimActivation() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+
+                      <AlertDialog open={showReactivateDialog} onOpenChange={setShowReactivateDialog}>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" className="w-full mt-4">
+                            Perdi meu aparelho ou troquei de aparelho - Preciso ativar novamente
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reativar Chip</AlertDialogTitle>
+                            <AlertDialogDescription className="space-y-3">
+                              <p className="font-semibold">Atenção! Esta ação irá:</p>
+                              <ul className="list-disc list-inside text-sm space-y-1">
+                                <li>Deletar sua ativação atual (QR Code)</li>
+                                <li>Permitir que você solicite uma nova ativação</li>
+                              </ul>
+                              <p className="text-sm mt-3 font-semibold text-orange-600 dark:text-orange-400">
+                                ⚠️ Importante:
+                              </p>
+                              <ul className="list-disc list-inside text-sm space-y-1">
+                                <li>Se perdeu o celular, certifique-se de desabilitar o eSIM antigo se possível</li>
+                                <li>Se trocou de aparelho, remova o eSIM do aparelho antigo antes de ativar no novo</li>
+                                <li>Cada eSIM só pode estar ativo em um aparelho por vez</li>
+                              </ul>
+                              <p className="text-sm mt-2">Tem certeza que deseja continuar?</p>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteActivation}>
+                              Sim, deletar e reativar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <Dialog open={showTypeSelectionDialog} onOpenChange={setShowTypeSelectionDialog}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Como você quer solicitar novamente a ativação?</DialogTitle>
+                            <DialogDescription>
+                              Escolha o tipo de ativação e siga o processo como se fosse sua primeira ativação.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 mt-4">
+                            <div className="p-4 border rounded-lg">
+                              <h3 className="font-semibold mb-2">📱 Via eSIM (Digital)</h3>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Receba um QR Code para ativar diretamente no seu aparelho. Ideal para aparelhos compatíveis com eSIM.
+                              </p>
+                              <Button onClick={() => handleSelectActivationType('esim')} className="w-full">
+                                Ativar via eSIM
+                              </Button>
+                            </div>
+                            <div className="p-4 border rounded-lg">
+                              <h3 className="font-semibold mb-2">💳 Via Chip Físico (SIM Card)</h3>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Tire uma foto do seu chip físico para ativação. Escolha esta opção se seu aparelho não suporta eSIM.
+                              </p>
+                              <Button onClick={() => handleSelectActivationType('sim')} variant="outline" className="w-full">
+                                Ativar via Chip Físico
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
                 )}

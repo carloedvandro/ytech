@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,7 +20,6 @@ import { ExternalLink } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 
 const Dashboard = () => {
-  const { toast } = useToast();
   const { profile, refreshProfile } = useAuth();
   const { impersonatedUser, isImpersonating } = useImpersonation();
   const navigate = useNavigate();
@@ -31,6 +31,9 @@ const Dashboard = () => {
   });
   const [isOverdue, setIsOverdue] = useState(false);
   const [renewalDate, setRenewalDate] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
+  const [showTypeSelectionDialog, setShowTypeSelectionDialog] = useState(false);
 
   // Buscar perfil do usuário impersonado se necessário
   const { data: impersonatedProfile } = useQuery({
@@ -54,7 +57,7 @@ const Dashboard = () => {
   const activeProfile = isImpersonating && impersonatedProfile ? impersonatedProfile : profile;
 
   // Buscar status da ativação de SIM
-  const { data: simActivation } = useQuery({
+  const { data: simActivation, refetch: refetchActivations } = useQuery({
     queryKey: ["sim-activation-status", activeProfile?.id],
     queryFn: async () => {
       if (!activeProfile?.id) return null;
@@ -96,10 +99,7 @@ const Dashboard = () => {
         (payload) => {
           console.log('Nova comissão recebida!', payload);
           loadStats();
-          toast({
-            title: "Nova comissão recebida!",
-            description: `Você recebeu R$ ${Number(payload.new.amount).toFixed(2)} de comissão`,
-          });
+          toast.success(`Nova comissão recebida! R$ ${Number(payload.new.amount).toFixed(2)}`);
         }
       )
       .subscribe();
@@ -169,14 +169,64 @@ const Dashboard = () => {
       });
     } catch (error: any) {
       console.error("Erro ao carregar estatísticas:", error);
-      toast({
-        title: "Erro ao carregar dados",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(`Erro ao carregar dados: ${error.message}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmActivation = async () => {
+    try {
+      // Enviar notificação WhatsApp para administradores
+      const { error } = await supabase.functions.invoke('send-whatsapp-notification', {
+        body: {
+          messageType: 'chip_activated_by_user',
+          userId: activeProfile?.id,
+          userName: activeProfile?.full_name || 'Cliente',
+          userWhatsapp: activeProfile?.whatsapp
+        }
+      });
+
+      if (error) {
+        console.error('Erro ao enviar notificação:', error);
+        toast.error("Erro ao enviar notificação, mas continuaremos o processo.");
+      }
+
+      toast.success("Confirmação enviada com sucesso! Nossa equipe foi notificada.");
+      setShowConfirmDialog(false);
+      
+      // Recarregar dados
+      refetchActivations();
+    } catch (error) {
+      console.error('Erro ao confirmar ativação:', error);
+      toast.error("Erro ao enviar confirmação. Tente novamente.");
+    }
+  };
+
+  const handleDeleteActivation = async () => {
+    if (!simActivation) return;
+
+    try {
+      const { error } = await supabase
+        .from('sim_activations')
+        .delete()
+        .eq('id', simActivation.id);
+
+      if (error) throw error;
+
+      toast.success("Ativação deletada com sucesso!");
+      setShowReactivateDialog(false);
+      setShowTypeSelectionDialog(true);
+      refetchActivations();
+    } catch (error) {
+      console.error('Erro ao deletar ativação:', error);
+      toast.error("Erro ao deletar ativação. Tente novamente.");
+    }
+  };
+
+  const handleSelectActivationType = (type: 'sim' | 'esim') => {
+    setShowTypeSelectionDialog(false);
+    navigate('/sim-activation', { state: { activationType: type, isReactivation: true } });
   };
 
   if (loading) {
@@ -365,17 +415,10 @@ const Dashboard = () => {
 
                           if (error) throw error;
 
-                          toast({
-                            title: "Confirmação enviada!",
-                            description: "Nossa equipe foi notificada sobre a ativação do seu chip.",
-                          });
+                          toast.success("Confirmação enviada! Nossa equipe foi notificada sobre a ativação do seu chip.");
                         } catch (error) {
                           console.error('Erro ao enviar confirmação:', error);
-                          toast({
-                            title: "Erro ao enviar confirmação",
-                            description: "Tente novamente mais tarde.",
-                            variant: "destructive",
-                          });
+                          toast.error("Erro ao enviar confirmação. Tente novamente mais tarde.");
                         }
                       }}
                     >
@@ -384,6 +427,72 @@ const Dashboard = () => {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+
+              <AlertDialog open={showReactivateDialog} onOpenChange={setShowReactivateDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="w-full mt-4">
+                    Perdi meu aparelho ou troquei de aparelho - Preciso ativar novamente
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reativar Chip</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <p className="font-semibold">Atenção! Esta ação irá:</p>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>Deletar sua ativação atual (QR Code)</li>
+                        <li>Permitir que você solicite uma nova ativação</li>
+                      </ul>
+                      <p className="text-sm mt-3 font-semibold text-orange-600 dark:text-orange-400">
+                        ⚠️ Importante:
+                      </p>
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        <li>Se perdeu o celular, certifique-se de desabilitar o eSIM antigo se possível</li>
+                        <li>Se trocou de aparelho, remova o eSIM do aparelho antigo antes de ativar no novo</li>
+                        <li>Cada eSIM só pode estar ativo em um aparelho por vez</li>
+                      </ul>
+                      <p className="text-sm mt-2">Tem certeza que deseja continuar?</p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteActivation}>
+                      Sim, deletar e reativar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Dialog open={showTypeSelectionDialog} onOpenChange={setShowTypeSelectionDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Como você quer solicitar novamente a ativação?</DialogTitle>
+                    <DialogDescription>
+                      Escolha o tipo de ativação e siga o processo como se fosse sua primeira ativação.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-semibold mb-2">📱 Via eSIM (Digital)</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Receba um QR Code para ativar diretamente no seu aparelho. Ideal para aparelhos compatíveis com eSIM.
+                      </p>
+                      <Button onClick={() => handleSelectActivationType('esim')} className="w-full">
+                        Ativar via eSIM
+                      </Button>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-semibold mb-2">💳 Via Chip Físico (SIM Card)</h3>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Tire uma foto do seu chip físico para ativação. Escolha esta opção se seu aparelho não suporta eSIM.
+                      </p>
+                      <Button onClick={() => handleSelectActivationType('sim')} variant="outline" className="w-full">
+                        Ativar via Chip Físico
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </CardContent>
           </Card>
         )}
@@ -515,10 +624,7 @@ const Dashboard = () => {
                     ? `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.username}`
                     : `https://ytech.yrwentechnology.com.br/cadastro?ref=${activeProfile.id}`;
                   navigator.clipboard.writeText(link);
-                  toast({
-                    title: "Link copiado!",
-                    description: "O link foi copiado para a área de transferência",
-                  });
+                  toast.success("Link copiado para a área de transferência!");
                 }}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
@@ -602,10 +708,7 @@ const Dashboard = () => {
                     onClick={() => {
                       const link = `https://ytech.yrwentechnology.com.br/site/${activeProfile.username}`;
                       navigator.clipboard.writeText(link);
-                      toast({
-                        title: "Link copiado!",
-                        description: "O link do seu mini site foi copiado",
-                      });
+                      toast.success("Link do seu mini site foi copiado!");
                     }}
                   >
                     Copiar
