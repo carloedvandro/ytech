@@ -143,6 +143,12 @@ const Dashboard = () => {
 
       if (commissionsError) throw commissionsError;
 
+      // Buscar descontos já aplicados
+      const { data: adjustmentsData } = await supabase
+        .from("admin_balance_adjustments")
+        .select("amount, type")
+        .eq("user_id", activeProfile.id);
+
       // Buscar data de renovação
       const { data: paymentData } = await supabase
         .from("payments")
@@ -171,9 +177,15 @@ const Dashboard = () => {
         0
       ) || 0;
 
-      const availableBalance = commissionsData
+      const commissionsTotal = commissionsData
         ?.filter((comm) => comm.status === "available")
         .reduce((sum, comm) => sum + Number(comm.amount), 0) || 0;
+
+      const deductionsTotal = adjustmentsData
+        ?.filter(a => a.type === 'remove')
+        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+      const availableBalance = commissionsTotal - deductionsTotal;
 
       setStats({
         totalReferrals: networkData?.length || 0,
