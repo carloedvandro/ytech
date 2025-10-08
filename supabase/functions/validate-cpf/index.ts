@@ -98,16 +98,27 @@ Deno.serve(async (req) => {
       throw new Error(`CPF inválido. ${remainingAttempts} tentativas restantes.`);
     }
 
-    // Verificar se CPF já existe no banco
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('cpf', cleanCPF)
-      .single();
+  // Verificar se CPF já existe no banco (tabela profiles)
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('cpf', cleanCPF)
+    .maybeSingle();
 
-    if (existingUser) {
-      throw new Error('CPF já cadastrado no sistema');
-    }
+  if (existingProfile) {
+    throw new Error('CPF já cadastrado no sistema');
+  }
+
+  // Também verificar tabela legada durante transição
+  const { data: existingLegacyUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('cpf', cleanCPF)
+    .maybeSingle();
+
+  if (existingLegacyUser) {
+    throw new Error('CPF já cadastrado no sistema');
+  }
 
     console.log(`✅ CPF ${cleanCPF} validado com sucesso`);
 

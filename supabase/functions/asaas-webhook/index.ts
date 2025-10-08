@@ -13,6 +13,51 @@ serve(async (req) => {
   }
 
   try {
+    // 🔒 VALIDAÇÃO DE SEGURANÇA - IPs oficiais da Asaas
+    const officialAsaasIPs = [
+      '52.67.12.206',
+      '18.230.8.159',
+      '54.94.136.112',
+      '54.94.183.101'
+    ];
+
+    // Obter IP do cliente (considerando proxies)
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
+
+    console.log('📍 Webhook IP:', clientIP);
+
+    // Validar IP (apenas em produção, permitir testes locais)
+    if (clientIP !== 'unknown' && !officialAsaasIPs.includes(clientIP)) {
+      console.error('🚫 IP não autorizado:', clientIP);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized IP address' }), 
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Validação adicional: Token secreto (se configurado)
+    const webhookToken = Deno.env.get('ASAAS_WEBHOOK_TOKEN');
+    if (webhookToken) {
+      const authHeader = req.headers.get('authorization');
+      const receivedToken = authHeader?.replace('Bearer ', '');
+      
+      if (receivedToken !== webhookToken) {
+        console.error('🚫 Token inválido');
+        return new Response(
+          JSON.stringify({ error: 'Invalid webhook token' }), 
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+    }
+
     // Parse event data
     const contentType = req.headers.get('content-type') || '';
     let event;
