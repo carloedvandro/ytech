@@ -175,6 +175,7 @@ export default function SimActivation() {
       const twentyFourHoursAgo = new Date();
       twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
       
+      // Buscar uploads salvos no banco
       const { data: recentUploads, error: countError } = await supabase
         .from('sim_activations')
         .select('id, screenshot_url, created_at')
@@ -187,10 +188,32 @@ export default function SimActivation() {
         throw countError;
       }
 
-      console.log('📊 Uploads de anexos encontrados nas últimas 24h:', recentUploads);
+      // Buscar uploads temporários do localStorage
+      const uploadTrackingKey = `upload-tracking-${user?.id}`;
+      const trackingData = localStorage.getItem(uploadTrackingKey);
+      let temporaryUploads: { timestamp: number }[] = [];
+      
+      if (trackingData) {
+        try {
+          const allUploads = JSON.parse(trackingData);
+          // Filtrar apenas uploads das últimas 24 horas
+          temporaryUploads = allUploads.filter((upload: { timestamp: number }) => 
+            upload.timestamp > twentyFourHoursAgo.getTime()
+          );
+        } catch (e) {
+          console.error('Erro ao ler tracking de uploads:', e);
+        }
+      }
+
+      const totalUploads = (recentUploads?.length || 0) + temporaryUploads.length;
+      
+      console.log('📊 Uploads de anexos encontrados nas últimas 24h:');
+      console.log('   - Salvos no banco:', recentUploads?.length || 0);
+      console.log('   - Temporários:', temporaryUploads.length);
+      console.log('   - Total:', totalUploads);
 
       // Se já fez 3 ou mais uploads nas últimas 24 horas, verificar saldo
-      if (recentUploads && recentUploads.length >= 3) {
+      if (totalUploads >= 3) {
         console.log('⚠️ Limite de 3 anexos atingido. Verificando saldo...');
         
         // Buscar saldo disponível do usuário
@@ -241,6 +264,28 @@ export default function SimActivation() {
           { duration: 5000 }
         );
       }
+
+      // Registrar upload temporário no localStorage
+      const uploadTrackingKeyForSave = `upload-tracking-${user?.id}`;
+      const trackingDataForSave = localStorage.getItem(uploadTrackingKeyForSave);
+      let uploadsToSave: { timestamp: number }[] = [];
+      
+      if (trackingDataForSave) {
+        try {
+          uploadsToSave = JSON.parse(trackingDataForSave);
+          // Manter apenas uploads das últimas 24 horas
+          const twentyFourHoursAgoForSave = new Date();
+          twentyFourHoursAgoForSave.setHours(twentyFourHoursAgoForSave.getHours() - 24);
+          uploadsToSave = uploadsToSave.filter(upload => upload.timestamp > twentyFourHoursAgoForSave.getTime());
+        } catch (e) {
+          console.error('Erro ao ler tracking:', e);
+          uploadsToSave = [];
+        }
+      }
+      
+      uploadsToSave.push({ timestamp: Date.now() });
+      localStorage.setItem(uploadTrackingKeyForSave, JSON.stringify(uploadsToSave));
+      console.log('📝 Upload temporário registrado. Total de uploads nas últimas 24h:', uploadsToSave.length + (recentUploads?.length || 0));
       
       setScreenshot(file);
       
