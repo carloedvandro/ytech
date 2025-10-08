@@ -216,17 +216,33 @@ export default function SimActivation() {
       if (totalUploads >= 3) {
         console.log('⚠️ Limite de 3 anexos atingido. Verificando saldo...');
         
-        // Buscar saldo disponível do usuário
+        // Buscar saldo disponível do usuário (comissões - descontos)
         const { data: commissionsData } = await supabase
           .from('commissions')
           .select('amount, status')
           .eq('user_id', user?.id)
           .eq('status', 'available');
 
-        const currentBalance = commissionsData
+        const commissionsTotal = commissionsData
           ?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
-        console.log('💰 Saldo disponível:', currentBalance);
+        // Buscar descontos já aplicados
+        const { data: adjustmentsData } = await supabase
+          .from('admin_balance_adjustments')
+          .select('amount, type')
+          .eq('user_id', user?.id);
+
+        const deductionsTotal = adjustmentsData
+          ?.filter(a => a.type === 'remove')
+          .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+        const currentBalance = commissionsTotal - deductionsTotal;
+
+        console.log('💰 Saldo disponível:', {
+          commissionsTotal,
+          deductionsTotal,
+          currentBalance
+        });
 
         // Se não tiver saldo suficiente (R$ 3,00)
         if (currentBalance < 3) {

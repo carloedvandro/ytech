@@ -33,7 +33,7 @@ serve(async (req) => {
 
     console.log('💰 Verificando saldo para desconto de anexo extra:', { userId: user.id, fee: ATTACHMENT_FEE });
 
-    // Buscar saldo atual (comissões disponíveis)
+    // Buscar saldo atual (comissões disponíveis - descontos já aplicados)
     const { data: commissionsData } = await supabase
       .from('commissions')
       .select('amount, status, id, created_at')
@@ -41,10 +41,26 @@ serve(async (req) => {
       .eq('status', 'available')
       .order('created_at', { ascending: true });
 
-    const currentBalance = commissionsData
+    const commissionsTotal = commissionsData
       ?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
-    console.log('📊 Saldo atual:', currentBalance);
+    // Buscar descontos já aplicados
+    const { data: adjustmentsData } = await supabase
+      .from('admin_balance_adjustments')
+      .select('amount, type')
+      .eq('user_id', user.id);
+
+    const deductionsTotal = adjustmentsData
+      ?.filter(a => a.type === 'remove')
+      .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+    const currentBalance = commissionsTotal - deductionsTotal;
+
+    console.log('📊 Saldo atual:', {
+      commissionsTotal,
+      deductionsTotal,
+      currentBalance
+    });
 
     // Verificar se tem saldo suficiente
     if (currentBalance < ATTACHMENT_FEE) {
@@ -84,28 +100,7 @@ serve(async (req) => {
       throw new Error('Erro ao registrar desconto');
     }
 
-    console.log('✅ Desconto registrado');
-
-    // Descontar das comissões disponíveis (FIFO - primeiro a entrar, primeiro a sair)
-    let remaining = ATTACHMENT_FEE;
-    for (const comm of commissionsData || []) {
-      if (remaining <= 0) break;
-
-      const commAmount = Number(comm.amount);
-      if (commAmount <= remaining) {
-        // Marcar comissão inteira como retirada
-        await supabase
-          .from('commissions')
-          .update({ 
-            status: 'withdrawn',
-            withdrawn_at: new Date().toISOString() 
-          })
-          .eq('id', comm.id);
-        remaining -= commAmount;
-        console.log(`✅ Comissão ${comm.id} marcada como retirada: R$ ${commAmount}`);
-      }
-    }
-
+    console.log('✅ Desconto registrado em admin_balance_adjustments');
     console.log('✅ Desconto de anexo processado com sucesso');
 
     return new Response(
