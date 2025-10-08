@@ -265,6 +265,38 @@ const Admin = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Ferramentas de Manutenção */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Ferramentas de Manutenção</CardTitle>
+            <CardDescription>
+              Ferramentas para manutenção e limpeza do sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={async () => {
+                try {
+                  toast.loading('Limpando comissões duplicadas...');
+                  const { data, error } = await supabase.functions.invoke('cleanup-duplicate-commissions');
+                  
+                  if (error) throw error;
+                  
+                  toast.success(data.message || 'Limpeza concluída com sucesso');
+                  queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+                } catch (error) {
+                  console.error('Erro ao limpar comissões:', error);
+                  toast.error('Erro ao limpar comissões duplicadas');
+                }
+              }}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              🧹 Limpar Comissões Duplicadas
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Gerenciamento de Usuários</CardTitle>

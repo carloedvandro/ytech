@@ -45,15 +45,31 @@ serve(async (req) => {
 
     console.log('Ajustando saldo:', { userId, amount, type, reason, shouldGenerateCommissions });
 
-    // Buscar saldo atual
+    // Buscar saldo atual (comissões + adições - descontos)
     const { data: commissionsData } = await supabase
       .from('commissions')
       .select('amount, status')
       .eq('user_id', userId);
 
-    const balanceBefore = commissionsData
+    const commissionsTotal = commissionsData
       ?.filter(c => c.status === 'available')
       .reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+
+    // Buscar ajustes
+    const { data: adjustmentsData } = await supabase
+      .from('admin_balance_adjustments')
+      .select('amount, type')
+      .eq('user_id', userId);
+
+    const additionsTotal = adjustmentsData
+      ?.filter(a => a.type === 'add')
+      .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+    const deductionsTotal = adjustmentsData
+      ?.filter(a => a.type === 'remove')
+      .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+    const balanceBefore = commissionsTotal + additionsTotal - deductionsTotal;
 
     const balanceAfter = type === 'add' 
       ? balanceBefore + amount 
@@ -191,24 +207,8 @@ serve(async (req) => {
           console.log(`${commissionsToCreate.length} comissões geradas com sucesso`);
         }
       } else {
-        // Apenas adicionar crédito direto sem comissões
-        const { error: commError } = await supabase
-          .from('commissions')
-          .insert({
-            user_id: userId,
-            referred_user_id: userId,
-            payment_id: `admin_adjustment_${Date.now()}`,
-            amount,
-            level: 0,
-            status: 'available',
-            released_at: new Date().toISOString(),
-          });
-
-        if (commError) {
-          console.error('Erro ao criar comissão:', commError);
-          throw new Error('Erro ao adicionar saldo');
-        }
-
+        // Apenas adicionar crédito direto SEM criar comissões
+        // O registro já foi feito em admin_balance_adjustments
         console.log('Saldo adicionado com sucesso (sem comissões)');
       }
     }
