@@ -74,16 +74,36 @@ const Users = () => {
     queryFn: async () => {
       if (!selectedUser) return 0;
 
-      const { data, error } = await supabase
+      // Buscar comissões disponíveis
+      const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
         .select("amount")
         .eq("user_id", selectedUser.id)
         .eq("status", "available");
 
-      if (error) throw error;
+      if (commissionsError) throw commissionsError;
       
-      const total = data?.reduce((sum, comm) => sum + Number(comm.amount), 0) || 0;
-      return total;
+      const commissionsTotal = commissionsData?.reduce((sum, comm) => sum + Number(comm.amount), 0) || 0;
+
+      // Buscar ajustes de saldo (adições e deduções)
+      const { data: adjustmentsData, error: adjustmentsError } = await supabase
+        .from("admin_balance_adjustments")
+        .select("amount, type")
+        .eq("user_id", selectedUser.id);
+
+      if (adjustmentsError) throw adjustmentsError;
+
+      // Calcular adições e deduções
+      const additionsTotal = adjustmentsData
+        ?.filter(a => a.type === 'add')
+        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+      const deductionsTotal = adjustmentsData
+        ?.filter(a => a.type === 'remove')
+        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+      // Saldo disponível = comissões disponíveis + adições - deduções
+      return commissionsTotal + additionsTotal - deductionsTotal;
     },
     enabled: !!selectedUser,
   });
