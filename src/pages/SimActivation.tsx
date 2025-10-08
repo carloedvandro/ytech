@@ -523,6 +523,10 @@ export default function SimActivation() {
 
                                   if (error) throw error;
 
+                                  // Marcar como confirmado e salvar no localStorage
+                                  localStorage.setItem(`activation-confirmed-${activeActivation.id}`, 'true');
+                                  setUserConfirmedActivation(true);
+
                                   toast.success("Confirmação enviada! Nossa equipe foi notificada sobre a ativação do seu chip.");
                                 } catch (error) {
                                   console.error('Erro ao enviar confirmação:', error);

@@ -444,6 +444,10 @@ const Dashboard = () => {
 
                           if (error) throw error;
 
+                          // Marcar como confirmado e salvar no localStorage
+                          localStorage.setItem(`activation-confirmed-${simActivation.id}`, 'true');
+                          setUserConfirmedActivation(true);
+
                           toast.success("Confirmação enviada! Nossa equipe foi notificada sobre a ativação do seu chip.");
                         } catch (error) {
                           console.error('Erro ao enviar confirmação:', error);
