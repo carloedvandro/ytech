@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       throw new Error('Credenciais Mega API não configuradas. Configure os secrets: MEGA_API_HOST, MEGA_INSTANCE_KEY, MEGA_API_KEY');
     }
 
-    const { whatsapp, messageType, data, userId, to, message } = await req.json();
+    const { whatsapp, messageType, data, userId, to, message, imageUrl } = await req.json();
 
     // Permitir envio direto de mensagem (sem template) OU uso de template
     if (message && to) {
@@ -120,7 +120,56 @@ Deno.serve(async (req) => {
       
       console.log(`📱 Enviando mensagem direta para ${formattedNumber}`);
 
-      // Enviar via Mega API
+      // Se houver imageUrl, enviar como imagem + legenda
+      if (imageUrl) {
+        console.log('📸 Enviando imagem com legenda');
+        const megaImageUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/image`;
+        
+        const megaResponse = await fetch(megaImageUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${megaToken}`
+          },
+          body: JSON.stringify({
+            messageData: {
+              to: formattedNumber,
+              url: imageUrl,
+              caption: message
+            }
+          })
+        });
+
+        const megaData = await megaResponse.json();
+        console.log('Resposta Mega API (imagem):', JSON.stringify(megaData, null, 2));
+
+        if (!megaResponse.ok) {
+          console.error('Erro do Mega API:', megaData);
+          throw new Error(`Erro ao enviar imagem: ${megaData.error || 'Erro desconhecido'}`);
+        }
+
+        // Salvar mensagem enviada
+        await supabase
+          .from('whatsapp_messages')
+          .insert({
+            user_id: userId || null,
+            whatsapp: formattedNumber,
+            message_type: 'esim_qrcode',
+            message_content: message,
+            status: 'sent',
+            mega_message_id: megaData.key?.id || null,
+            metadata: { ...data, imageUrl }
+          });
+
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: 'Imagem do QR Code enviada com sucesso'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Enviar apenas texto
       const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
       
       const megaResponse = await fetch(megaUrl, {

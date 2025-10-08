@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle, Clock, Smartphone, Loader2, Trash2 } from "lucide-react";
+import { CheckCircle, Clock, Smartphone, Loader2, Trash2, Upload, Image as ImageIcon } from "lucide-react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SimActivation {
   id: string;
@@ -35,6 +36,9 @@ export default function AdminActivations() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedActivation, setSelectedActivation] = useState<SimActivation | null>(null);
   const [qrCodeData, setQrCodeData] = useState("");
+  const [qrCodeImage, setQrCodeImage] = useState<File | null>(null);
+  const [qrCodeImagePreview, setQrCodeImagePreview] = useState<string>("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: activations, isLoading, error: queryError } = useQuery({
@@ -212,17 +216,76 @@ _Y-TECH Internet 5G_`;
     }
   };
 
-  const handleEsimActivation = () => {
-    if (!selectedActivation || !qrCodeData.trim()) {
-      toast.error("Por favor, preencha o link ou código do QR code");
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setQrCodeImage(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setQrCodeImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEsimActivation = async () => {
+    if (!selectedActivation) return;
+    
+    if (!qrCodeImage && !qrCodeData.trim()) {
+      toast.error("Por favor, envie uma imagem do QR Code ou cole os dados");
       return;
     }
 
-    activateMutation.mutate({
-      activationId: selectedActivation.id,
-      qrCodeUrl: qrCodeData,
-      activation: selectedActivation,
-    });
+    setIsUploadingImage(true);
+
+    try {
+      let qrCodeUrl = qrCodeData;
+
+      // Se houver imagem, fazer upload
+      if (qrCodeImage) {
+        const fileExt = qrCodeImage.name.split('.').pop();
+        const fileName = `${selectedActivation.user_id}-qrcode-${Date.now()}.${fileExt}`;
+        const filePath = `qr-codes/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('sim-activation-screenshots')
+          .upload(filePath, qrCodeImage, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('sim-activation-screenshots')
+          .getPublicUrl(filePath);
+
+        qrCodeUrl = publicUrl;
+
+        // Enviar imagem via WhatsApp
+        await supabase.functions.invoke('send-whatsapp-notification', {
+          body: {
+            to: selectedActivation.profiles.whatsapp,
+            message: `🎉 *Seu eSIM foi ATIVADO!*\n\nOlá ${selectedActivation.profiles.full_name}!\n\n✅ Escaneie o QR Code abaixo para ativar seu eSIM:\n\n📱 Acesse: Configurações > Celular > Adicionar eSIM > Escanear QR Code\n\n_Y-TECH Internet 5G_`,
+            imageUrl: publicUrl,
+          },
+        });
+      }
+
+      activateMutation.mutate({
+        activationId: selectedActivation.id,
+        qrCodeUrl,
+        activation: selectedActivation,
+      });
+
+      setQrCodeImage(null);
+      setQrCodeImagePreview("");
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      toast.error('Erro ao enviar imagem do QR Code');
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const filteredActivations = activations?.filter((activation) => {
@@ -390,31 +453,80 @@ _Y-TECH Internet 5G_`;
         </div>
       </div>
 
-      <Dialog open={!!selectedActivation} onOpenChange={(open) => !open && setSelectedActivation(null)}>
+      <Dialog open={!!selectedActivation} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedActivation(null);
+          setQrCodeData("");
+          setQrCodeImage(null);
+          setQrCodeImagePreview("");
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Ativar eSIM - {selectedActivation?.profiles.full_name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <Alert>
+              <ImageIcon className="h-4 w-4" />
+              <AlertDescription>
+                Envie a imagem do QR Code do eSIM. Ela será enviada automaticamente para o WhatsApp do cliente.
+              </AlertDescription>
+            </Alert>
+
             <div className="space-y-2">
-              <Label htmlFor="qr-code">Link ou código do QR Code do eSIM</Label>
-              <Textarea
-                id="qr-code"
-                placeholder="Cole aqui o link do QR code ou os dados de ativação do eSIM..."
-                value={qrCodeData}
-                onChange={(e) => setQrCodeData(e.target.value)}
-                rows={4}
-              />
-              <p className="text-xs text-muted-foreground">
-                Este QR code ou link será exibido para o cliente fazer a ativação do eSIM
-              </p>
+              <Label htmlFor="qr-image">Imagem do QR Code (Recomendado)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="qr-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={isUploadingImage}
+                />
+              </div>
+              
+              {qrCodeImagePreview && (
+                <div className="p-4 bg-muted rounded-lg flex justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium">Preview:</p>
+                    <img 
+                      src={qrCodeImagePreview} 
+                      alt="QR Code Preview" 
+                      className="max-w-[200px] mx-auto rounded"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {qrCodeData && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Ou cole os dados
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="qr-code">Link ou código do QR Code</Label>
+              <Textarea
+                id="qr-code"
+                placeholder="Cole aqui os dados de ativação do eSIM..."
+                value={qrCodeData}
+                onChange={(e) => setQrCodeData(e.target.value)}
+                rows={3}
+                disabled={!!qrCodeImage}
+              />
+            </div>
+
+            {qrCodeData && !qrCodeImage && (
               <div className="p-4 bg-muted rounded-lg flex justify-center">
                 <div className="text-center space-y-2">
                   <p className="text-sm font-medium">Preview do QR Code:</p>
-                  <QRCode value={qrCodeData} size={200} />
+                  <QRCode value={qrCodeData} size={150} />
                 </div>
               </div>
             )}
@@ -425,6 +537,8 @@ _Y-TECH Internet 5G_`;
                 onClick={() => {
                   setSelectedActivation(null);
                   setQrCodeData("");
+                  setQrCodeImage(null);
+                  setQrCodeImagePreview("");
                 }}
                 className="flex-1"
               >
@@ -432,10 +546,12 @@ _Y-TECH Internet 5G_`;
               </Button>
               <Button
                 onClick={handleEsimActivation}
-                disabled={!qrCodeData.trim() || activateMutation.isPending}
+                disabled={(!qrCodeImage && !qrCodeData.trim()) || activateMutation.isPending || isUploadingImage}
                 className="flex-1"
               >
-                {activateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {(activateMutation.isPending || isUploadingImage) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 Confirmar Ativação
               </Button>
             </div>

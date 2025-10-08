@@ -286,6 +286,48 @@ const Dashboard = () => {
           </Alert>
         )}
 
+        {/* Exibir QR Code do eSIM quando ativado */}
+        {simActivation?.status === "activated" && simActivation?.activation_type === "esim" && simActivation?.qr_code_url && (
+          <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-green-500/30">
+            <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10">
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Seu eSIM foi Ativado!
+              </CardTitle>
+              <CardDescription>
+                Escaneie o QR Code abaixo para configurar seu eSIM
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="relative z-10 flex flex-col items-center gap-4">
+              <div className="p-4 bg-white rounded-lg">
+                <img 
+                  src={simActivation.qr_code_url} 
+                  alt="QR Code do eSIM" 
+                  className="max-w-[300px] w-full h-auto"
+                />
+              </div>
+              <div className="text-sm text-center space-y-2">
+                <p className="font-medium">📱 Como configurar:</p>
+                <ol className="text-left space-y-1 text-muted-foreground">
+                  <li>1️⃣ Vá em Configurações → Celular → Adicionar eSIM</li>
+                  <li>2️⃣ Escolha "Usar QR Code"</li>
+                  <li>3️⃣ Escaneie o código acima</li>
+                  <li>4️⃣ Aguarde a ativação (pode levar alguns minutos)</li>
+                </ol>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => window.open(simActivation.qr_code_url, '_blank')}
+                className="w-full"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Abrir imagem em nova aba
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div
             onClick={() => navigate('/network')}
