@@ -19,6 +19,7 @@ interface Commission {
   status: string;
   created_at: string;
   referred_user_id: string;
+  referred_user_name?: string;
 }
 
 interface UserPlan {
@@ -130,16 +131,25 @@ const Financial = () => {
         });
       }
 
-      // Buscar comissões
+      // Buscar comissões com nome do indicado
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
-        .select("*")
+        .select(`
+          *,
+          referred_user:profiles!commissions_referred_user_id_fkey(full_name)
+        `)
         .eq("user_id", activeUserId)
         .order("created_at", { ascending: false});
 
       if (commissionsError) throw commissionsError;
 
-      setCommissions(commissionsData || []);
+      // Mapear dados para incluir o nome do usuário indicado
+      const mappedCommissions = (commissionsData || []).map((c: any) => ({
+        ...c,
+        referred_user_name: c.referred_user?.full_name || 'Usuário não encontrado'
+      }));
+
+      setCommissions(mappedCommissions);
 
       // Buscar ajustes de saldo (adições e descontos)
       const { data: adjustmentsData } = await supabase
@@ -475,7 +485,7 @@ const Financial = () => {
                   >
                     <div>
                       <h3 className="font-semibold">
-                        Comissão Nível {commission.level}
+                        Comissão Nível {commission.level} - {commission.referred_user_name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         {new Date(commission.created_at).toLocaleDateString()}
