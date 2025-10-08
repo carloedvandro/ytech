@@ -386,16 +386,21 @@ export default function SimActivation() {
 
   const handleClearData = async () => {
     try {
-      // Se houver ativação pendente, deletar
+      setShowClearDataDialog(false);
+      
+      // Se houver ativação pendente, marcar como cancelada pelo cliente
       if (pendingActivation) {
         const { error } = await supabase
           .from('sim_activations')
-          .delete()
+          .update({ 
+            status: 'cancelled',
+            updated_at: new Date().toISOString()
+          })
           .eq('id', pendingActivation.id);
 
         if (error) throw error;
         
-        // Recarregar dados
+        // Aguardar o refetch completar para atualizar o estado
         await refetch();
       }
 
