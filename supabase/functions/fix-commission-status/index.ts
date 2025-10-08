@@ -24,26 +24,34 @@ serve(async (req) => {
 
     // Verificar autenticação
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header presente:', !!authHeader);
+    
     if (!authHeader) {
-      throw new Error('Não autorizado');
+      throw new Error('Não autorizado - sem token');
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
+    console.log('User autenticado:', user?.id);
+    console.log('Erro de autenticação:', authError);
+
     if (authError || !user) {
-      throw new Error('Não autorizado');
+      throw new Error('Não autorizado - token inválido');
     }
 
     // Verificar se é admin
-    const { data: isAdmin } = await supabase
+    const { data: adminRole, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .eq('role', 'admin')
       .maybeSingle();
 
-    if (!isAdmin) {
+    console.log('Admin role encontrado:', adminRole);
+    console.log('Erro ao buscar role:', roleError);
+
+    if (!adminRole) {
       throw new Error('Apenas administradores podem corrigir status de comissões');
     }
 
