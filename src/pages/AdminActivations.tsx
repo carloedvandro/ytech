@@ -42,21 +42,44 @@ export default function AdminActivations() {
     queryFn: async () => {
       console.log('🔍 Buscando ativações...');
       
-      const { data, error } = await supabase
+      // Buscar ativações
+      const { data: activationsData, error: activationsError } = await supabase
         .from("sim_activations")
-        .select(`
-          *,
-          profiles!sim_activations_user_id_fkey(full_name, whatsapp, email)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error('❌ Erro ao buscar ativações:', error);
-        throw error;
+      if (activationsError) {
+        console.error('❌ Erro ao buscar ativações:', activationsError);
+        throw activationsError;
       }
-      
-      console.log('✅ Ativações encontradas:', data?.length || 0, data);
-      return data as unknown as SimActivation[];
+
+      console.log('✅ Ativações encontradas:', activationsData?.length || 0);
+
+      // Buscar perfis dos usuários
+      const userIds = [...new Set(activationsData?.map(a => a.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, whatsapp, email")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error('❌ Erro ao buscar perfis:', profilesError);
+        throw profilesError;
+      }
+
+      // Combinar dados
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      const result = activationsData?.map(activation => ({
+        ...activation,
+        profiles: profilesMap.get(activation.user_id) || {
+          full_name: 'Desconhecido',
+          whatsapp: 'N/A',
+          email: null
+        }
+      }));
+
+      console.log('✅ Dados combinados:', result);
+      return result as unknown as SimActivation[];
     },
   });
 
