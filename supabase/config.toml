@@ -57,3 +57,6 @@ verify_jwt = false
 [functions.process-sim-activation]
 verify_jwt = true
 
+[functions.extract-esim-data]
+verify_jwt = true
+

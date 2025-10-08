@@ -25,6 +25,7 @@ export default function SimActivation() {
   const [eid, setEid] = useState("");
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   // Verificar se o usuário tem fatura em dia (status = active)
   const canActivate = profile?.status === 'active';
@@ -145,6 +146,76 @@ export default function SimActivation() {
       toast.error("Erro ao enviar dados. Tente novamente.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setScreenshot(file);
+    setIsProcessingImage(true);
+    
+    try {
+      // Converter imagem para base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      await new Promise<void>((resolve, reject) => {
+        reader.onload = async () => {
+          try {
+            const base64Image = reader.result as string;
+            
+            console.log('📤 Enviando imagem para processamento...');
+            
+            // Chamar edge function para extrair dados
+            const { data, error } = await supabase.functions.invoke('extract-esim-data', {
+              body: { imageBase64: base64Image },
+            });
+            
+            if (error) {
+              console.error('❌ Erro ao processar imagem:', error);
+              toast.error("Não conseguimos processar a imagem. Preencha os campos manualmente.");
+              resolve();
+              return;
+            }
+            
+            console.log('✅ Dados extraídos:', data);
+            
+            if (!data.success) {
+              toast.error(data.error || "Erro ao processar imagem");
+              resolve();
+              return;
+            }
+            
+            // Preencher campos automaticamente
+            if (data.eid) {
+              setEid(data.eid);
+              toast.success("EID extraído automaticamente! ✓");
+            }
+            
+            if (data.imei) {
+              setImei(data.imei);
+              toast.success("IMEI extraído automaticamente! ✓");
+            }
+            
+            if (!data.eid && !data.imei) {
+              toast.warning("Não conseguimos extrair os dados. Por favor, preencha manualmente.");
+            } else {
+              toast.success("✅ Dados extraídos! Revise antes de enviar.");
+            }
+            
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        };
+        
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      });
+      
+    } catch (error) {
+      console.error('Erro ao processar imagem:', error);
+      toast.error("Erro ao processar imagem. Tente novamente ou preencha manualmente.");
+    } finally {
+      setIsProcessingImage(false);
     }
   };
 
@@ -421,15 +492,33 @@ export default function SimActivation() {
 
               <form onSubmit={handleEsimSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="screenshot">Print da tela *#06# (Opcional)</Label>
+                  <Label htmlFor="screenshot">📸 Upload do Print *#06# (Recomendado)</Label>
+                  <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-xs">
+                      🤖 <strong>Extração Automática!</strong> Faça upload do print e o sistema preencherá automaticamente o IMEI e EID usando IA
+                    </AlertDescription>
+                  </Alert>
                   <Input
                     id="screenshot"
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setScreenshot(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleImageUpload(file);
+                      }
+                    }}
+                    disabled={isProcessingImage}
                   />
+                  {isProcessingImage && (
+                    <div className="flex items-center gap-2 text-sm text-primary">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Processando imagem com IA...</span>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Se preferir, tire um print após digitar *#06# e faça o upload
+                    💡 Tire um print bem legível após digitar *#06# e faça o upload para preenchimento automático
                   </p>
                 </div>
 
