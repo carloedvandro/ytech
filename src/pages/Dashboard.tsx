@@ -34,6 +34,7 @@ const Dashboard = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
   const [showTypeSelectionDialog, setShowTypeSelectionDialog] = useState(false);
+  const [userConfirmedActivation, setUserConfirmedActivation] = useState(false);
 
   // Buscar perfil do usuário impersonado se necessário
   const { data: impersonatedProfile } = useQuery({
@@ -79,6 +80,14 @@ const Dashboard = () => {
     },
     enabled: !!activeProfile?.id,
   });
+
+  // Carregar confirmação do localStorage
+  useEffect(() => {
+    if (simActivation?.id) {
+      const confirmed = localStorage.getItem(`activation-confirmed-${simActivation.id}`);
+      setUserConfirmedActivation(confirmed === 'true');
+    }
+  }, [simActivation?.id]);
 
   useEffect(() => {
     if (!activeProfile?.id) return;
@@ -190,6 +199,12 @@ const Dashboard = () => {
       if (error) {
         console.error('Erro ao enviar notificação:', error);
         toast.error("Erro ao enviar notificação, mas continuaremos o processo.");
+      }
+
+      // Marcar como confirmado
+      if (simActivation?.id) {
+        localStorage.setItem(`activation-confirmed-${simActivation.id}`, 'true');
+        setUserConfirmedActivation(true);
       }
 
       toast.success("Confirmação enviada com sucesso! Nossa equipe foi notificada.");
@@ -351,12 +366,20 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="relative z-10 flex flex-col items-center gap-4">
-              <div className="p-4 bg-white rounded-lg">
+              <div className="relative p-4 bg-white rounded-lg">
                 <img 
                   src={simActivation.qr_code_url} 
                   alt="QR Code do eSIM" 
                   className="max-w-[300px] w-full h-auto"
                 />
+                {userConfirmedActivation && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-green-500/95 rounded-lg">
+                    <div className="text-center">
+                      <CheckCircle2 className="h-16 w-16 text-white mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-white">eSIM ATIVO</p>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="text-sm text-center space-y-2">
                 <p className="font-medium">📱 Como configurar:</p>
@@ -378,9 +401,13 @@ const Dashboard = () => {
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button className="w-full" variant="default">
+                  <Button 
+                    className="w-full" 
+                    variant="default"
+                    disabled={userConfirmedActivation}
+                  >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Já li o QR Code e meu chip foi ativado
+                    {userConfirmedActivation ? "Confirmação já enviada ✓" : "Já li o QR Code e meu chip foi ativado"}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

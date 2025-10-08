@@ -31,6 +31,7 @@ export default function SimActivation() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
   const [showTypeSelectionDialog, setShowTypeSelectionDialog] = useState(false);
+  const [userConfirmedActivation, setUserConfirmedActivation] = useState(false);
 
   // Verificar se o usuário tem fatura em dia (status = active)
   const canActivate = profile?.status === 'active';
@@ -285,6 +286,14 @@ export default function SimActivation() {
   // Encontrar última ativação ativa
   const activeActivation = activations?.find(a => a.status === 'activated');
 
+  // Carregar confirmação do localStorage
+  useEffect(() => {
+    if (activeActivation?.id) {
+      const confirmed = localStorage.getItem(`activation-confirmed-${activeActivation.id}`);
+      setUserConfirmedActivation(confirmed === 'true');
+    }
+  }, [activeActivation?.id]);
+
   const handleConfirmActivation = async () => {
     if (!activeActivation) return;
 
@@ -302,6 +311,12 @@ export default function SimActivation() {
       if (error) {
         console.error('Erro ao enviar notificação:', error);
         toast.error("Erro ao enviar notificação, mas continuaremos o processo.");
+      }
+
+      // Marcar como confirmado
+      if (activeActivation?.id) {
+        localStorage.setItem(`activation-confirmed-${activeActivation.id}`, 'true');
+        setUserConfirmedActivation(true);
       }
 
       toast.success("Confirmação enviada com sucesso! Nossa equipe foi notificada.");
@@ -420,13 +435,23 @@ export default function SimActivation() {
                 
                 {activeActivation.qr_code_url && (
                   <div className="space-y-4">
-                    <div className="flex justify-center p-6 bg-white rounded-lg">
+                    <div className="flex justify-center p-6 bg-white rounded-lg relative">
                       <div className="text-center space-y-3">
-                        <img 
-                          src={activeActivation.qr_code_url} 
-                          alt="QR Code do eSIM" 
-                          className="max-w-[250px] w-full h-auto mx-auto"
-                        />
+                        <div className="relative">
+                          <img 
+                            src={activeActivation.qr_code_url} 
+                            alt="QR Code do eSIM" 
+                            className="max-w-[250px] w-full h-auto mx-auto"
+                          />
+                          {userConfirmedActivation && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-green-500/95 rounded-lg">
+                              <div className="text-center">
+                                <CheckCircle className="h-16 w-16 text-white mx-auto mb-2" />
+                                <p className="text-2xl font-bold text-white">eSIM ATIVO</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           Aponte a câmera do seu aparelho para este QR Code
                         </p>
@@ -455,9 +480,13 @@ export default function SimActivation() {
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button className="w-full" variant="default">
+                          <Button 
+                            className="w-full" 
+                            variant="default"
+                            disabled={userConfirmedActivation}
+                          >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Já li o QR Code e meu chip foi ativado
+                            {userConfirmedActivation ? "Confirmação já enviada ✓" : "Já li o QR Code e meu chip foi ativado"}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
