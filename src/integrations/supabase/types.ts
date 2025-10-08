@@ -359,6 +359,7 @@ export type Database = {
           eid: string | null
           id: string
           imei: string | null
+          phone_number: string | null
           qr_code_url: string | null
           screenshot_url: string | null
           status: string
@@ -374,6 +375,7 @@ export type Database = {
           eid?: string | null
           id?: string
           imei?: string | null
+          phone_number?: string | null
           qr_code_url?: string | null
           screenshot_url?: string | null
           status?: string
@@ -389,6 +391,7 @@ export type Database = {
           eid?: string | null
           id?: string
           imei?: string | null
+          phone_number?: string | null
           qr_code_url?: string | null
           screenshot_url?: string | null
           status?: string

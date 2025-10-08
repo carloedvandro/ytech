@@ -39,6 +39,7 @@ export default function AdminActivations() {
   const [qrCodeImage, setQrCodeImage] = useState<File | null>(null);
   const [qrCodeImagePreview, setQrCodeImagePreview] = useState<string>("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const queryClient = useQueryClient();
 
   const { data: activations, isLoading, error: queryError } = useQuery({
@@ -94,10 +95,11 @@ export default function AdminActivations() {
   }
 
   const activateMutation = useMutation({
-    mutationFn: async ({ activationId, qrCodeUrl, activation }: { 
+    mutationFn: async ({ activationId, qrCodeUrl, activation, phoneNumber }: { 
       activationId: string; 
       qrCodeUrl?: string;
       activation: SimActivation;
+      phoneNumber: string;
     }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
@@ -115,6 +117,7 @@ export default function AdminActivations() {
           qr_code_url: qrCodeUrl || null,
           activated_by: session.user.id,
           activated_at: new Date().toISOString(),
+          phone_number: phoneNumber,
         })
         .eq("id", activationId);
 
@@ -133,6 +136,8 @@ export default function AdminActivations() {
 Olá ${activation.profiles.full_name}! 
 
 ✅ Ótimas notícias! Seu ${tipoProduto} já está ativo e pronto para uso.
+
+📞 *Número da sua linha:* ${phoneNumber}
 
 📱 *O que fazer agora:*
 ${activation.activation_type === "chip" 
@@ -177,6 +182,7 @@ _Y-TECH Internet 5G_`;
       toast.success("Ativação confirmada com sucesso!");
       setSelectedActivation(null);
       setQrCodeData("");
+      setPhoneNumber("");
     },
     onError: (error) => {
       console.error("Erro ao ativar:", error);
@@ -204,16 +210,8 @@ _Y-TECH Internet 5G_`;
   });
 
   const handleActivate = (activation: SimActivation) => {
-    if (activation.activation_type === "chip") {
-      // Chip físico - ativar direto
-      activateMutation.mutate({ 
-        activationId: activation.id,
-        activation: activation
-      });
-    } else {
-      // eSIM - abrir dialog para QR code
-      setSelectedActivation(activation);
-    }
+    // Sempre abrir dialog para pedir o número da linha
+    setSelectedActivation(activation);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,10 +226,17 @@ _Y-TECH Internet 5G_`;
     }
   };
 
-  const handleEsimActivation = async () => {
+  const handleActivation = async () => {
     if (!selectedActivation) return;
     
-    if (!qrCodeImage && !qrCodeData.trim()) {
+    // Validar número da linha (obrigatório)
+    if (!phoneNumber.trim()) {
+      toast.error("Por favor, informe o número da linha");
+      return;
+    }
+
+    // Para eSIM, validar QR code
+    if (selectedActivation.activation_type === "esim" && !qrCodeImage && !qrCodeData.trim()) {
       toast.error("Por favor, envie uma imagem do QR Code ou cole os dados");
       return;
     }
@@ -241,8 +246,8 @@ _Y-TECH Internet 5G_`;
     try {
       let qrCodeUrl = qrCodeData;
 
-      // Se houver imagem, fazer upload
-      if (qrCodeImage) {
+      // Se for eSIM e houver imagem, fazer upload
+      if (selectedActivation.activation_type === "esim" && qrCodeImage) {
         const fileExt = qrCodeImage.name.split('.').pop();
         const fileName = `${selectedActivation.user_id}-qrcode-${Date.now()}.${fileExt}`;
         const filePath = `qr-codes/${fileName}`;
@@ -267,7 +272,7 @@ _Y-TECH Internet 5G_`;
         const { data: whatsappData, error: whatsappError } = await supabase.functions.invoke('send-whatsapp-notification', {
           body: {
             to: selectedActivation.profiles.whatsapp,
-            message: `🎉 *Seu eSIM foi ATIVADO!*\n\nOlá ${selectedActivation.profiles.full_name}!\n\n✅ Escaneie o QR Code abaixo para ativar seu eSIM:\n\n📱 Acesse: Configurações > Celular > Adicionar eSIM > Escanear QR Code\n\n_Y-TECH Internet 5G_`,
+            message: `🎉 *Seu eSIM foi ATIVADO!*\n\nOlá ${selectedActivation.profiles.full_name}!\n\n📞 *Número da sua linha:* ${phoneNumber}\n\n✅ Escaneie o QR Code abaixo para ativar seu eSIM:\n\n📱 Acesse: Configurações > Celular > Adicionar eSIM > Escanear QR Code\n\n_Y-TECH Internet 5G_`,
             imageUrl: publicUrl,
           },
         });
@@ -285,6 +290,7 @@ _Y-TECH Internet 5G_`;
         activationId: selectedActivation.id,
         qrCodeUrl,
         activation: selectedActivation,
+        phoneNumber,
       });
 
       setQrCodeImage(null);
@@ -468,102 +474,111 @@ _Y-TECH Internet 5G_`;
           setQrCodeData("");
           setQrCodeImage(null);
           setQrCodeImagePreview("");
+          setPhoneNumber("");
         }
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Ativar eSIM - {selectedActivation?.profiles.full_name}</DialogTitle>
+            <DialogTitle>
+              {selectedActivation?.activation_type === "chip" ? "Ativar Chip" : "Ativar eSIM"} - {selectedActivation?.profiles.full_name}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Alert>
-              <ImageIcon className="h-4 w-4" />
-              <AlertDescription>
-                Envie a imagem do QR Code do eSIM. Ela será enviada automaticamente para o WhatsApp do cliente.
-              </AlertDescription>
-            </Alert>
-
             <div className="space-y-2">
-              <Label htmlFor="qr-image">Imagem do QR Code (Recomendado)</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="qr-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  disabled={isUploadingImage}
-                />
-              </div>
-              
-              {qrCodeImagePreview && (
-                <div className="p-4 bg-muted rounded-lg flex justify-center">
-                  <div className="text-center space-y-2">
-                    <p className="text-sm font-medium">Preview:</p>
-                    <img 
-                      src={qrCodeImagePreview} 
-                      alt="QR Code Preview" 
-                      className="max-w-[200px] mx-auto rounded"
+              <Label htmlFor="phone-number" className="text-red-500">
+                * Número da Linha (Obrigatório)
+              </Label>
+              <Input
+                id="phone-number"
+                placeholder="Ex: (11) 99999-9999"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="border-red-200 focus:border-red-500"
+              />
+              <p className="text-xs text-muted-foreground">
+                Informe o número da linha atrelada ao {selectedActivation?.activation_type === "chip" ? "chip" : "eSIM"}
+              </p>
+            </div>
+
+            {selectedActivation?.activation_type === "esim" && (
+              <>
+                <Alert>
+                  <ImageIcon className="h-4 w-4" />
+                  <AlertDescription>
+                    Envie a imagem do QR Code do eSIM. Ela será enviada automaticamente para o WhatsApp do cliente.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="qr-image">Imagem do QR Code (Recomendado)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="qr-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      disabled={isUploadingImage}
                     />
                   </div>
+                  
+                  {qrCodeImagePreview && (
+                    <div className="p-4 bg-muted rounded-lg flex justify-center">
+                      <div className="text-center space-y-2">
+                        <p className="text-sm font-medium">Preview:</p>
+                        <img 
+                          src={qrCodeImagePreview} 
+                          alt="QR Code Preview" 
+                          className="max-w-[200px] mx-auto rounded"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Ou cole os dados
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="qr-code">Link ou código do QR Code</Label>
-              <Textarea
-                id="qr-code"
-                placeholder="Cole aqui os dados de ativação do eSIM..."
-                value={qrCodeData}
-                onChange={(e) => setQrCodeData(e.target.value)}
-                rows={3}
-                disabled={!!qrCodeImage}
-              />
-            </div>
-
-            {qrCodeData && !qrCodeImage && (
-              <div className="p-4 bg-muted rounded-lg flex justify-center">
-                <div className="text-center space-y-2">
-                  <p className="text-sm font-medium">Preview do QR Code:</p>
-                  <QRCode value={qrCodeData} size={150} />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Ou cole os dados
+                    </span>
+                  </div>
                 </div>
-              </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="qr-code">Link ou código do QR Code</Label>
+                  <Textarea
+                    id="qr-code"
+                    placeholder="Cole aqui os dados de ativação do eSIM..."
+                    value={qrCodeData}
+                    onChange={(e) => setQrCodeData(e.target.value)}
+                    rows={3}
+                    disabled={!!qrCodeImage}
+                  />
+                </div>
+
+                {qrCodeData && !qrCodeImage && (
+                  <div className="p-4 bg-muted rounded-lg flex justify-center">
+                    <div className="text-center space-y-2">
+                      <p className="text-sm font-medium">Preview do QR Code:</p>
+                      <QRCode value={qrCodeData} size={150} />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedActivation(null);
-                  setQrCodeData("");
-                  setQrCodeImage(null);
-                  setQrCodeImagePreview("");
-                }}
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleEsimActivation}
-                disabled={(!qrCodeImage && !qrCodeData.trim()) || activateMutation.isPending || isUploadingImage}
-                className="flex-1"
-              >
-                {(activateMutation.isPending || isUploadingImage) && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Confirmar Ativação
-              </Button>
-            </div>
+            <Button 
+              onClick={handleActivation}
+              disabled={activateMutation.isPending || isUploadingImage || !phoneNumber.trim()}
+              className="w-full"
+            >
+              {(activateMutation.isPending || isUploadingImage) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Confirmar Ativação
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
