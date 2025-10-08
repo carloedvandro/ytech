@@ -146,22 +146,31 @@ const Financial = () => {
         .select("amount, type")
         .eq("user_id", activeUserId);
 
-      // Calcular saldos
+      // Calcular saldos - garantir conversão para número
       const total = commissionsData?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
       const commissionsAvailable = commissionsData?.filter(c => c.status === "available").reduce((sum, c) => sum + Number(c.amount), 0) || 0;
       const pending = commissionsData?.filter(c => c.status === "pending").reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
-      // Calcular adições e remoções manuais
-      const additionsTotal = adjustmentsData
+      // Calcular adições e remoções manuais - garantir conversão para número
+      const additionsTotal = Number(adjustmentsData
         ?.filter(a => a.type === 'add')
-        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+        .reduce((sum, a) => sum + Number(a.amount), 0) || 0);
 
-      const deductionsTotal = adjustmentsData
+      const deductionsTotal = Number(adjustmentsData
         ?.filter(a => a.type === 'remove')
-        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+        .reduce((sum, a) => sum + Number(a.amount), 0) || 0);
+
+      console.log('💰 Cálculo de saldo:', {
+        commissionsAvailable,
+        additionsTotal,
+        deductionsTotal,
+        formula: `${commissionsAvailable} + ${additionsTotal} - ${deductionsTotal}`
+      });
 
       // Saldo disponível = comissões available + adições - remoções manuais
-      const available = commissionsAvailable + additionsTotal - deductionsTotal;
+      const available = Number(commissionsAvailable) + Number(additionsTotal) - Number(deductionsTotal);
+      
+      console.log('✅ Saldo disponível calculado:', available);
 
       setBalance({ total, available, pending });
     } catch (error: any) {
