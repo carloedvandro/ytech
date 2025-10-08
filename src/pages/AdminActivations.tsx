@@ -37,9 +37,11 @@ export default function AdminActivations() {
   const [qrCodeData, setQrCodeData] = useState("");
   const queryClient = useQueryClient();
 
-  const { data: activations, isLoading } = useQuery({
+  const { data: activations, isLoading, error: queryError } = useQuery({
     queryKey: ["admin-activations"],
     queryFn: async () => {
+      console.log('🔍 Buscando ativações...');
+      
       const { data, error } = await supabase
         .from("sim_activations")
         .select(`
@@ -48,10 +50,21 @@ export default function AdminActivations() {
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao buscar ativações:', error);
+        throw error;
+      }
+      
+      console.log('✅ Ativações encontradas:', data?.length || 0, data);
       return data as unknown as SimActivation[];
     },
   });
+
+  // Log de erro se houver
+  if (queryError) {
+    console.error('❌ Erro na query:', queryError);
+    toast.error(`Erro ao carregar ativações: ${queryError.message}`);
+  }
 
   const activateMutation = useMutation({
     mutationFn: async ({ activationId, qrCodeUrl }: { activationId: string; qrCodeUrl?: string }) => {

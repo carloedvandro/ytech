@@ -119,6 +119,8 @@ export default function SimActivation() {
         return;
       }
 
+      console.log('📤 Enviando ativação de chip:', { barcode });
+      
       const { data, error } = await supabase.functions.invoke('process-sim-activation', {
         body: {
           activationType: 'chip',
@@ -126,8 +128,12 @@ export default function SimActivation() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro do edge function:', error);
+        throw error;
+      }
 
+      console.log('✅ Resposta do edge function:', data);
       toast.success("Dados do chip enviados com sucesso! Você receberá a confirmação em breve.");
       // Manter o código visível após envio
       setScanning(false);
