@@ -397,9 +397,11 @@ export default function SimActivation() {
         const twentyFourHoursAgo = new Date();
         twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
         
+        console.log('🔍 Verificando cancelamentos nas últimas 24h...');
+        
         const { data: recentCancellations, error: countError } = await supabase
           .from('sim_activations')
-          .select('id')
+          .select('id, updated_at')
           .eq('user_id', user?.id)
           .eq('status', 'cancelled')
           .gte('updated_at', twentyFourHoursAgo.toISOString());
@@ -409,9 +411,49 @@ export default function SimActivation() {
           throw countError;
         }
 
+        console.log('📊 Cancelamentos encontrados:', recentCancellations);
+
         // Se já cancelou 2 vezes nas últimas 24 horas
         if (recentCancellations && recentCancellations.length >= 2) {
           toast.error("Você atingiu o limite de 2 cancelamentos em 24 horas. Por favor, aguarde para poder cancelar novamente.");
+          return;
+        }
+        
+        // Enviar código de verificação via WhatsApp
+        console.log('📱 Enviando código de verificação...');
+        toast.info("Enviando código de verificação no WhatsApp...");
+        
+        const { data: verificationData, error: whatsappError } = await supabase.functions.invoke('send-whatsapp-verification', {
+          body: {
+            whatsapp: profile?.whatsapp,
+            type: 'activation_cancel'
+          }
+        });
+
+        if (whatsappError) {
+          console.error('❌ Erro ao enviar verificação:', whatsappError);
+          toast.error("Erro ao enviar código de verificação. Tente novamente.");
+          return;
+        }
+
+        // Solicitar código do usuário
+        const code = prompt("Digite o código de 6 dígitos que você recebeu no WhatsApp:");
+        
+        if (!code) {
+          toast.error("Cancelamento abortado.");
+          return;
+        }
+
+        // Verificar código
+        const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-whatsapp-code', {
+          body: {
+            whatsapp: profile?.whatsapp,
+            code: code
+          }
+        });
+
+        if (verifyError || !verifyData?.verified) {
+          toast.error("Código inválido ou expirado. Tente novamente.");
           return;
         }
         
@@ -995,11 +1037,15 @@ export default function SimActivation() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>⚠️ Tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
+            <AlertDialogDescription className="space-y-3">
               <p className="font-semibold text-orange-600 dark:text-orange-400">
                 Isto cancelará a ativação que está em andamento.
               </p>
               <p>Todos os dados preenchidos serão perdidos e você precisará iniciar o processo novamente.</p>
+              <div className="space-y-2 text-sm bg-blue-50 dark:bg-blue-950/30 p-3 rounded border border-blue-200 dark:border-blue-800">
+                <p className="font-semibold text-blue-700 dark:text-blue-400">🔐 Verificação de Segurança:</p>
+                <p className="text-blue-600 dark:text-blue-300">Você receberá um código de 6 dígitos no WhatsApp para confirmar o cancelamento.</p>
+              </div>
               <p className="text-sm text-yellow-700 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-800">
                 ⚠️ <strong>Atenção:</strong> Você só pode cancelar <strong>2 ativações por dia</strong>. Após atingir o limite, será necessário aguardar 24 horas.
               </p>
