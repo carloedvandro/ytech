@@ -286,11 +286,13 @@ export default function SimActivation() {
   // Encontrar última ativação ativa
   const activeActivation = activations?.find(a => a.status === 'activated');
 
-  // Carregar confirmação do localStorage
+  // Carregar confirmação do localStorage (DEPOIS de activeActivation ser definido)
   useEffect(() => {
     if (activeActivation?.id) {
       const confirmed = localStorage.getItem(`activation-confirmed-${activeActivation.id}`);
       setUserConfirmedActivation(confirmed === 'true');
+    } else {
+      setUserConfirmedActivation(false);
     }
   }, [activeActivation?.id]);
 

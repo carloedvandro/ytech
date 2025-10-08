@@ -81,11 +81,13 @@ const Dashboard = () => {
     enabled: !!activeProfile?.id,
   });
 
-  // Carregar confirmação do localStorage
+  // Carregar confirmação do localStorage (DEPOIS de simActivation ser definido)
   useEffect(() => {
     if (simActivation?.id) {
       const confirmed = localStorage.getItem(`activation-confirmed-${simActivation.id}`);
       setUserConfirmedActivation(confirmed === 'true');
+    } else {
+      setUserConfirmedActivation(false);
     }
   }, [simActivation?.id]);
 
