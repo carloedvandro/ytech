@@ -756,35 +756,85 @@ export default function SimActivation() {
               </Alert>
 
               <form onSubmit={handleEsimSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="screenshot">📸 Upload do Print *#06# (Recomendado)</Label>
-                  <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200">
-                    <AlertCircle className="h-4 w-4 text-blue-600" />
-                    <AlertDescription className="text-xs">
-                      🤖 <strong>Extração Automática!</strong> Faça upload do print e o sistema preencherá automaticamente o IMEI e EID usando IA
-                    </AlertDescription>
-                  </Alert>
-                  <Input
-                    id="screenshot"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleImageUpload(file);
-                      }
-                    }}
-                    disabled={isProcessingImage}
-                  />
-                  {isProcessingImage && (
-                    <div className="flex items-center gap-2 text-sm text-primary">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Processando imagem com IA...</span>
+                <div className="space-y-3">
+                  <Alert className="bg-gradient-to-r from-blue-500 to-purple-600 border-0">
+                    <div className="text-white space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Camera className="h-5 w-5" />
+                        <AlertTitle className="text-white text-lg font-bold m-0">📸 PASSO 1: Envie o Print da Tela *#06#</AlertTitle>
+                      </div>
+                      <AlertDescription className="text-white/90">
+                        🤖 <strong>IA Automática!</strong> Envie o print e preencheremos o IMEI e EID automaticamente
+                      </AlertDescription>
                     </div>
+                  </Alert>
+
+                  <div className="relative">
+                    <Label 
+                      htmlFor="screenshot" 
+                      className="block cursor-pointer"
+                    >
+                      <div className="border-4 border-dashed border-primary rounded-lg p-8 bg-primary/5 hover:bg-primary/10 transition-colors relative group">
+                        <div className="absolute -top-3 -left-3 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-bold animate-pulse shadow-lg">
+                          👈 CLIQUE AQUI!
+                        </div>
+                        
+                        <div className="text-center space-y-3">
+                          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Camera className="h-8 w-8 text-primary-foreground" />
+                          </div>
+                          
+                          <div>
+                            <p className="text-xl font-bold text-primary">
+                              Clique para anexar seu print
+                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              ou arraste o arquivo aqui
+                            </p>
+                          </div>
+
+                          <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-sm space-y-1">
+                            <p className="font-semibold">✨ Como fazer:</p>
+                            <p>1. Digite <code className="bg-primary/20 px-2 py-0.5 rounded">*#06#</code> no seu telefone</p>
+                            <p>2. Tire um print da tela</p>
+                            <p>3. Envie aqui que a IA extrai tudo!</p>
+                          </div>
+                        </div>
+                      </div>
+                    </Label>
+                    
+                    <Input
+                      id="screenshot"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload(file);
+                        }
+                      }}
+                      disabled={isProcessingImage}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {isProcessingImage && (
+                    <Alert className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200">
+                      <Loader2 className="h-4 w-4 animate-spin text-yellow-600" />
+                      <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                        <strong>Processando imagem com IA...</strong> Aguarde enquanto extraímos os dados automaticamente
+                      </AlertDescription>
+                    </Alert>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    💡 Tire um print bem legível após digitar *#06# e faça o upload para preenchimento automático
-                  </p>
+
+                  {screenshot && !isProcessingImage && (
+                    <Alert className="bg-green-50 dark:bg-green-950 border-green-200">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-800 dark:text-green-200">
+                        <strong>✅ Print recebido!</strong> Revise os dados abaixo antes de enviar
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
 
                 <div className="space-y-2">
