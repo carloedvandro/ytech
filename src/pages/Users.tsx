@@ -85,7 +85,7 @@ const Users = () => {
       
       const commissionsAvailable = commissionsData?.reduce((sum, comm) => sum + Number(comm.amount), 0) || 0;
 
-      // Buscar ajustes de saldo (apenas adições)
+      // Buscar ajustes de saldo (adições e remoções)
       const { data: adjustmentsData, error: adjustmentsError } = await supabase
         .from("admin_balance_adjustments")
         .select("amount, type")
@@ -93,14 +93,17 @@ const Users = () => {
 
       if (adjustmentsError) throw adjustmentsError;
 
-      // Calcular apenas as adições manuais
+      // Calcular adições e remoções manuais
       const additionsTotal = adjustmentsData
         ?.filter(a => a.type === 'add')
         .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
 
-      // Saldo disponível = comissões available + adições
-      // Não subtraímos deduções porque elas já marcaram comissões como withdrawn
-      return commissionsAvailable + additionsTotal;
+      const deductionsTotal = adjustmentsData
+        ?.filter(a => a.type === 'remove')
+        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+      // Saldo disponível = comissões available + adições - remoções manuais
+      return commissionsAvailable + additionsTotal - deductionsTotal;
     },
     enabled: !!selectedUser,
   });

@@ -181,14 +181,17 @@ const Dashboard = () => {
         ?.filter((comm) => comm.status === "available")
         .reduce((sum, comm) => sum + Number(comm.amount), 0) || 0;
 
-      // Calcular apenas as adições manuais
+      // Calcular adições e remoções manuais
       const additionsTotal = adjustmentsData
         ?.filter(a => a.type === 'add')
         .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
 
-      // Saldo disponível = comissões available + adições
-      // Não subtraímos deduções porque elas já marcaram comissões como withdrawn
-      const availableBalance = commissionsAvailable + additionsTotal;
+      const deductionsTotal = adjustmentsData
+        ?.filter(a => a.type === 'remove')
+        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+      // Saldo disponível = comissões available + adições - remoções manuais
+      const availableBalance = commissionsAvailable + additionsTotal - deductionsTotal;
 
       setStats({
         totalReferrals: networkData?.length || 0,

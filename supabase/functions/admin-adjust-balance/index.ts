@@ -213,40 +213,10 @@ serve(async (req) => {
       }
     }
 
-    // Se for remover, atualizar comissões disponíveis
+    // Ajuste manual não marca comissões como withdrawn
+    // Isso deve ser feito apenas em saques reais via transações
     if (type === 'remove') {
-      // Buscar comissões disponíveis ordenadas por data
-      const { data: availableComms, error: fetchError } = await supabase
-        .from('commissions')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'available')
-        .order('created_at', { ascending: true });
-
-      if (fetchError) {
-        console.error('Erro ao buscar comissões:', fetchError);
-        throw new Error('Erro ao buscar comissões');
-      }
-
-      let remaining = amount;
-      for (const comm of availableComms || []) {
-        if (remaining <= 0) break;
-
-        const commAmount = Number(comm.amount);
-        if (commAmount <= remaining) {
-          // Marcar como retirada
-          await supabase
-            .from('commissions')
-            .update({ 
-              status: 'withdrawn',
-              withdrawn_at: new Date().toISOString() 
-            })
-            .eq('id', comm.id);
-          remaining -= commAmount;
-        }
-      }
-
-      console.log('Saldo removido com sucesso');
+      console.log('Saldo removido com sucesso (ajuste manual)');
     }
 
     return new Response(
