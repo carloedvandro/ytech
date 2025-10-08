@@ -274,7 +274,11 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
-      // Manter os dados visíveis após envio para conferência
+      
+      // Redirecionar para dashboard
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
     } catch (error) {
       console.error('Erro ao enviar ativação:', error);
       toast.error("Erro ao enviar dados. Tente novamente.");
@@ -285,6 +289,9 @@ export default function SimActivation() {
 
   // Encontrar última ativação ativa
   const activeActivation = activations?.find(a => a.status === 'activated');
+  
+  // Encontrar ativação pendente
+  const pendingActivation = activations?.find(a => a.status === 'pending');
 
   // Carregar confirmação do localStorage (DEPOIS de activeActivation ser definido)
   useEffect(() => {
@@ -399,6 +406,17 @@ export default function SimActivation() {
           <AlertDescription>
             Esta área está disponível apenas para clientes com fatura em dia. 
             Por favor, regularize sua situação para ativar seu chip ou eSIM.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {pendingActivation && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>⏳ Ativação em Processamento</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>Seus dados de {pendingActivation.activation_type === 'chip' ? 'Chip SIM' : 'eSIM'} já foram enviados e estão sendo processados pela nossa equipe.</p>
+            <p className="font-semibold">Por favor, aguarde a confirmação. Você receberá uma notificação em breve.</p>
           </AlertDescription>
         </Alert>
       )}
@@ -696,9 +714,9 @@ export default function SimActivation() {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={!barcode || isSubmitting}>
+                <Button type="submit" className="w-full" disabled={!barcode || isSubmitting || !!pendingActivation}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Enviar Dados do Chip
+                  {pendingActivation ? "Ativação já enviada - Aguarde" : "Enviar Dados do Chip"}
                 </Button>
                 
                 {barcode && !isSubmitting && (
@@ -797,9 +815,9 @@ export default function SimActivation() {
                   </p>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full" disabled={isSubmitting || !!pendingActivation}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Enviar Dados do eSIM
+                  {pendingActivation ? "Ativação já enviada - Aguarde" : "Enviar Dados do eSIM"}
                 </Button>
                 
                 {(imei || eid) && !isSubmitting && (
