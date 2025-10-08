@@ -66,4 +66,7 @@ verify_jwt = true
 [functions.cleanup-duplicate-commissions]
 verify_jwt = true
 
+[functions.fix-commission-status]
+verify_jwt = true
+
 

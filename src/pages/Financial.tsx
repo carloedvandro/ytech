@@ -42,6 +42,7 @@ const Financial = () => {
   const [pixKey, setPixKey] = useState("");
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [fixingCommissions, setFixingCommissions] = useState(false);
 
   // ID do usuário ativo (impersonado ou real)
   const activeUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
@@ -268,6 +269,35 @@ const Financial = () => {
     }
   };
 
+  const handleFixCommissions = async () => {
+    if (!user?.id) return;
+    
+    setFixingCommissions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fix-commission-status', {
+        body: { userId: user.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: data.message || "Comissões corrigidas",
+      });
+
+      // Recarregar dados
+      await loadFinancialData();
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setFixingCommissions(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -357,6 +387,29 @@ const Financial = () => {
         {/* Histórico de Ajustes de Saldo pelo Admin */}
         {activeUserId && (
           <BalanceAdjustmentsHistory userId={activeUserId} />
+        )}
+
+        {/* Botão Admin para corrigir comissões */}
+        {isAdmin && balance.available === 0 && commissions.some(c => c.status === 'withdrawn') && (
+          <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+            <CardHeader>
+              <CardTitle className="text-yellow-700 dark:text-yellow-400">⚠️ Correção Necessária</CardTitle>
+              <CardDescription className="text-yellow-600 dark:text-yellow-500">
+                Detectamos comissões marcadas incorretamente como "sacadas". Clique para restaurar.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={handleFixCommissions} 
+                disabled={fixingCommissions}
+                variant="outline"
+                className="w-full border-yellow-500 text-yellow-700 hover:bg-yellow-100 dark:text-yellow-400 dark:hover:bg-yellow-950/50"
+              >
+                {fixingCommissions && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Restaurar Status das Comissões
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         <Card>
