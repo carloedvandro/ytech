@@ -57,7 +57,7 @@ const Dashboard = () => {
   // Usar perfil impersonado ou perfil real
   const activeProfile = isImpersonating && impersonatedProfile ? impersonatedProfile : profile;
 
-  // Buscar status da ativação de SIM
+  // Buscar status da ativação de SIM (excluindo canceladas)
   const { data: simActivation, refetch: refetchActivations } = useQuery({
     queryKey: ["sim-activation-status", activeProfile?.id],
     queryFn: async () => {
@@ -67,6 +67,7 @@ const Dashboard = () => {
         .from("sim_activations")
         .select("*")
         .eq("user_id", activeProfile.id)
+        .neq("status", "cancelled")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -76,6 +77,7 @@ const Dashboard = () => {
         return null;
       }
       
+      console.log('📊 Dashboard - Ativação carregada:', data);
       return data;
     },
     enabled: !!activeProfile?.id,

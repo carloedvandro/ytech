@@ -71,7 +71,7 @@ export default function SimActivation() {
     localStorage.setItem(storageKey, JSON.stringify(dataToSave));
   }, [barcode, imei, eid, activeTab, user?.id]);
 
-  // Buscar ativações do usuário
+  // Buscar ativações do usuário (excluindo canceladas)
   const { data: activations, refetch } = useQuery({
     queryKey: ["user-activations", user?.id],
     queryFn: async () => {
@@ -80,9 +80,11 @@ export default function SimActivation() {
         .from("sim_activations")
         .select("*")
         .eq("user_id", user.id)
+        .neq("status", "cancelled")
         .order("created_at", { ascending: false });
       
       if (error) throw error;
+      console.log('📊 Ativações carregadas:', data);
       return data;
     },
     enabled: !!user?.id,
@@ -408,11 +410,16 @@ export default function SimActivation() {
         
         console.log('✅ Ativação cancelada com sucesso');
         
-        // Invalidar queries para forçar atualização
-        await queryClient.invalidateQueries({ queryKey: ["user-activations", user?.id] });
+        // Invalidar ambas as queries para forçar atualização
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["user-activations", user?.id] }),
+          queryClient.invalidateQueries({ queryKey: ["sim-activation-status", user?.id] })
+        ]);
         
-        // Aguardar um momento para garantir que a query foi recarregada
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Aguardar um momento para garantir que as queries foram recarregadas
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        console.log('🔄 Queries invalidadas, estado deve estar atualizado');
       }
 
       // Limpar dados locais
