@@ -403,7 +403,7 @@ export default function SimActivation() {
                               <ul className="list-disc list-inside text-sm space-y-1 mt-2">
                                 <li>Abriu o navegador</li>
                                 <li>Acessou qualquer site</li>
-                                <li>Fez uma chamada de teste</li>
+                                <li>Fez uma chamada de teste (Se tiver contratado)</li>
                               </ul>
                               <p className="text-sm mt-2">Se sim, aperte em continuar para notificar nossa equipe.</p>
                             </AlertDialogDescription>
