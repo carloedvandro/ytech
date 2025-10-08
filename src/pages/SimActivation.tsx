@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle, ArrowLeft } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Camera, Smartphone, AlertCircle, Loader2, CheckCircle, ArrowLeft, ExternalLink } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
@@ -352,12 +353,91 @@ export default function SimActivation() {
                 </Alert>
                 
                 {activeActivation.qr_code_url && (
-                  <div className="flex justify-center p-6 bg-white rounded-lg">
-                    <div className="text-center space-y-3">
-                      <QRCode value={activeActivation.qr_code_url} size={250} />
-                      <p className="text-sm text-muted-foreground">
-                        Aponte a câmera do seu aparelho para este QR Code
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex justify-center p-6 bg-white rounded-lg">
+                      <div className="text-center space-y-3">
+                        <img 
+                          src={activeActivation.qr_code_url} 
+                          alt="QR Code do eSIM" 
+                          className="max-w-[250px] w-full h-auto mx-auto"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Aponte a câmera do seu aparelho para este QR Code
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-sm space-y-2 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                        <p className="font-medium">📱 Como configurar:</p>
+                        <ol className="space-y-1 text-muted-foreground">
+                          <li>1️⃣ Vá em Configurações → Celular → Adicionar eSIM</li>
+                          <li>2️⃣ Escolha "Usar QR Code"</li>
+                          <li>3️⃣ Escaneie o código acima</li>
+                          <li>4️⃣ Aguarde a ativação (pode levar alguns minutos)</li>
+                        </ol>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(activeActivation.qr_code_url, '_blank')}
+                        className="w-full"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Abrir imagem em nova aba
+                      </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button className="w-full" variant="default">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Já li o QR Code e meu chip foi ativado
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar Ativação do Chip</AlertDialogTitle>
+                            <AlertDialogDescription className="space-y-2">
+                              <p>Tem certeza que deseja enviar a confirmação?</p>
+                              <p className="font-semibold">Você já fez os testes de conexão?</p>
+                              <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                                <li>Abriu o navegador</li>
+                                <li>Acessou qualquer site</li>
+                                <li>Fez uma chamada de teste</li>
+                              </ul>
+                              <p className="text-sm mt-2">Se sim, aperte em continuar para notificar nossa equipe.</p>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                try {
+                                  const { error } = await supabase.functions.invoke('send-whatsapp-notification', {
+                                    body: {
+                                      messageType: 'chip_activated_by_user',
+                                      data: {
+                                        fullName: profile?.full_name,
+                                        whatsapp: profile?.whatsapp,
+                                        activationType: activeActivation.activation_type,
+                                      },
+                                    },
+                                  });
+
+                                  if (error) throw error;
+
+                                  toast.success("Confirmação enviada! Nossa equipe foi notificada sobre a ativação do seu chip.");
+                                } catch (error) {
+                                  console.error('Erro ao enviar confirmação:', error);
+                                  toast.error("Erro ao enviar confirmação. Tente novamente mais tarde.");
+                                }
+                              }}
+                            >
+                              Continuar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 )}
