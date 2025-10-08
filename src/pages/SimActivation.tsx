@@ -216,7 +216,7 @@ export default function SimActivation() {
       if (totalUploads >= 3) {
         console.log('⚠️ Limite de 3 anexos atingido. Verificando saldo...');
         
-        // Buscar saldo disponível do usuário (comissões - descontos)
+        // Buscar saldo disponível do usuário (comissões + adições - descontos)
         const { data: commissionsData } = await supabase
           .from('commissions')
           .select('amount, status')
@@ -226,20 +226,26 @@ export default function SimActivation() {
         const commissionsTotal = commissionsData
           ?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
-        // Buscar descontos já aplicados
+        // Buscar ajustes de saldo (adições e descontos)
         const { data: adjustmentsData } = await supabase
           .from('admin_balance_adjustments')
           .select('amount, type')
           .eq('user_id', user?.id);
 
+        const additionsTotal = adjustmentsData
+          ?.filter(a => a.type === 'add')
+          .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
         const deductionsTotal = adjustmentsData
           ?.filter(a => a.type === 'remove')
           .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
 
-        const currentBalance = commissionsTotal - deductionsTotal;
+        // Saldo disponível = comissões + adições - descontos
+        const currentBalance = commissionsTotal + additionsTotal - deductionsTotal;
 
         console.log('💰 Saldo disponível:', {
           commissionsTotal,
+          additionsTotal,
           deductionsTotal,
           currentBalance
         });

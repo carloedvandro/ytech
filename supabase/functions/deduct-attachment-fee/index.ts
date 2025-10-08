@@ -33,7 +33,7 @@ serve(async (req) => {
 
     console.log('💰 Verificando saldo para desconto de anexo extra:', { userId: user.id, fee: ATTACHMENT_FEE });
 
-    // Buscar saldo atual (comissões disponíveis - descontos já aplicados)
+    // Buscar saldo atual (comissões disponíveis + adições - descontos)
     const { data: commissionsData } = await supabase
       .from('commissions')
       .select('amount, status, id, created_at')
@@ -44,20 +44,26 @@ serve(async (req) => {
     const commissionsTotal = commissionsData
       ?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
-    // Buscar descontos já aplicados
+    // Buscar ajustes de saldo (adições e descontos)
     const { data: adjustmentsData } = await supabase
       .from('admin_balance_adjustments')
       .select('amount, type')
       .eq('user_id', user.id);
 
+    const additionsTotal = adjustmentsData
+      ?.filter(a => a.type === 'add')
+      .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
     const deductionsTotal = adjustmentsData
       ?.filter(a => a.type === 'remove')
       .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
 
-    const currentBalance = commissionsTotal - deductionsTotal;
+    // Saldo disponível = comissões + adições - descontos
+    const currentBalance = commissionsTotal + additionsTotal - deductionsTotal;
 
     console.log('📊 Saldo atual:', {
       commissionsTotal,
+      additionsTotal,
       deductionsTotal,
       currentBalance
     });
