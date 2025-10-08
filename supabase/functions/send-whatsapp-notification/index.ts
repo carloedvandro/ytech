@@ -27,6 +27,19 @@ const messageTemplates = {
     `Estamos muito felizes em tê-lo(a) conosco! Se tiver qualquer dúvida, estamos à disposição.\n\n` +
     `Seja bem-vindo(a) e bons negócios! 🎯`,
 
+  sim_activated: (data: any) =>
+    `🎉 *Seu ${data.productType} foi ATIVADO!*\n\n` +
+    `Olá ${data.name}! 🚀\n\n` +
+    `✅ Ótimas notícias! Seu ${data.productType} já está ativo e pronto para uso.\n\n` +
+    `📱 *O que fazer agora:*\n` +
+    `${data.instructions}\n\n` +
+    `🌐 *Teste sua conexão:*\n` +
+    `• Abra o navegador\n` +
+    `• Acesse qualquer site\n` +
+    `• Faça uma chamada de teste\n\n` +
+    `💡 Se tiver qualquer dúvida, estamos à disposição!\n\n` +
+    `_Y-TECH Internet 5G_`,
+
   payment_pending: (data: any) =>
     `💰 *Y-TECH Internet 5G*\n\n` +
     `Seu pagamento está pendente.\n\n` +
@@ -98,8 +111,62 @@ Deno.serve(async (req) => {
       throw new Error('Credenciais Mega API não configuradas. Configure os secrets: MEGA_API_HOST, MEGA_INSTANCE_KEY, MEGA_API_KEY');
     }
 
-    const { whatsapp, messageType, data, userId } = await req.json();
+    const { whatsapp, messageType, data, userId, to, message } = await req.json();
 
+    // Permitir envio direto de mensagem (sem template) OU uso de template
+    if (message && to) {
+      // Envio direto - usado pela ativação de SIM
+      const formattedNumber = to.replace(/\D/g, '');
+      
+      console.log(`📱 Enviando mensagem direta para ${formattedNumber}`);
+
+      // Enviar via Mega API
+      const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
+      
+      const megaResponse = await fetch(megaUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${megaToken}`
+        },
+        body: JSON.stringify({
+          messageData: {
+            to: formattedNumber,
+            text: message
+          }
+        })
+      });
+
+      const megaData = await megaResponse.json();
+      console.log('Resposta Mega API:', JSON.stringify(megaData, null, 2));
+
+      if (!megaResponse.ok) {
+        console.error('Erro do Mega API:', megaData);
+        throw new Error(`Erro ao enviar mensagem: ${megaData.error || 'Erro desconhecido'}`);
+      }
+
+      // Salvar mensagem enviada
+      await supabase
+        .from('whatsapp_messages')
+        .insert({
+          user_id: userId || null,
+          whatsapp: formattedNumber,
+          message_type: 'custom',
+          message_content: message,
+          status: 'sent',
+          mega_message_id: megaData.key?.id || null,
+          metadata: data || {}
+        });
+
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: 'Notificação enviada com sucesso'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Modo template (código original)
     if (!whatsapp || !messageType) {
       throw new Error('WhatsApp e tipo de mensagem são obrigatórios');
     }
@@ -110,7 +177,7 @@ Deno.serve(async (req) => {
       throw new Error(`Template não encontrado: ${messageType}`);
     }
 
-    const message = templateFn(data);
+    const templateMessage = templateFn(data);
 
     // Formatar número
     const formattedNumber = whatsapp.replace(/\D/g, '');
@@ -129,7 +196,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         messageData: {
           to: formattedNumber,
-          text: message
+          text: templateMessage
         }
       })
     });
@@ -149,7 +216,7 @@ Deno.serve(async (req) => {
         user_id: userId || null,
         whatsapp: formattedNumber,
         message_type: messageType,
-        message_content: message,
+        message_content: templateMessage,
         status: 'sent',
         mega_message_id: megaData.key?.id || null,
         metadata: data

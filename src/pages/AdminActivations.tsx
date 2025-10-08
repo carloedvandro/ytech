@@ -90,7 +90,11 @@ export default function AdminActivations() {
   }
 
   const activateMutation = useMutation({
-    mutationFn: async ({ activationId, qrCodeUrl }: { activationId: string; qrCodeUrl?: string }) => {
+    mutationFn: async ({ activationId, qrCodeUrl, activation }: { 
+      activationId: string; 
+      qrCodeUrl?: string;
+      activation: SimActivation;
+    }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         console.error("❌ Sessão não encontrada");
@@ -99,6 +103,7 @@ export default function AdminActivations() {
 
       console.log("✅ Usuário autenticado:", session.user.id);
 
+      // Atualizar status da ativação
       const { error } = await supabase
         .from("sim_activations")
         .update({
@@ -115,6 +120,53 @@ export default function AdminActivations() {
       }
 
       console.log("✅ Ativação confirmada com sucesso!");
+
+      // Enviar mensagem via WhatsApp
+      try {
+        const tipoProduto = activation.activation_type === "chip" ? "Chip SIM" : "eSIM";
+        const mensagem = `🎉 *Seu ${tipoProduto} foi ATIVADO!*
+
+Olá ${activation.profiles.full_name}! 
+
+✅ Ótimas notícias! Seu ${tipoProduto} já está ativo e pronto para uso.
+
+📱 *O que fazer agora:*
+${activation.activation_type === "chip" 
+  ? "1️⃣ Insira o chip no seu aparelho\n2️⃣ Aguarde alguns segundos para conectar à rede\n3️⃣ Teste acessando a internet" 
+  : "1️⃣ Escaneie o QR code que enviamos\n2️⃣ Configure o eSIM no seu aparelho\n3️⃣ Aguarde a conexão com a rede\n4️⃣ Teste acessando a internet"
+}
+
+🌐 *Teste sua conexão:*
+• Abra o navegador
+• Acesse qualquer site
+• Faça uma chamada de teste
+
+💡 Se tiver qualquer dúvida, estamos à disposição!
+
+_Y-TECH Internet 5G_`;
+
+        console.log("📤 Enviando WhatsApp para:", activation.profiles.whatsapp);
+
+        const { error: whatsappError } = await supabase.functions.invoke(
+          'send-whatsapp-notification',
+          {
+            body: {
+              to: activation.profiles.whatsapp,
+              message: mensagem,
+            },
+          }
+        );
+
+        if (whatsappError) {
+          console.error("⚠️ Erro ao enviar WhatsApp:", whatsappError);
+          // Não falhar a operação se o WhatsApp falhar
+        } else {
+          console.log("✅ WhatsApp enviado com sucesso!");
+        }
+      } catch (whatsappError) {
+        console.error("⚠️ Erro ao enviar WhatsApp:", whatsappError);
+        // Não falhar a operação se o WhatsApp falhar
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-activations"] });
@@ -150,7 +202,10 @@ export default function AdminActivations() {
   const handleActivate = (activation: SimActivation) => {
     if (activation.activation_type === "chip") {
       // Chip físico - ativar direto
-      activateMutation.mutate({ activationId: activation.id });
+      activateMutation.mutate({ 
+        activationId: activation.id,
+        activation: activation
+      });
     } else {
       // eSIM - abrir dialog para QR code
       setSelectedActivation(activation);
@@ -166,6 +221,7 @@ export default function AdminActivations() {
     activateMutation.mutate({
       activationId: selectedActivation.id,
       qrCodeUrl: qrCodeData,
+      activation: selectedActivation,
     });
   };
 
