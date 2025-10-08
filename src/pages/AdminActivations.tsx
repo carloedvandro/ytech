@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CheckCircle, Clock, Smartphone, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, Smartphone, Loader2, Trash2 } from "lucide-react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 
 interface SimActivation {
@@ -115,6 +115,25 @@ export default function AdminActivations() {
     onError: (error) => {
       console.error("Erro ao ativar:", error);
       toast.error("Erro ao confirmar ativação");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (activationId: string) => {
+      const { error } = await supabase
+        .from("sim_activations")
+        .delete()
+        .eq("id", activationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-activations"] });
+      toast.success("Ativação deletada com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Erro ao deletar:", error);
+      toast.error("Erro ao deletar ativação");
     },
   });
 
@@ -258,7 +277,7 @@ export default function AdminActivations() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="flex flex-col gap-2">
                     {activation.status === "pending" && (
                       <Button onClick={() => handleActivate(activation)}>
                         Confirmar Ativação
@@ -270,6 +289,25 @@ export default function AdminActivations() {
                         Confirmado
                       </Badge>
                     )}
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => {
+                        if (confirm(`Tem certeza que deseja deletar esta ativação?`)) {
+                          deleteMutation.mutate(activation.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Deletar
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
