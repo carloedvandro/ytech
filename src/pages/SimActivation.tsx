@@ -14,12 +14,13 @@ import { toast } from "sonner";
 import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 
 export default function SimActivation() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"chip" | "esim">("chip");
   const [scanning, setScanning] = useState(false);
   const [barcode, setBarcode] = useState("");
@@ -390,6 +391,8 @@ export default function SimActivation() {
       
       // Se houver ativação pendente, marcar como cancelada pelo cliente
       if (pendingActivation) {
+        console.log('🔄 Cancelando ativação:', pendingActivation.id);
+        
         const { error } = await supabase
           .from('sim_activations')
           .update({ 
@@ -398,10 +401,18 @@ export default function SimActivation() {
           })
           .eq('id', pendingActivation.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Erro ao cancelar:', error);
+          throw error;
+        }
         
-        // Aguardar o refetch completar para atualizar o estado
-        await refetch();
+        console.log('✅ Ativação cancelada com sucesso');
+        
+        // Invalidar queries para forçar atualização
+        await queryClient.invalidateQueries({ queryKey: ["user-activations", user?.id] });
+        
+        // Aguardar um momento para garantir que a query foi recarregada
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       // Limpar dados locais
