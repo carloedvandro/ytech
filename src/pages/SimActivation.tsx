@@ -85,12 +85,15 @@ export default function SimActivation() {
           aspectRatio: 2.0
         },
         (decodedText) => {
-          // Aceitar apenas códigos maiores (mais de 10 caracteres)
-          if (decodedText.length > 10) {
+          // Aceitar apenas códigos que começam com 8955 (código de baixo do chip Vivo)
+          if (decodedText.startsWith('8955') && decodedText.length >= 18) {
             setBarcode(decodedText);
             html5QrCode.stop();
             setScanning(false);
             toast.success(`Código de barras lido: ${decodedText}`);
+          } else if (decodedText.length > 10 && !decodedText.startsWith('8955')) {
+            // Ignorar silenciosamente códigos que não são o correto
+            console.log('Código ignorado (não começa com 8955):', decodedText);
           }
         },
         (errorMessage) => {
