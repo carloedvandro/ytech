@@ -151,17 +151,14 @@ const Financial = () => {
       const commissionsAvailable = commissionsData?.filter(c => c.status === "available").reduce((sum, c) => sum + Number(c.amount), 0) || 0;
       const pending = commissionsData?.filter(c => c.status === "pending").reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
-      // Calcular adições e descontos dos ajustes
+      // Calcular apenas as adições manuais
       const additionsTotal = adjustmentsData
         ?.filter(a => a.type === 'add')
         .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
 
-      const deductionsTotal = adjustmentsData
-        ?.filter(a => a.type === 'remove')
-        .reduce((sum, a) => sum + Number(a.amount), 0) || 0;
-
-      // Saldo disponível = comissões disponíveis + adições - descontos
-      const available = commissionsAvailable + additionsTotal - deductionsTotal;
+      // Saldo disponível = comissões available + adições
+      // Não subtraímos deduções porque elas já marcaram comissões como withdrawn
+      const available = commissionsAvailable + additionsTotal;
 
       setBalance({ total, available, pending });
     } catch (error: any) {
