@@ -166,10 +166,43 @@ export default function SimActivation() {
   };
 
   const handleImageUpload = async (file: File) => {
-    setScreenshot(file);
     setIsProcessingImage(true);
     
     try {
+      // Verificar limite de uploads nas últimas 24 horas
+      console.log('🔍 Verificando limite de uploads de anexos...');
+      
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+      
+      const { data: recentUploads, error: countError } = await supabase
+        .from('sim_activations')
+        .select('id, screenshot_url, created_at')
+        .eq('user_id', user?.id)
+        .not('screenshot_url', 'is', null)
+        .gte('created_at', twentyFourHoursAgo.toISOString());
+
+      if (countError) {
+        console.error('❌ Erro ao verificar uploads:', countError);
+        throw countError;
+      }
+
+      console.log('📊 Uploads de anexos encontrados nas últimas 24h:', recentUploads);
+
+      // Se já fez 3 uploads nas últimas 24 horas
+      if (recentUploads && recentUploads.length >= 3) {
+        toast.error(
+          "Você atingiu o limite de 3 anexos por dia. " +
+          "Para enviar mais anexos, será cobrada uma taxa de R$ 3,00 por envio adicional. " +
+          "Entre em contato com o suporte para prosseguir.",
+          { duration: 8000 }
+        );
+        setIsProcessingImage(false);
+        return;
+      }
+      
+      setScreenshot(file);
+      
       // Converter imagem para base64
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -896,6 +929,14 @@ export default function SimActivation() {
                         🤖 <strong>IA Automática!</strong> Envie o print e preencheremos o IMEI e EID automaticamente
                       </AlertDescription>
                     </div>
+                  </Alert>
+                  
+                  <Alert className="bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
+                      <strong>⚠️ Limite de Anexos:</strong> Você pode enviar até <strong>3 anexos por dia</strong> gratuitamente. 
+                      Após esse limite, será cobrada uma taxa de <strong>R$ 3,00</strong> por envio adicional.
+                    </AlertDescription>
                   </Alert>
 
                   <div className="relative">
