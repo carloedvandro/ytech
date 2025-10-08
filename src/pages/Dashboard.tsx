@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, TrendingUp, Share2, Loader2, QrCode, AlertTriangle } from "lucide-react";
+import { Users, DollarSign, TrendingUp, Share2, Loader2, QrCode, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UsernameManager } from "@/components/UsernameManager";
@@ -51,6 +51,30 @@ const Dashboard = () => {
 
   // Usar perfil impersonado ou perfil real
   const activeProfile = isImpersonating && impersonatedProfile ? impersonatedProfile : profile;
+
+  // Buscar status da ativação de SIM
+  const { data: simActivation } = useQuery({
+    queryKey: ["sim-activation-status", activeProfile?.id],
+    queryFn: async () => {
+      if (!activeProfile?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("sim_activations")
+        .select("*")
+        .eq("user_id", activeProfile.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Erro ao buscar ativação:", error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!activeProfile?.id,
+  });
 
   useEffect(() => {
     if (!activeProfile?.id) return;
@@ -175,6 +199,80 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Bem-vindo ao seu painel de controle</p>
         </div>
+
+        {/* Status da Ativação do SIM */}
+        {simActivation && (
+          <Card className="relative overflow-hidden border-2">
+            {simActivation.status === "activated" ? (
+              <>
+                <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.08} blur="heavy" />
+                <div className="relative z-10 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <CheckCircle2 className="h-8 w-8 text-green-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        🎉 Chip Ativado com Sucesso!
+                      </h3>
+                      <p className="text-muted-foreground mt-1">
+                        Seu chip foi ativado em {new Date(simActivation.activated_at!).toLocaleString('pt-BR')}
+                      </p>
+                      {simActivation.qr_code_url && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="mt-3">
+                              <QrCode className="h-4 w-4 mr-2" />
+                              Ver QR Code do eSIM
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>QR Code do eSIM</DialogTitle>
+                              <DialogDescription>
+                                Use este QR code para ativar seu eSIM no dispositivo
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="flex justify-center p-6">
+                              <QRCodeSVG
+                                value={simActivation.qr_code_url}
+                                size={256}
+                                level="H"
+                                includeMargin
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <AnimatedGradient colors={["#f59e0b", "#fbbf24", "#fcd34d"]} speed={0.08} blur="heavy" />
+                <div className="relative z-10 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                      <Clock className="h-8 w-8 text-yellow-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        ⏳ Ativação Pendente
+                      </h3>
+                      <p className="text-muted-foreground mt-1">
+                        Sua solicitação foi enviada em {new Date(simActivation.created_at).toLocaleString('pt-BR')}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Aguarde a confirmação da nossa equipe. Você será notificado assim que seu chip for ativado.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </Card>
+        )}
 
         {/* Alerta de pagamento em atraso */}
         {isOverdue && (

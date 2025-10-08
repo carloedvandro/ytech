@@ -91,20 +91,30 @@ export default function AdminActivations() {
 
   const activateMutation = useMutation({
     mutationFn: async ({ activationId, qrCodeUrl }: { activationId: string; qrCodeUrl?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.error("❌ Sessão não encontrada");
+        throw new Error("Sessão expirada. Por favor, faça login novamente.");
+      }
+
+      console.log("✅ Usuário autenticado:", session.user.id);
 
       const { error } = await supabase
         .from("sim_activations")
         .update({
           status: "activated",
           qr_code_url: qrCodeUrl || null,
-          activated_by: user.id,
+          activated_by: session.user.id,
           activated_at: new Date().toISOString(),
         })
         .eq("id", activationId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Erro ao atualizar ativação:", error);
+        throw error;
+      }
+
+      console.log("✅ Ativação confirmada com sucesso!");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-activations"] });
