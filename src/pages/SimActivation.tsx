@@ -792,9 +792,9 @@ export default function SimActivation() {
                   <div className="relative">
                     <Label 
                       htmlFor="screenshot" 
-                      className="block cursor-pointer"
+                      className={`block ${!pendingActivation ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                     >
-                      <div className="border-4 border-dashed border-primary rounded-lg p-8 bg-primary/5 hover:bg-primary/10 transition-colors relative group">
+                      <div className={`border-4 border-dashed border-primary rounded-lg p-8 bg-primary/5 ${!pendingActivation ? 'hover:bg-primary/10' : ''} transition-colors relative group`}>
                         <div className="absolute -top-3 -left-3 bg-red-500 text-white px-4 py-1 rounded-full text-sm font-bold animate-pulse shadow-lg">
                           👈 CLIQUE AQUI!
                         </div>
@@ -833,7 +833,7 @@ export default function SimActivation() {
                           handleImageUpload(file);
                         }
                       }}
-                      disabled={isProcessingImage}
+                      disabled={isProcessingImage || !!pendingActivation}
                       className="hidden"
                     />
                   </div>
@@ -901,6 +901,7 @@ export default function SimActivation() {
                         localStorage.removeItem('sim-activation-data');
                       }}
                       variant="outline"
+                      disabled={!!pendingActivation}
                     >
                       Nova Ativação
                     </Button>
