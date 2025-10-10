@@ -156,7 +156,8 @@ Deno.serve(async (req) => {
           const megaData = await megaResponse.json();
           console.log('Resposta Mega API (imagem):', JSON.stringify(megaData, null, 2));
 
-          if (megaResponse.ok) {
+          // Mega API retorna 200 mesmo com erro, verificar campo error no body
+          if (megaResponse.ok && !megaData.error) {
             // Salvar mensagem enviada
             await supabase
               .from('whatsapp_messages')
