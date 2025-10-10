@@ -478,13 +478,13 @@ _Y-TECH Internet 5G_`;
           setPhoneNumber("");
         }
       }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedActivation?.activation_type === "chip" ? "Ativar Chip" : "Ativar eSIM"} - {selectedActivation?.profiles.full_name}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 pb-4">
             <div className="space-y-2">
               <Label htmlFor="phone-number" className="text-red-500">
                 * Número da Linha (Obrigatório)
