@@ -134,10 +134,63 @@ Deno.serve(async (req) => {
 
       // Se houver imageUrl, enviar como imagem + legenda
       if (imageUrl) {
-        console.log('📸 Enviando imagem com legenda');
+        console.log('📸 Tentando enviar imagem com legenda');
         const megaImageUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/image`;
         
-        const megaResponse = await fetch(megaImageUrl, {
+        try {
+          const megaResponse = await fetch(megaImageUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${megaToken}`
+            },
+            body: JSON.stringify({
+              messageData: {
+                to: formattedNumber,
+                url: imageUrl,
+                caption: message
+              }
+            })
+          });
+
+          const megaData = await megaResponse.json();
+          console.log('Resposta Mega API (imagem):', JSON.stringify(megaData, null, 2));
+
+          if (megaResponse.ok) {
+            // Salvar mensagem enviada
+            await supabase
+              .from('whatsapp_messages')
+              .insert({
+                user_id: userId || null,
+                whatsapp: formattedNumber,
+                message_type: 'esim_qrcode',
+                message_content: message,
+                status: 'sent',
+                mega_message_id: megaData.key?.id || null,
+                metadata: { ...data, imageUrl }
+              });
+
+            return new Response(JSON.stringify({ 
+              success: true,
+              message: 'Imagem do QR Code enviada com sucesso'
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          } else {
+            // Erro ao enviar imagem - fazer fallback para texto com link
+            console.warn('⚠️ Erro ao enviar imagem, usando fallback para texto:', megaData);
+          }
+        } catch (error) {
+          console.error('❌ Falha ao enviar imagem, usando fallback:', error);
+        }
+
+        // FALLBACK: Enviar mensagem de texto com link do QR code
+        console.log('📝 Enviando mensagem de texto com link da imagem');
+        const messageWithLink = `${message}\n\n🔗 *Link do QR Code:*\n${imageUrl}\n\n_Clique no link acima para visualizar e salvar o QR Code_`;
+        
+        const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
+        
+        const textResponse = await fetch(megaUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -146,36 +199,35 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             messageData: {
               to: formattedNumber,
-              url: imageUrl,
-              caption: message
+              text: messageWithLink
             }
           })
         });
 
-        const megaData = await megaResponse.json();
-        console.log('Resposta Mega API (imagem):', JSON.stringify(megaData, null, 2));
+        const textData = await textResponse.json();
+        console.log('Resposta Mega API (texto):', JSON.stringify(textData, null, 2));
 
-        if (!megaResponse.ok) {
-          console.error('Erro do Mega API:', megaData);
-          throw new Error(`Erro ao enviar imagem: ${megaData.error || 'Erro desconhecido'}`);
+        if (!textResponse.ok) {
+          console.error('Erro do Mega API ao enviar texto:', textData);
+          throw new Error(`Erro ao enviar mensagem: ${textData.error || 'Erro desconhecido'}`);
         }
 
-        // Salvar mensagem enviada
+        // Salvar mensagem enviada (fallback)
         await supabase
           .from('whatsapp_messages')
           .insert({
             user_id: userId || null,
             whatsapp: formattedNumber,
-            message_type: 'esim_qrcode',
-            message_content: message,
+            message_type: 'esim_qrcode_fallback',
+            message_content: messageWithLink,
             status: 'sent',
-            mega_message_id: megaData.key?.id || null,
-            metadata: { ...data, imageUrl }
+            mega_message_id: textData.key?.id || null,
+            metadata: { ...data, imageUrl, fallback: true }
           });
 
         return new Response(JSON.stringify({ 
           success: true,
-          message: 'Imagem do QR Code enviada com sucesso'
+          message: 'Mensagem com link do QR Code enviada com sucesso (fallback)'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
