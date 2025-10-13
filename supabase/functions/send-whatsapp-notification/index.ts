@@ -117,7 +117,19 @@ const messageTemplates = {
     `💰 Desconto aplicado: R$ ${data.discountAmount.toFixed(2)}\n` +
     `💳 Valor pago: R$ ${data.paidAmount.toFixed(2)}\n` +
     `📊 Saldo restante: R$ ${data.remainingBalance.toFixed(2)}\n\n` +
-    `✅ Seu plano foi renovado com sucesso!`
+    `✅ Seu plano foi renovado com sucesso!`,
+
+  new_referral: (data: any) =>
+    `🎉 *Novo Indicado Cadastrado!*\n\n` +
+    `Olá ${data.referrerName}! 👋\n\n` +
+    `✅ Você acabou de receber um novo indicado:\n\n` +
+    `👤 *Nome:* ${data.newUserName}\n` +
+    `📧 *Email:* ${data.newUserEmail}\n` +
+    `📱 *WhatsApp:* ${data.newUserWhatsapp}\n\n` +
+    `💰 *Próximos passos:*\n` +
+    `Quando seu indicado realizar o pagamento do primeiro plano, você receberá sua comissão!\n\n` +
+    `Continue compartilhando seu link e ampliando sua rede! 🚀\n\n` +
+    `_Y-TECH Internet 5G_`
 };
 
 Deno.serve(async (req) => {

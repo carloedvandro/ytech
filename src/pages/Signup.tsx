@@ -278,6 +278,34 @@ const Signup = () => {
         // Não bloqueia o cadastro se o WhatsApp falhar
       }
 
+      // 4. Notificar o indicador direto (nível 1)
+      try {
+        const { data: referrerProfile } = await supabase
+          .from("profiles")
+          .select("full_name, whatsapp")
+          .eq("id", referrer.id)
+          .single();
+
+        if (referrerProfile?.whatsapp) {
+          await supabase.functions.invoke("send-whatsapp-notification", {
+            body: {
+              whatsapp: referrerProfile.whatsapp,
+              messageType: "new_referral",
+              data: {
+                referrerName: referrerProfile.full_name,
+                newUserName: data.fullName,
+                newUserEmail: data.email,
+                newUserWhatsapp: data.whatsapp,
+              },
+              userId: referrer.id,
+            },
+          });
+        }
+      } catch (referralNotificationError) {
+        console.error("Erro ao notificar indicador:", referralNotificationError);
+        // Não bloqueia o cadastro se a notificação falhar
+      }
+
       toast({
         title: "Cadastro realizado!",
         description: "Faça login para continuar",
