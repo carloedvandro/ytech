@@ -426,7 +426,7 @@ const Financial = () => {
         </div>
 
         {/* Renovação Antecipada */}
-        {userPlan && userPlan.status === 'active' && (
+        {userPlan && userPlan.status === 'active' && userPlan.next_renewal_date && (
           <Card className="bg-gradient-to-br from-green-500/5 to-green-600/10 border-green-500/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
