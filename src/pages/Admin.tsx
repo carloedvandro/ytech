@@ -62,7 +62,7 @@ const Admin = () => {
     queryKey: ["admin-users"],
     queryFn: async () => {
       const { data: allUsers, error } = await supabase
-        .from("users")
+        .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -72,7 +72,7 @@ const Admin = () => {
       const usersWithReferrals = await Promise.all(
         allUsers.map(async (user) => {
           const { count } = await supabase
-            .from("users")
+            .from("profiles")
             .select("*", { count: "exact", head: true })
             .eq("referred_by", user.id)
             .is("deleted_at", null);
