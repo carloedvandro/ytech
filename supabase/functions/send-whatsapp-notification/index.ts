@@ -101,7 +101,23 @@ const messageTemplates = {
     `• Configurou o ${data.activationType === 'esim' ? 'eSIM' : 'chip'}\n` +
     `• Fez testes de conexão\n` +
     `• O chip está funcionando normalmente\n\n` +
-    `_Y-TECH Internet 5G_`
+    `_Y-TECH Internet 5G_`,
+
+  renewal_paid_with_balance: (data: any) =>
+    `🎉 *Renovação Confirmada!*\n\n` +
+    `✅ *Pagamento realizado com seu saldo!*\n\n` +
+    `💰 Valor descontado: R$ ${data.amountDeducted.toFixed(2)}\n` +
+    `📊 Saldo restante: R$ ${data.remainingBalance.toFixed(2)}\n\n` +
+    `🗓️ *Seu plano está ativo até:*\n` +
+    `${new Date(data.nextRenewalDate).toLocaleDateString('pt-BR')}\n\n` +
+    `_A próxima cobrança será gerada automaticamente._`,
+
+  renewal_with_discount: (data: any) =>
+    `🎉 *Renovação Confirmada!*\n\n` +
+    `💰 Desconto aplicado: R$ ${data.discountAmount.toFixed(2)}\n` +
+    `💳 Valor pago: R$ ${data.paidAmount.toFixed(2)}\n` +
+    `📊 Saldo restante: R$ ${data.remainingBalance.toFixed(2)}\n\n` +
+    `✅ Seu plano foi renovado com sucesso!`
 };
 
 Deno.serve(async (req) => {

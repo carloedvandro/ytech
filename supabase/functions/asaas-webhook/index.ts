@@ -232,6 +232,151 @@ serve(async (req) => {
             return;
           }
 
+          // 🎯 VERIFICAR SALDO E APLICAR DESCONTO/PAGAMENTO TOTAL
+          const planPrice = Number(plan.price);
+          let discountApplied = 0;
+          let paidWithBalance = false;
+
+          // Verificar se é renovação (subscription exists)
+          if (payment.subscription_id) {
+            console.log('📊 Verificando preferências de renovação...');
+
+            // 1. Buscar preferências do usuário
+            const { data: preferences } = await supabaseClient
+              .from('user_renewal_preferences')
+              .select('*')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+            if (preferences?.use_balance_for_renewal) {
+              console.log('✅ Usuário quer usar saldo nas renovações');
+
+              // 2. Calcular saldo disponível
+              const { data: commissionsData } = await supabaseClient
+                .from('commissions')
+                .select('amount')
+                .eq('user_id', userId)
+                .eq('status', 'available');
+
+              const { data: adjustments } = await supabaseClient
+                .from('admin_balance_adjustments')
+                .select('amount, type')
+                .eq('user_id', userId);
+
+              let totalBalance = 0;
+              if (commissionsData) {
+                totalBalance = commissionsData.reduce((sum: number, c: any) => sum + Number(c.amount), 0);
+              }
+              if (adjustments) {
+                adjustments.forEach((adj: any) => {
+                  totalBalance += adj.type === 'add' ? Number(adj.amount) : -Number(adj.amount);
+                });
+              }
+
+              const minimumBalance = Number(preferences.minimum_balance_to_keep) || 0;
+              const availableBalance = Math.max(0, totalBalance - minimumBalance);
+
+              console.log(`💰 Saldo total: R$ ${totalBalance.toFixed(2)}`);
+              console.log(`🔒 Saldo mínimo: R$ ${minimumBalance.toFixed(2)}`);
+              console.log(`✅ Saldo disponível: R$ ${availableBalance.toFixed(2)}`);
+
+              // 3. CASO 1: Saldo TOTAL (≥ preço do plano) - ZERAR FATURA
+              if (availableBalance >= planPrice) {
+                console.log(`✅ Pagamento TOTAL com saldo! Cancelando fatura ${event.payment.id}`);
+
+                try {
+                  // Cancelar fatura no Asaas
+                  const { data: cancelResult, error: cancelError } = await supabaseClient.functions.invoke(
+                    'cancel-asaas-payment',
+                    { body: { asaasPaymentId: event.payment.id } }
+                  );
+
+                  if (cancelError) {
+                    console.error('❌ Erro ao cancelar fatura:', cancelError);
+                  } else {
+                    console.log('✅ Fatura cancelada:', cancelResult);
+                  }
+                } catch (cancelErr) {
+                  console.error('❌ Erro ao chamar função de cancelamento:', cancelErr);
+                }
+
+                // Descontar valor total do saldo
+                await supabaseClient.from('admin_balance_adjustments').insert({
+                  user_id: userId,
+                  admin_id: userId,
+                  type: 'remove',
+                  amount: planPrice,
+                  reason: `Pagamento da renovação com saldo - Ref: ${event.payment.id}`,
+                  balance_before: totalBalance,
+                  balance_after: totalBalance - planPrice,
+                });
+
+                console.log(`✅ Descontado R$ ${planPrice.toFixed(2)} do saldo`);
+
+                // Marcar como pago com saldo
+                paidWithBalance = true;
+                discountApplied = planPrice;
+
+                // Enviar WhatsApp customizado
+                const now = new Date();
+                const saoPauloOffset = -3 * 60;
+                const localOffset = now.getTimezoneOffset();
+                const adjustedNow = new Date(now.getTime() + (localOffset - saoPauloOffset) * 60000);
+                const nextRenewalDate = new Date(adjustedNow);
+                nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
+
+                await supabaseClient.functions.invoke('send-whatsapp-notification', {
+                  body: {
+                    messageType: 'renewal_paid_with_balance',
+                    userId,
+                    data: {
+                      amountDeducted: planPrice,
+                      remainingBalance: totalBalance - planPrice,
+                      nextRenewalDate: nextRenewalDate.toISOString(),
+                    }
+                  }
+                });
+
+                console.log('📱 WhatsApp enviado: Renovação paga com saldo');
+              }
+
+              // 4. CASO 2: Saldo PARCIAL (R$ 5-124,99) - DESCONTO
+              else if (availableBalance >= 5.00) {
+                const maxDiscount = Math.min(availableBalance, planPrice - 5.00); // Máx R$ 124,99
+                console.log(`💰 Aplicando desconto parcial de R$ ${maxDiscount.toFixed(2)}`);
+
+                await supabaseClient.from('admin_balance_adjustments').insert({
+                  user_id: userId,
+                  admin_id: userId,
+                  type: 'remove',
+                  amount: maxDiscount,
+                  reason: `Desconto na renovação - Ref: ${event.payment.id}`,
+                  balance_before: totalBalance,
+                  balance_after: totalBalance - maxDiscount,
+                });
+
+                discountApplied = maxDiscount;
+
+                // WhatsApp com desconto
+                await supabaseClient.functions.invoke('send-whatsapp-notification', {
+                  body: {
+                    messageType: 'renewal_with_discount',
+                    userId,
+                    data: {
+                      discountAmount: maxDiscount,
+                      paidAmount: planPrice - maxDiscount,
+                      remainingBalance: totalBalance - maxDiscount,
+                    }
+                  }
+                });
+
+                console.log('📱 WhatsApp enviado: Renovação com desconto');
+              } else {
+                console.log('⚠️ Saldo insuficiente para desconto (< R$ 5,00)');
+              }
+            }
+          }
+
           // Atualizar payment
           if (paymentId && payment.id === paymentId) {
             await supabaseClient

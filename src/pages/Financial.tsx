@@ -4,10 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
-import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2, Settings, AlertCircle } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { BalanceAdjustmentsHistory } from "@/components/BalanceAdjustmentsHistory";
@@ -44,6 +46,9 @@ const Financial = () => {
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [fixingCommissions, setFixingCommissions] = useState(false);
+  const [useBalanceForRenewal, setUseBalanceForRenewal] = useState(false);
+  const [minimumBalanceToKeep, setMinimumBalanceToKeep] = useState("0");
+  const [savingPreferences, setSavingPreferences] = useState(false);
 
   // ID do usuário ativo (impersonado ou real)
   const activeUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
@@ -52,6 +57,7 @@ const Financial = () => {
     if (!activeUserId) return;
     
     loadFinancialData();
+    loadRenewalPreferences();
     checkAdminRole();
 
     // Escutar por novas comissões em tempo real
@@ -97,6 +103,58 @@ const Financial = () => {
       }
     } catch (error) {
       console.error("Erro ao verificar role:", error);
+    }
+  };
+
+  const loadRenewalPreferences = async () => {
+    try {
+      if (!activeUserId) return;
+
+      const { data, error } = await supabase
+        .from("user_renewal_preferences")
+        .select("*")
+        .eq("user_id", activeUserId)
+        .maybeSingle();
+
+      if (!error && data) {
+        setUseBalanceForRenewal(data.use_balance_for_renewal);
+        setMinimumBalanceToKeep(data.minimum_balance_to_keep?.toString() || "0");
+      }
+    } catch (error) {
+      console.error("Erro ao carregar preferências:", error);
+    }
+  };
+
+  const saveRenewalPreferences = async () => {
+    setSavingPreferences(true);
+    try {
+      if (!activeUserId) return;
+
+      const { error } = await supabase
+        .from("user_renewal_preferences")
+        .upsert({
+          user_id: activeUserId,
+          use_balance_for_renewal: useBalanceForRenewal,
+          minimum_balance_to_keep: parseFloat(minimumBalanceToKeep) || 0,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Preferências salvas!",
+        description: "Suas configurações de renovação foram atualizadas.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPreferences(false);
     }
   };
 
@@ -393,6 +451,125 @@ const Financial = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Preferências de Renovação */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Preferências de Renovação
+            </CardTitle>
+            <CardDescription>
+              Configure como seu saldo será usado nas renovações mensais
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="use-balance">Usar saldo nas renovações</Label>
+                <p className="text-sm text-muted-foreground">
+                  Descontar automaticamente do saldo ao renovar
+                </p>
+              </div>
+              <Switch
+                id="use-balance"
+                checked={useBalanceForRenewal}
+                onCheckedChange={setUseBalanceForRenewal}
+              />
+            </div>
+
+            {useBalanceForRenewal && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="minimum-balance">
+                    Manter saldo mínimo de (R$)
+                  </Label>
+                  <Input
+                    id="minimum-balance"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={minimumBalanceToKeep}
+                    onChange={(e) => setMinimumBalanceToKeep(e.target.value)}
+                    placeholder="0.00"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Valor que será preservado no seu saldo
+                  </p>
+                </div>
+
+                {/* Simulador */}
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>📊 Simulação da próxima renovação:</AlertTitle>
+                  <AlertDescription>
+                    <div className="mt-2 space-y-1 text-sm">
+                      <p>• Mensalidade: R$ 129,99</p>
+                      <p>• Saldo disponível: R$ {balance.available.toFixed(2)}</p>
+                      <p>• Saldo mínimo: R$ {parseFloat(minimumBalanceToKeep || "0").toFixed(2)}</p>
+                      {(() => {
+                        const minBalance = parseFloat(minimumBalanceToKeep || "0");
+                        const availableForDiscount = Math.max(0, balance.available - minBalance);
+                        
+                        if (availableForDiscount >= 129.99) {
+                          return (
+                            <>
+                              <p className="font-bold text-green-600 mt-2">
+                                ✅ Pagamento será feito com seu saldo!
+                              </p>
+                              <p>• Você pagará: R$ 0,00</p>
+                              <p>• Saldo após renovação: R$ {(balance.available - 129.99).toFixed(2)}</p>
+                            </>
+                          );
+                        } else if (availableForDiscount >= 5) {
+                          const discount = Math.min(availableForDiscount, 124.99);
+                          return (
+                            <>
+                              <p className="font-bold text-blue-600 mt-2">
+                                💰 Desconto: R$ {discount.toFixed(2)}
+                              </p>
+                              <p>• Você pagará: R$ {(129.99 - discount).toFixed(2)}</p>
+                              <p>• Saldo após renovação: R$ {(balance.available - discount).toFixed(2)}</p>
+                            </>
+                          );
+                        } else {
+                          return (
+                            <p className="text-amber-600 mt-2">
+                              ⚠️ Saldo insuficiente para desconto (mínimo R$ 5,00)
+                            </p>
+                          );
+                        }
+                      })()}
+                      {balance.available - parseFloat(minimumBalanceToKeep || "0") > 124.99 && (
+                        <Alert className="mt-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Por limitação do banco Asaas, o desconto máximo é de R$ 124,99 (valor mínimo de cobrança: R$ 5,00).
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+
+                <Button 
+                  onClick={saveRenewalPreferences} 
+                  disabled={savingPreferences}
+                  className="w-full"
+                >
+                  {savingPreferences ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar Preferências"
+                  )}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Histórico de Ajustes de Saldo pelo Admin */}
         {activeUserId && (

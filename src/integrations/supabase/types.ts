@@ -533,6 +533,41 @@ export type Database = {
           },
         ]
       }
+      user_renewal_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          minimum_balance_to_keep: number | null
+          updated_at: string | null
+          use_balance_for_renewal: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          minimum_balance_to_keep?: number | null
+          updated_at?: string | null
+          use_balance_for_renewal?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          minimum_balance_to_keep?: number | null
+          updated_at?: string | null
+          use_balance_for_renewal?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_renewal_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
