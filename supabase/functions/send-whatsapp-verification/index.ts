@@ -66,8 +66,13 @@ Deno.serve(async (req) => {
       throw insertError;
     }
 
-    // Formatar número para o Mega API (sem o +)
-    const formattedNumber = whatsapp.replace(/\D/g, '');
+    // Formatar número para o Mega API (adicionar 55 se não tiver)
+    let formattedNumber = whatsapp.replace(/\D/g, '');
+    
+    // Se o número tem 11 dígitos (DDD + número), adicionar código do país
+    if (formattedNumber.length === 11 && !formattedNumber.startsWith('55')) {
+      formattedNumber = '55' + formattedNumber;
+    }
 
     // Mensagem formatada
     const message = `🔐 *Y-TECH Internet 5G*\n\nSeu código de verificação:\n\n*${code}*\n\nVálido por 10 minutos.\n\n_Não compartilhe este código._`;
