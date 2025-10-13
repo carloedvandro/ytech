@@ -172,6 +172,7 @@ serve(async (req) => {
           let payment;
           let userId;
           let planId;
+          let isEarlyRenewal = false;
           
           // Buscar por ID
           if (paymentId) {
@@ -185,7 +186,8 @@ serve(async (req) => {
               payment = paymentData;
               userId = payment.user_id;
               planId = payment.plan_id;
-              console.log('✓ Payment found by ID');
+              isEarlyRenewal = payment.metadata?.renewal_type === 'early';
+              console.log('✓ Payment found by ID', isEarlyRenewal ? '(early renewal)' : '');
             }
           }
           
@@ -228,6 +230,100 @@ serve(async (req) => {
             await supabaseClient
               .from('asaas_webhook_events')
               .update({ response_message: 'Failed: Plan not found' })
+              .eq('event_id', eventId);
+            return;
+          }
+
+          // RENOVAÇÃO ANTECIPADA
+          if (isEarlyRenewal) {
+            console.log('🔄 Processing early renewal payment');
+
+            // Atualizar status do pagamento de renovação antecipada
+            await supabaseClient
+              .from('payments')
+              .update({ 
+                status: 'completed',
+                paid_at: new Date().toISOString(),
+              })
+              .eq('id', paymentId);
+
+            // Buscar perfil do usuário
+            const { data: userProfile } = await supabaseClient
+              .from('profiles')
+              .select('whatsapp')
+              .eq('id', userId)
+              .single();
+
+            // Buscar pagamento principal (assinatura)
+            const { data: subscriptionPayment } = await supabaseClient
+              .from('payments')
+              .select('next_renewal_date, subscription_id')
+              .eq('subscription_id', payment.metadata.original_subscription_id)
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (subscriptionPayment) {
+              // Adicionar 30 dias à data atual de renovação
+              const currentRenewal = new Date(subscriptionPayment.next_renewal_date);
+              const newRenewal = new Date(currentRenewal);
+              newRenewal.setDate(newRenewal.getDate() + 30);
+              newRenewal.setHours(0, 0, 0, 0);
+
+              // Atualizar próxima data de renovação
+              await supabaseClient
+                .from('payments')
+                .update({ next_renewal_date: newRenewal.toISOString() })
+                .eq('subscription_id', payment.metadata.original_subscription_id);
+
+              // Atualizar metadata do perfil
+              const { data: currentProfile } = await supabaseClient
+                .from('profiles')
+                .select('metadata')
+                .eq('id', userId)
+                .single();
+
+              await supabaseClient
+                .from('profiles')
+                .update({
+                  metadata: {
+                    ...(currentProfile?.metadata || {}),
+                    plan_end_date: newRenewal.toISOString(),
+                  }
+                })
+                .eq('id', userId);
+
+              console.log('✓ Renewal date extended to:', newRenewal.toISOString());
+
+              // Enviar WhatsApp de confirmação
+              if (userProfile?.whatsapp) {
+                try {
+                  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp-notification`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                    },
+                    body: JSON.stringify({
+                      whatsapp: userProfile.whatsapp,
+                      messageType: 'renewal_early_payment',
+                      data: {
+                        nextRenewalDate: newRenewal.toISOString(),
+                        amount: payment.amount,
+                      },
+                      userId: userId,
+                    }),
+                  });
+                } catch (error) {
+                  console.error('WhatsApp notification error:', error);
+                }
+              }
+            }
+
+            await supabaseClient
+              .from('asaas_webhook_events')
+              .update({ response_message: 'Completed (early renewal)' })
               .eq('event_id', eventId);
             return;
           }

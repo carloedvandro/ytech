@@ -129,6 +129,17 @@ const messageTemplates = {
     `💰 *Próximos passos:*\n` +
     `Quando seu indicado realizar o pagamento do primeiro plano, você receberá sua comissão!\n\n` +
     `Continue compartilhando seu link e ampliando sua rede! 🚀\n\n` +
+    `_Y-TECH Internet 5G_`,
+  
+  renewal_early_payment: (data: any) =>
+    `✅ *Renovação Antecipada Confirmada!*\n\n` +
+    `🎉 Seu plano foi renovado com sucesso!\n\n` +
+    `📅 *Nova data de vencimento:*\n` +
+    `${new Date(data.nextRenewalDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}\n\n` +
+    `💰 *Valor pago:* R$ ${data.amount.toFixed(2)}\n\n` +
+    `✅ *Seu plano está ativo e renovado!*\n` +
+    `Sua próxima cobrança será gerada automaticamente 30 dias antes do vencimento.\n\n` +
+    `Obrigado por estar com a Y-TECH! 🚀\n\n` +
     `_Y-TECH Internet 5G_`
 };
 

@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
-import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2, Settings, AlertCircle } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2, Settings, AlertCircle, Calendar, Wallet } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { BalanceAdjustmentsHistory } from "@/components/BalanceAdjustmentsHistory";
@@ -253,6 +253,41 @@ const Financial = () => {
     }
   };
 
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
+  const handleEarlyRenewal = async () => {
+    try {
+      setIsWithdrawing(true);
+
+      const { data, error } = await supabase.functions.invoke('create-renewal-payment', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Pagamento criado!",
+        description: "Você será redirecionado para a página de pagamento",
+      });
+
+      // Redirecionar para página de pagamento
+      setTimeout(() => {
+        window.location.href = `/payment/${data.payment.id}`;
+      }, 1000);
+    } catch (error) {
+      console.error('Error creating early renewal:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao criar pagamento de renovação",
+      });
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
   const handleWithdraw = async () => {
     // Verificar se é sexta-feira (5 = Friday)
     const today = new Date();
@@ -389,6 +424,43 @@ const Financial = () => {
             Gerencie suas comissões e saques
           </p>
         </div>
+
+        {/* Renovação Antecipada */}
+        {userPlan && userPlan.status === 'active' && (
+          <Card className="bg-gradient-to-br from-green-500/5 to-green-600/10 border-green-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-green-600" />
+                Renovação Antecipada
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
+                <div>
+                  <p className="text-sm text-muted-foreground">Próxima Renovação</p>
+                  <p className="text-lg font-semibold">
+                    {new Date(userPlan.next_renewal_date).toLocaleDateString('pt-BR', { 
+                      day: '2-digit', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleEarlyRenewal}
+                  disabled={isWithdrawing}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {isWithdrawing ? "Processando..." : "Renovar Agora"}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Antecipe sua renovação e estenda seu plano por mais 30 dias! 
+                Sua assinatura automática continuará normalmente após a nova data.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {userPlan && (
           <Card className="border-secondary">
