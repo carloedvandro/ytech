@@ -27,7 +27,12 @@ Deno.serve(async (req) => {
     const { whatsapp } = await req.json();
 
     if (!whatsapp) {
-      throw new Error('WhatsApp não fornecido');
+      return new Response(JSON.stringify({ 
+        error: 'WhatsApp não fornecido' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Verificar se o WhatsApp já está cadastrado (profiles e users legados)
@@ -39,7 +44,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingProfile) {
-      throw new Error('Este número de WhatsApp já está cadastrado. Use outro número.');
+      return new Response(JSON.stringify({ 
+        error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const { data: existingUser } = await supabase
@@ -50,7 +60,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingUser) {
-      throw new Error('Este número de WhatsApp já está cadastrado. Use outro número.');
+      return new Response(JSON.stringify({ 
+        error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Verificar se há tentativas de fraude bloqueadas
@@ -65,7 +80,12 @@ Deno.serve(async (req) => {
       const blockedUntil = new Date(fraudCheck.blocked_until);
       if (blockedUntil > new Date()) {
         const hoursLeft = Math.ceil((blockedUntil.getTime() - Date.now()) / (1000 * 60 * 60));
-        throw new Error(`WhatsApp bloqueado. Tente novamente em ${hoursLeft}h`);
+        return new Response(JSON.stringify({ 
+          error: `WhatsApp bloqueado. Tente novamente em ${hoursLeft}h` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
     }
 

@@ -112,18 +112,8 @@ const Signup = () => {
       });
 
       if (error) {
-        // Extrair mensagem de erro do backend
-        let errorMessage = "Erro ao enviar código de verificação";
-        
-        if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        // Se vier como FunctionsHttpError, tentar extrair a mensagem do contexto
-        if (error.context?.error) {
-          errorMessage = error.context.error;
-        }
-
+        // Supabase retorna FunctionsHttpError com context
+        const errorMessage = error.context?.error || error.message || "Erro ao enviar código de verificação";
         throw new Error(errorMessage);
       }
 
@@ -134,6 +124,7 @@ const Signup = () => {
         description: "Verifique seu WhatsApp",
       });
     } catch (error: any) {
+      console.error('Erro ao enviar código:', error);
       toast({
         title: "Erro ao enviar código",
         description: error.message || "Erro desconhecido ao processar solicitação",
