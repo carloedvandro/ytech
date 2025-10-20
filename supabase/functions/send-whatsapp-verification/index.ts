@@ -30,6 +30,29 @@ Deno.serve(async (req) => {
       throw new Error('WhatsApp não fornecido');
     }
 
+    // Verificar se o WhatsApp já está cadastrado (profiles e users legados)
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('whatsapp', whatsapp)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (existingProfile) {
+      throw new Error('Este número de WhatsApp já está cadastrado. Use outro número.');
+    }
+
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('whatsapp', whatsapp)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (existingUser) {
+      throw new Error('Este número de WhatsApp já está cadastrado. Use outro número.');
+    }
+
     // Verificar se há tentativas de fraude bloqueadas
     const { data: fraudCheck } = await supabase
       .from('fraud_attempts')
