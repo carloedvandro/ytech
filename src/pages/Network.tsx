@@ -290,7 +290,10 @@ const Network = () => {
         <div className="grid gap-4 md:grid-cols-3">
           <Card 
             className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'active' ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
-            onClick={() => setSelectedStatus(selectedStatus === 'active' ? null : 'active')}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'active' ? null : 'active');
+              setSelectedLevel(null);
+            }}
           >
             <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -307,7 +310,10 @@ const Network = () => {
 
           <Card 
             className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'pending_payment' ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
-            onClick={() => setSelectedStatus(selectedStatus === 'pending_payment' ? null : 'pending_payment')}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'pending_payment' ? null : 'pending_payment');
+              setSelectedLevel(null);
+            }}
           >
             <AnimatedGradient colors={["#fbbf24", "#f59e0b", "#d97706"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -324,7 +330,10 @@ const Network = () => {
 
           <Card 
             className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-red-500/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedStatus === 'suspended' ? 'ring-2 ring-red-500' : ''}`}
-            onClick={() => setSelectedStatus(selectedStatus === 'suspended' ? null : 'suspended')}
+            onClick={() => {
+              setSelectedStatus(selectedStatus === 'suspended' ? null : 'suspended');
+              setSelectedLevel(null);
+            }}
           >
             <AnimatedGradient colors={["#ef4444", "#f87171", "#fca5a5"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -414,7 +423,10 @@ const Network = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card 
             className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-yellow))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 1 ? 'ring-2 ring-[hsl(var(--glass-yellow-foreground))]' : ''}`}
-            onClick={() => setSelectedLevel(selectedLevel === 1 ? null : 1)}
+            onClick={() => {
+              setSelectedLevel(selectedLevel === 1 ? null : 1);
+              setSelectedStatus(null);
+            }}
           >
             <AnimatedGradient colors={["#fbbf24", "#f59e0b", "#d97706"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -428,7 +440,10 @@ const Network = () => {
 
           <Card 
             className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 2 ? 'ring-2 ring-[hsl(var(--glass-blue-foreground))]' : ''}`}
-            onClick={() => setSelectedLevel(selectedLevel === 2 ? null : 2)}
+            onClick={() => {
+              setSelectedLevel(selectedLevel === 2 ? null : 2);
+              setSelectedStatus(null);
+            }}
           >
             <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -442,7 +457,10 @@ const Network = () => {
 
           <Card 
             className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 3 ? 'ring-2 ring-[hsl(var(--glass-green-foreground))]' : ''}`}
-            onClick={() => setSelectedLevel(selectedLevel === 3 ? null : 3)}
+            onClick={() => {
+              setSelectedLevel(selectedLevel === 3 ? null : 3);
+              setSelectedStatus(null);
+            }}
           >
             <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -456,7 +474,10 @@ const Network = () => {
 
           <Card 
             className={`relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-purple))]/30 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${selectedLevel === 4 ? 'ring-2 ring-[hsl(var(--glass-purple-foreground))]' : ''}`}
-            onClick={() => setSelectedLevel(selectedLevel === 4 ? null : 4)}
+            onClick={() => {
+              setSelectedLevel(selectedLevel === 4 ? null : 4);
+              setSelectedStatus(null);
+            }}
           >
             <AnimatedGradient colors={["#8b5cf6", "#a78bfa", "#c4b5fd"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -470,7 +491,10 @@ const Network = () => {
 
           <Card 
             className="relative overflow-hidden backdrop-blur-xl bg-background/50 border shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
-            onClick={() => setSelectedLevel(null)}
+            onClick={() => {
+              setSelectedLevel(null);
+              setSelectedStatus(null);
+            }}
           >
             <AnimatedGradient colors={["#6366f1", "#8b5cf6", "#ec4899"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
