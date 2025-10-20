@@ -1,4 +1,4 @@
-import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical, Smartphone } from "lucide-react";
+import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical, Smartphone, Webhook } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -158,6 +158,20 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                       >
                         <Shield className="h-4 w-4" />
                         {open && <span>Admin</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/webhook-test"
+                        className={({ isActive }) =>
+                          isActive ? "bg-accent text-accent-foreground" : ""
+                        }
+                      >
+                        <Webhook className="h-4 w-4" />
+                        {open && <span>Teste Webhook</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
