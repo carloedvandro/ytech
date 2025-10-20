@@ -26,25 +26,25 @@ serve(async (req) => {
                      req.headers.get('x-real-ip') || 
                      'unknown';
 
+    // Verificar se é um teste (header especial) - verificar ANTES do IP
+    const isTestWebhook = req.headers.get('x-test-webhook') === 'true';
+    
+    if (isTestWebhook) {
+      console.log('🧪 Processando webhook de TESTE - IP validation bypassed');
+    }
+    
     console.log('📍 Webhook IP:', clientIP);
 
-    // Verificar se é um teste (header especial)
-    const isTestWebhook = req.headers.get('x-test-webhook') === 'true';
-
-    // Validar IP (apenas em produção, permitir testes locais)
+    // Validar IP (apenas em produção, pular para testes)
     if (!isTestWebhook && clientIP !== 'unknown' && !officialAsaasIPs.includes(clientIP)) {
       console.error('🚫 IP não autorizado:', clientIP);
       return new Response(
         JSON.stringify({ error: 'Unauthorized IP address' }), 
         { 
-          status: 403, 
+          status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
-    }
-
-    if (isTestWebhook) {
-      console.log('🧪 Processando webhook de TESTE');
     }
 
     // Validação adicional: Token secreto (se configurado)
