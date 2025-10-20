@@ -79,6 +79,7 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'x-forwarded-for': '54.94.183.101', // IP do Asaas
+        'x-test-webhook': 'true', // Identificar como teste
       },
       body: JSON.stringify(mockEvent)
     });
