@@ -26,14 +26,22 @@ serve(async (req) => {
                      req.headers.get('x-real-ip') || 
                      'unknown';
 
+    // DEBUG: Logar headers relevantes
+    console.log('📥 Headers recebidos:', {
+      'x-test-webhook': req.headers.get('x-test-webhook'),
+      'x-forwarded-for': req.headers.get('x-forwarded-for'),
+      'content-type': req.headers.get('content-type')
+    });
+
     // Verificar se é um teste (header especial) - verificar ANTES do IP
     const isTestWebhook = req.headers.get('x-test-webhook') === 'true';
+    
+    console.log('📍 Webhook IP:', clientIP);
+    console.log('🔍 isTestWebhook:', isTestWebhook);
     
     if (isTestWebhook) {
       console.log('🧪 Processando webhook de TESTE - IP validation bypassed');
     }
-    
-    console.log('📍 Webhook IP:', clientIP);
 
     // Validar IP (apenas em produção, pular para testes)
     if (!isTestWebhook && clientIP !== 'unknown' && !officialAsaasIPs.includes(clientIP)) {
