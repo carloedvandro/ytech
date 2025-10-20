@@ -55,35 +55,39 @@ serve(async (req) => {
       );
     }
 
-    // Validação adicional: Token secreto (se configurado e não for teste)
-    const webhookToken = Deno.env.get('ASAAS_WEBHOOK_TOKEN');
+    // Validação adicional: Token secreto (apenas se configurado com valor não-vazio e não for teste)
+    const webhookToken = Deno.env.get('ASAAS_WEBHOOK_TOKEN')?.trim();
+    const shouldValidateToken = webhookToken && webhookToken.length > 0 && !isTestWebhook;
     
-    console.log('🔐 Verificação de token:', {
+    console.log('🔐 Configuração de token:', {
       tokenConfigurado: !!webhookToken,
+      tokenLength: webhookToken?.length || 0,
       isTestWebhook,
-      deveValidar: webhookToken && !isTestWebhook
+      shouldValidateToken
     });
     
-    if (webhookToken && !isTestWebhook) {
+    if (shouldValidateToken) {
       const authHeader = req.headers.get('authorization');
       const receivedToken = authHeader?.replace('Bearer ', '');
       
-      console.log('🔑 Token recebido:', receivedToken ? 'presente' : 'ausente');
+      console.log('🔑 Validando token recebido');
       
       if (receivedToken !== webhookToken) {
-        console.error('🚫 Token inválido ou ausente');
+        console.error('🚫 Token inválido');
         return new Response(
           JSON.stringify({ error: 'Invalid webhook token' }), 
           { 
-            status: 401, 
+            status: 401,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
       
       console.log('✅ Token validado com sucesso');
-    } else if (isTestWebhook) {
-      console.log('⏭️ Validação de token pulada (teste)');
+    } else {
+      console.log('⏭️ Validação de token desabilitada', { 
+        motivo: isTestWebhook ? 'webhook de teste' : 'token não configurado' 
+      });
     }
 
     // Parse event data
