@@ -26,7 +26,11 @@ serve(async (req) => {
     // Buscar dados do pagamento
     const { data: payment, error: paymentError } = await supabaseClient
       .from('payments')
-      .select('*, users!payments_user_id_fkey(*), plans!payments_plan_id_fkey(*)')
+      .select(`
+        *,
+        profiles!payments_user_id_fkey(full_name),
+        plans(name)
+      `)
       .eq('id', paymentId)
       .single();
 
