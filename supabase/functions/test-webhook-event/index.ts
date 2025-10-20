@@ -26,15 +26,18 @@ serve(async (req) => {
     // Buscar dados do pagamento
     const { data: payment, error: paymentError } = await supabaseClient
       .from('payments')
-      .select(`
-        *,
-        profiles!payments_user_id_fkey(full_name),
-        plans(name)
-      `)
+      .select('*')
       .eq('id', paymentId)
       .single();
 
     if (paymentError) throw paymentError;
+
+    // Buscar dados do plano
+    const { data: plan } = await supabaseClient
+      .from('plans')
+      .select('name')
+      .eq('id', payment.plan_id)
+      .single();
 
     console.log('🧪 Simulando evento webhook:', { 
       eventType, 
@@ -55,7 +58,7 @@ serve(async (req) => {
         subscription: payment.subscription_id || null,
         value: Number(payment.amount),
         netValue: Number(payment.amount) - 1.99,
-        description: payment.plans?.name || "Teste",
+        description: plan?.name || "Teste",
         billingType: "PIX",
         status: eventType === 'PAYMENT_CONFIRMED' ? 'CONFIRMED' : 'PENDING',
         dueDate: new Date(payment.expires_at).toISOString().split('T')[0],
