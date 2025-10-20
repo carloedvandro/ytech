@@ -111,7 +111,21 @@ const Signup = () => {
         body: { whatsapp },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Extrair mensagem de erro do backend
+        let errorMessage = "Erro ao enviar código de verificação";
+        
+        if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Se vier como FunctionsHttpError, tentar extrair a mensagem do contexto
+        if (error.context?.error) {
+          errorMessage = error.context.error;
+        }
+
+        throw new Error(errorMessage);
+      }
 
       setCodeSent(true);
       setCodeExpiry(data.expiresAt);
@@ -122,7 +136,7 @@ const Signup = () => {
     } catch (error: any) {
       toast({
         title: "Erro ao enviar código",
-        description: error.message,
+        description: error.message || "Erro desconhecido ao processar solicitação",
         variant: "destructive",
       });
     } finally {
