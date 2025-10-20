@@ -57,12 +57,21 @@ serve(async (req) => {
 
     // Validação adicional: Token secreto (se configurado e não for teste)
     const webhookToken = Deno.env.get('ASAAS_WEBHOOK_TOKEN');
+    
+    console.log('🔐 Verificação de token:', {
+      tokenConfigurado: !!webhookToken,
+      isTestWebhook,
+      deveValidar: webhookToken && !isTestWebhook
+    });
+    
     if (webhookToken && !isTestWebhook) {
       const authHeader = req.headers.get('authorization');
       const receivedToken = authHeader?.replace('Bearer ', '');
       
+      console.log('🔑 Token recebido:', receivedToken ? 'presente' : 'ausente');
+      
       if (receivedToken !== webhookToken) {
-        console.error('🚫 Token inválido');
+        console.error('🚫 Token inválido ou ausente');
         return new Response(
           JSON.stringify({ error: 'Invalid webhook token' }), 
           { 
@@ -71,6 +80,10 @@ serve(async (req) => {
           }
         );
       }
+      
+      console.log('✅ Token validado com sucesso');
+    } else if (isTestWebhook) {
+      console.log('⏭️ Validação de token pulada (teste)');
     }
 
     // Parse event data
