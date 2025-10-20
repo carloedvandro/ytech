@@ -46,8 +46,8 @@ serve(async (req) => {
 
     // Buscar dados do usuário alvo
     const { data: targetUser, error: userError } = await supabaseClient
-      .from('users')
-      .select('*, user_network!inner(level, path)')
+      .from('profiles')
+      .select('*')
       .eq('id', userId)
       .single();
 
@@ -61,7 +61,7 @@ serve(async (req) => {
       case 'suspend': {
         // Suspender usuário
         const { error } = await supabaseClient
-          .from('users')
+          .from('profiles')
           .update({ status: 'suspended' })
           .eq('id', userId);
 
@@ -85,7 +85,7 @@ serve(async (req) => {
         const newStatus = targetUser.metadata?.original_status || 'active';
         
         const { error } = await supabaseClient
-          .from('users')
+          .from('profiles')
           .update({ 
             status: newStatus,
             deleted_at: null 
@@ -110,7 +110,7 @@ serve(async (req) => {
       case 'soft_delete': {
         // Soft delete (exclusão lógica)
         const { error } = await supabaseClient
-          .from('users')
+          .from('profiles')
           .update({ 
             status: 'deleted',
             deleted_at: new Date().toISOString()
@@ -135,9 +135,10 @@ serve(async (req) => {
       case 'hard_delete': {
         // Verificar se o usuário tem indicados diretos
         const { data: referrals, error: refError } = await supabaseClient
-          .from('users')
+          .from('profiles')
           .select('id')
-          .eq('referred_by', userId);
+          .eq('referred_by', userId)
+          .is('deleted_at', null);
 
         if (refError) throw refError;
 
@@ -146,7 +147,12 @@ serve(async (req) => {
         }
 
         // Verificar se não é o último admin
-        if (targetUser.user_roles?.some((r: any) => r.role === 'admin')) {
+        const { data: userRoles } = await supabaseClient
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId);
+
+        if (userRoles?.some((r: any) => r.role === 'admin')) {
           const { count } = await supabaseClient
             .from('user_roles')
             .select('*', { count: 'exact', head: true })
@@ -170,13 +176,17 @@ serve(async (req) => {
         await supabaseClient.from('whatsapp_messages').delete().eq('user_id', userId);
         await supabaseClient.from('whatsapp_verifications').delete().eq('whatsapp', targetUser.whatsapp);
         await supabaseClient.from('commissions').delete().eq('referred_user_id', userId);
+        await supabaseClient.from('commissions').delete().eq('user_id', userId);
         await supabaseClient.from('transactions').delete().eq('user_id', userId);
         await supabaseClient.from('payments').delete().eq('user_id', userId);
         await supabaseClient.from('user_network').delete().eq('user_id', userId);
         await supabaseClient.from('user_roles').delete().eq('user_id', userId);
+        await supabaseClient.from('marketing_material_generations').delete().eq('user_id', userId);
+        await supabaseClient.from('admin_balance_adjustments').delete().eq('user_id', userId);
+        await supabaseClient.from('sim_activations').delete().eq('user_id', userId);
         
         const { error: deleteError } = await supabaseClient
-          .from('users')
+          .from('profiles')
           .delete()
           .eq('id', userId);
 
