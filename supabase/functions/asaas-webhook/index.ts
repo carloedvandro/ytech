@@ -55,9 +55,9 @@ serve(async (req) => {
       );
     }
 
-    // Validação adicional: Token secreto (se configurado)
+    // Validação adicional: Token secreto (se configurado e não for teste)
     const webhookToken = Deno.env.get('ASAAS_WEBHOOK_TOKEN');
-    if (webhookToken) {
+    if (webhookToken && !isTestWebhook) {
       const authHeader = req.headers.get('authorization');
       const receivedToken = authHeader?.replace('Bearer ', '');
       
@@ -67,7 +67,7 @@ serve(async (req) => {
           JSON.stringify({ error: 'Invalid webhook token' }), 
           { 
             status: 401, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
