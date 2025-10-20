@@ -69,4 +69,7 @@ verify_jwt = true
 [functions.fix-commission-status]
 verify_jwt = true
 
+[functions.test-webhook-event]
+verify_jwt = true
+
 
