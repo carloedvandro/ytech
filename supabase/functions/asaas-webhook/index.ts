@@ -83,8 +83,18 @@ serve(async (req) => {
 
     const eventId = event.id;
     const paymentId = event.payment?.externalReference;
+    const asaasPaymentId = event.payment?.id;
+    const hasSubscription = !!event.payment?.subscription;
     
-    console.log('📥 Webhook:', { eventId, event: event.event, paymentId });
+    console.log('📥 Webhook Asaas (v3 compatible):', { 
+      eventId, 
+      event: event.event, 
+      paymentId,
+      asaasPaymentId,
+      hasSubscription,
+      hasExternalRef: !!paymentId,
+      description: event.payment?.description?.substring(0, 50)
+    });
 
     // ⚡ RETORNAR 200 INSTANTANEAMENTE (sem nenhuma operação de banco)
     const response = new Response(
@@ -111,14 +121,32 @@ serve(async (req) => {
           // Se deu erro de constraint (duplicata), ignorar
           if (insertError) {
             if (insertError.code === '23505') {
-              console.log('✓ Duplicado:', eventId);
+              console.log('✓ Evento duplicado (já processado):', eventId);
               return;
             }
             throw insertError;
           }
         }
 
-        console.log('🔄 Processing:', event.event);
+        // ⚠️ FILTRAR EVENTOS QUE NÃO SÃO DO SISTEMA
+        // Eventos sem externalReference são pagamentos criados diretamente no Asaas
+        // ou PIX recebidos automaticamente - não devem ser processados
+        if (!paymentId && !hasSubscription) {
+          console.log('⚠️ Evento ignorado - Pagamento não é do sistema (sem externalReference e sem subscription)');
+          console.log('   Descrição:', event.payment?.description);
+          console.log('   Asaas ID:', asaasPaymentId);
+          
+          await supabaseClient
+            .from('asaas_webhook_events')
+            .update({ 
+              response_message: 'Ignored: External payment (not from system)' 
+            })
+            .eq('event_id', eventId);
+          
+          return;
+        }
+
+        console.log('🔄 Processing event:', event.event);
 
         // PAYMENT_CREATED
         if (event.event === 'PAYMENT_CREATED') {
@@ -210,10 +238,17 @@ serve(async (req) => {
           }
 
           if (!payment || !userId) {
-            console.error('❌ Payment not found');
+            console.error('❌ Payment not found in database');
+            console.error('   External Reference:', paymentId);
+            console.error('   Asaas Payment ID:', asaasPaymentId);
+            console.error('   Subscription ID:', event.payment?.subscription);
+            console.error('   Description:', event.payment?.description);
+            
             await supabaseClient
               .from('asaas_webhook_events')
-              .update({ response_message: 'Failed: Payment not found' })
+              .update({ 
+                response_message: `Failed: Payment not found (ref: ${paymentId || 'none'}, sub: ${event.payment?.subscription || 'none'})` 
+              })
               .eq('event_id', eventId);
             return;
           }
