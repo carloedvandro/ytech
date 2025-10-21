@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       throw new Error('Credenciais Mega API não configuradas. Configure os secrets: MEGA_API_HOST, MEGA_INSTANCE_KEY, MEGA_API_KEY');
     }
 
-    const { whatsapp } = await req.json();
+    const { whatsapp, checkDuplicate = false } = await req.json();
 
     if (!whatsapp) {
       return new Response(JSON.stringify({ 
@@ -35,37 +35,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verificar se o WhatsApp já está cadastrado (profiles e users legados)
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('whatsapp', whatsapp)
-      .is('deleted_at', null)
-      .maybeSingle();
+    // Verificar se o WhatsApp já está cadastrado (APENAS NO SIGNUP)
+    if (checkDuplicate) {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('whatsapp', whatsapp)
+        .is('deleted_at', null)
+        .maybeSingle();
 
-    if (existingProfile) {
-      return new Response(JSON.stringify({ 
-        error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+      if (existingProfile) {
+        return new Response(JSON.stringify({ 
+          error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('whatsapp', whatsapp)
-      .is('deleted_at', null)
-      .maybeSingle();
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('whatsapp', whatsapp)
+        .is('deleted_at', null)
+        .maybeSingle();
 
-    if (existingUser) {
-      return new Response(JSON.stringify({ 
-        error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (existingUser) {
+        return new Response(JSON.stringify({ 
+          error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // Verificar se há tentativas de fraude bloqueadas

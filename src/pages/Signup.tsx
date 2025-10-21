@@ -108,7 +108,7 @@ const Signup = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp-verification", {
-        body: { whatsapp },
+        body: { whatsapp, checkDuplicate: true },
       });
 
       if (error) {
