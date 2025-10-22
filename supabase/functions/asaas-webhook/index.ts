@@ -560,7 +560,7 @@ serve(async (req) => {
             ? `${event.payment.subscription}_${event.payment.id}` 
             : paymentId;
 
-          // Verificar comissões existentes
+          // Verificar comissões existentes pelo payment_id
           const { data: existingCommissions } = await supabaseClient
             .from('commissions')
             .select('id')
@@ -571,6 +571,23 @@ serve(async (req) => {
             await supabaseClient
               .from('asaas_webhook_events')
               .update({ response_message: 'Completed (commissions exist)' })
+              .eq('event_id', eventId);
+            return;
+          }
+
+          // Verificar comissões duplicadas por usuário (últimas 24h)
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const { data: recentCommissions } = await supabaseClient
+            .from('commissions')
+            .select('id, payment_id, created_at')
+            .eq('referred_user_id', userId)
+            .gte('created_at', oneDayAgo);
+
+          if (recentCommissions && recentCommissions.length > 0) {
+            console.log('⚠️ Recent commissions found for this user (last 24h):', recentCommissions);
+            await supabaseClient
+              .from('asaas_webhook_events')
+              .update({ response_message: 'Completed (duplicate prevented - recent commissions exist)' })
               .eq('event_id', eventId);
             return;
           }
