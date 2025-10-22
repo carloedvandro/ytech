@@ -20,17 +20,17 @@ export const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Empresa</h4>
             <ul className="space-y-2 text-sm text-background/80">
-              <li><a href="#" className="hover:text-background transition-colors">Sobre Nós</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Cobertura</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">Tecnologia</a></li>
+              <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">Sobre Nós</a></li>
+              <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">Cobertura</a></li>
+              <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">Tecnologia</a></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-semibold mb-4">Suporte</h4>
             <ul className="space-y-2 text-sm text-background/80">
-              <li><a href="#" className="hover:text-background transition-colors">Central de Ajuda</a></li>
-              <li><a href="#" className="hover:text-background transition-colors">WhatsApp</a></li>
+              <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">Central de Ajuda</a></li>
+              <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-background transition-colors">WhatsApp</a></li>
               <li><a href="#" className="hover:text-background transition-colors">Status da Rede</a></li>
             </ul>
           </div>

@@ -9,6 +9,8 @@ import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -73,6 +75,15 @@ export const DashboardLayout = ({ children }: { children: React.ReactNode }) => 
           <header className="h-14 border-b bg-background flex items-center px-4 gap-4">
             <SidebarTrigger />
             <div className="flex-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => window.open("https://wa.me/5511994869948", "_blank")}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Fale Conosco
+            </Button>
             <ThemeToggle />
             <div className="text-sm text-muted-foreground">
               Olá, <span className="font-medium text-foreground">{activeProfile.full_name}</span>
