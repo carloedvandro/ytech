@@ -13,6 +13,7 @@ import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2, Settings, AlertCi
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { BalanceAdjustmentsHistory } from "@/components/BalanceAdjustmentsHistory";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Commission {
   id: string;
@@ -49,6 +50,8 @@ const Financial = () => {
   const [useBalanceForRenewal, setUseBalanceForRenewal] = useState(false);
   const [minimumBalanceToKeep, setMinimumBalanceToKeep] = useState("0");
   const [savingPreferences, setSavingPreferences] = useState(false);
+  const [commissionToDelete, setCommissionToDelete] = useState<string | null>(null);
+  const [deletingCommission, setDeletingCommission] = useState(false);
 
   // ID do usuário ativo (impersonado ou real)
   const activeUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
@@ -740,23 +743,36 @@ const Financial = () => {
                         {new Date(commission.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-secondary">
-                        R$ {Number(commission.amount).toFixed(2)}
+                    <div className="text-right flex items-start gap-2">
+                      <div>
+                        <div className="text-lg font-bold text-secondary">
+                          R$ {Number(commission.amount).toFixed(2)}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs">
+                          {commission.status === "available" ? (
+                            <>
+                              <CheckCircle2 className="h-3 w-3 text-secondary" />
+                              <span className="text-secondary">Disponível</span>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-muted-foreground">Pendente</span>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-xs">
-                        {commission.status === "available" ? (
-                          <>
-                            <CheckCircle2 className="h-3 w-3 text-secondary" />
-                            <span className="text-secondary">Disponível</span>
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-muted-foreground">Pendente</span>
-                          </>
-                        )}
-                      </div>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setCommissionToDelete(commission.id)}
+                          disabled={deletingCommission}
+                          className="ml-2"
+                        >
+                          🗑️
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -764,6 +780,59 @@ const Financial = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Dialog de confirmação para deletar comissão */}
+        <Dialog open={!!commissionToDelete} onOpenChange={(open) => !open && setCommissionToDelete(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Remover Comissão Duplicada</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja remover esta comissão? Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!commissionToDelete) return;
+                setDeletingCommission(true);
+                try {
+                  const { error } = await supabase.functions.invoke('remove-duplicate-commission', {
+                    body: { commissionId: commissionToDelete },
+                  });
+
+                  if (error) throw error;
+
+                  toast({
+                    title: "Comissão removida",
+                    description: "A comissão duplicada foi removida com sucesso.",
+                  });
+                  
+                  setCommissionToDelete(null);
+                  await loadFinancialData();
+                } catch (error) {
+                  console.error('Erro ao remover comissão:', error);
+                  toast({
+                    title: "Erro",
+                    description: error instanceof Error ? error.message : "Erro ao remover comissão",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setDeletingCommission(false);
+                }
+              }}
+              disabled={deletingCommission}
+            >
+              {deletingCommission ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Removendo...
+                </>
+              ) : (
+                "Confirmar Remoção"
+              )}
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

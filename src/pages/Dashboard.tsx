@@ -126,12 +126,23 @@ const Dashboard = () => {
     if (!activeProfile?.id) return;
 
     try {
-      // Buscar total de indicações (toda a rede)
+      // Buscar o nível do usuário logado para calcular o nível máximo permitido
+      const { data: myLevel } = await supabase
+        .from("user_network")
+        .select("level")
+        .eq("user_id", activeProfile.id)
+        .maybeSingle();
+
+      const userLevel = myLevel?.level || 1;
+      const maxLevel = userLevel + 4; // Usuário vê apenas 4 níveis abaixo
+
+      // Buscar total de indicações (apenas 4 níveis abaixo - privacidade)
       const { data: networkData, error: networkError } = await supabase
         .from("user_network")
         .select("id")
         .contains("path", [activeProfile.id])
-        .neq("user_id", activeProfile.id);
+        .neq("user_id", activeProfile.id)
+        .lte("level", maxLevel);
 
       if (networkError) throw networkError;
 
