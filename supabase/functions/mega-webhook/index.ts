@@ -74,12 +74,17 @@ Deno.serve(async (req) => {
           }).catch(err => console.error('Erro ao enviar notificação:', err));
 
           const megaApiHost = Deno.env.get('MEGA_API_HOST');
-          const megaInstanceKey = Deno.env.get('MEGA_API_INSTANCE_KEY');
+          const megaInstanceKey = payload.instance_key; // Usar a instance_key do payload
           const megaApiToken = Deno.env.get('MEGA_API_TOKEN');
+
+          if (!megaInstanceKey) {
+            throw new Error('Instance key não encontrada no payload');
+          }
 
           // Fazer download do áudio usando o endpoint correto da documentação
           const downloadUrl = `https://${megaApiHost}/rest/instance/downloadMediaMessage/${megaInstanceKey}`;
           console.log('📥 Fazendo download do áudio...');
+          console.log('🔑 Instance key:', megaInstanceKey);
 
           const downloadResponse = await fetch(downloadUrl, {
             method: 'POST',
