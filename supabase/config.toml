@@ -72,4 +72,7 @@ verify_jwt = true
 [functions.test-webhook-event]
 verify_jwt = true
 
+[functions.chatbot-handler]
+verify_jwt = false
+
 

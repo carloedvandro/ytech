@@ -83,6 +83,42 @@ export type Database = {
         }
         Relationships: []
       }
+      chatbot_conversations: {
+        Row: {
+          conversation_history: Json
+          created_at: string
+          id: string
+          last_message_at: string
+          metadata: Json | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          whatsapp: string
+        }
+        Insert: {
+          conversation_history?: Json
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          metadata?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp: string
+        }
+        Update: {
+          conversation_history?: Json
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          metadata?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       commissions: {
         Row: {
           amount: number

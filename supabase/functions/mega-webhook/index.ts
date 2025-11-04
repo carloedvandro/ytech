@@ -26,6 +26,39 @@ Deno.serve(async (req) => {
       timestamp
     } = payload;
 
+    // NOVO: Detectar mensagens RECEBIDAS (de clientes)
+    if (event === 'message.received' || event === 'messages.upsert') {
+      const message = data?.message;
+      const fromNumber = data?.key?.remoteJid?.replace('@s.whatsapp.net', '') || data?.from;
+      
+      // Verificar se é uma mensagem de texto
+      if (message?.conversation || message?.extendedTextMessage?.text) {
+        const messageText = message.conversation || message?.extendedTextMessage?.text;
+        const senderName = data?.pushName || 'Cliente';
+        
+        console.log(`📨 Mensagem recebida de ${fromNumber}: "${messageText}"`);
+        
+        // Processar com chatbot IA (não aguardar resposta para não bloquear webhook)
+        supabase.functions.invoke('chatbot-handler', {
+          body: {
+            whatsapp: fromNumber,
+            message: messageText,
+            userName: senderName
+          }
+        }).catch(err => {
+          console.error('❌ Erro ao processar com chatbot:', err);
+        });
+
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: 'Mensagem recebida e processando com IA' 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // Mapear eventos do Mega API para nosso status
     let status = 'sent';
     let deliveredAt = null;
