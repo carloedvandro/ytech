@@ -63,135 +63,21 @@ Deno.serve(async (req) => {
       if (audioMessage && fromNumber) {
         console.log(`🎙️ Áudio recebido de ${fromNumber} (${senderName})`);
         
-        // Informar usuário que estamos processando
+        // Por enquanto, áudios não são suportados devido à criptografia do WhatsApp
         supabase.functions.invoke('send-whatsapp-notification', {
           body: {
             whatsapp: fromNumber,
-            message: '🎤 Recebi seu áudio! Estou processando...'
+            message: 'Desculpe, ainda não consigo processar áudios. 🎤\n\nPor favor, envie sua mensagem por texto que terei prazer em ajudar! 😊'
           }
         }).catch(err => console.error('Erro ao enviar notificação:', err));
         
-        try {
-          const megaApiHost = Deno.env.get('MEGA_API_HOST');
-          const megaApiKey = Deno.env.get('MEGA_API_KEY');
-          const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
-          
-          if (!megaApiHost || !megaApiKey || !megaInstanceKey) {
-            throw new Error('Configurações do Mega API não encontradas');
-          }
-          
-          console.log(`📥 Tentando baixar áudio via Mega API...`);
-          
-          // Tentar baixar mídia descriptografada via Mega API
-          const downloadResponse = await fetch(`https://${megaApiHost}/message/downloadMedia`, {
-            method: 'POST',
-            headers: {
-              'x-api-key': megaApiKey,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              instance_key: megaInstanceKey,
-              message_id: payload.key.id
-            })
-          });
-          
-          if (!downloadResponse.ok) {
-            const errorText = await downloadResponse.text();
-            console.error(`❌ Erro na API Mega: ${errorText}`);
-            throw new Error(`Erro ao baixar mídia: ${downloadResponse.statusText}`);
-          }
-          
-          const mediaData = await downloadResponse.json();
-          console.log(`✅ Mídia baixada:`, mediaData);
-          
-          // Extrair base64 do áudio
-          let audioBase64 = mediaData.media || mediaData.base64 || mediaData.data;
-          
-          if (!audioBase64) {
-            throw new Error('Mídia não encontrada na resposta');
-          }
-          
-          // Remover prefixo data:audio se existir
-          if (audioBase64.includes('base64,')) {
-            audioBase64 = audioBase64.split('base64,')[1];
-          }
-          
-          console.log(`🔄 Transcrevendo áudio (${audioBase64.length} caracteres base64)...`);
-          
-          const openAIKey = Deno.env.get('OPENAI_API_KEY');
-          if (!openAIKey) {
-            throw new Error('OPENAI_API_KEY não configurada');
-          }
-          
-          // Converter base64 para buffer
-          const audioBuffer = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
-          
-          // Criar FormData com o áudio
-          const formData = new FormData();
-          const audioBlob = new Blob([audioBuffer], { type: 'audio/ogg' });
-          formData.append('file', audioBlob, 'audio.ogg');
-          formData.append('model', 'whisper-1');
-          formData.append('language', 'pt');
-          
-          const transcriptionResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openAIKey}`
-            },
-            body: formData
-          });
-          
-          if (!transcriptionResponse.ok) {
-            const errorText = await transcriptionResponse.text();
-            throw new Error(`Erro na transcrição: ${errorText}`);
-          }
-          
-          const transcription = await transcriptionResponse.json();
-          const transcribedText = transcription.text;
-          
-          console.log(`✅ Áudio transcrito: "${transcribedText}"`);
-          
-          // Processar com chatbot IA
-          supabase.functions.invoke('chatbot-handler', {
-            body: {
-              whatsapp: fromNumber,
-              message: transcribedText,
-              userName: senderName
-            }
-          }).catch(err => {
-            console.error('❌ Erro ao processar com chatbot:', err);
-          });
-          
-          return new Response(JSON.stringify({ 
-            success: true,
-            message: 'Áudio transcrito e processando com IA',
-            transcription: transcribedText
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-          
-        } catch (error) {
-          console.error('❌ Erro ao processar áudio:', error);
-          
-          // Enviar mensagem de erro ao usuário
-          supabase.functions.invoke('send-whatsapp-notification', {
-            body: {
-              whatsapp: fromNumber,
-              message: 'Desculpe, tive um problema ao processar seu áudio. Por favor, tente enviar uma mensagem de texto. 😊'
-            }
-          }).catch(err => {
-            console.error('❌ Erro ao enviar notificação de erro:', err);
-          });
-          
-          return new Response(JSON.stringify({ 
-            success: false,
-            error: error instanceof Error ? error.message : 'Erro ao processar áudio'
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: 'Áudio não suportado - usuário notificado'
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
     }
 
