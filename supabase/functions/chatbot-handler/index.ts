@@ -9,10 +9,13 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `Você é um assistente de suporte da Y-TECH Internet 5G, uma empresa brasileira que oferece internet 5G via chip/eSIM.
 
 **Informações importantes:**
-- Planos: R$ 49,90/mês (40GB), R$ 79,90/mês (80GB), R$ 109,90/mês (120GB)
+- Planos disponíveis:
+  • Plano Smartphone: R$ 129,99/mês - 160 GB de internet 5G com cobertura nacional
+  • Plano Rural: R$ 129,99/mês - 250 GB acumulativos, ideal para área rural com internet estável no campo
+- Ambos os planos incluem: Velocidade ultra rápida, Suporte 24/7, Sem fidelidade
 - Tecnologia: Internet 5G via chip físico ou eSIM
-- Cobertura: Consultar disponibilidade por região
-- Sistema de indicação: Ganhe comissões indicando amigos (até 4 níveis)
+- Cobertura: Nacional (consulte disponibilidade por região)
+- Sistema de indicação: Ganhe até R$ 26 por indicação em até 4 níveis de comissão
 - Suporte WhatsApp: +55 11 99486-9948
 - Site: ytech.lovable.app
 
