@@ -63,8 +63,15 @@ Deno.serve(async (req) => {
       if (audioMessage && fromNumber) {
         console.log(`🎙️ Áudio recebido de ${fromNumber} (${senderName})`);
         
+        // Informar usuário que estamos processando
+        supabase.functions.invoke('send-whatsapp-notification', {
+          body: {
+            whatsapp: fromNumber,
+            message: '🎤 Recebi seu áudio! Estou processando...'
+          }
+        }).catch(err => console.error('Erro ao enviar notificação:', err));
+        
         try {
-          // Baixar áudio do Mega API
           const megaApiHost = Deno.env.get('MEGA_API_HOST');
           const megaApiKey = Deno.env.get('MEGA_API_KEY');
           const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
@@ -73,19 +80,10 @@ Deno.serve(async (req) => {
             throw new Error('Configurações do Mega API não encontradas');
           }
           
-          // URL para baixar mídia do Mega API
-          const mediaUrl = audioMessage.url || audioMessage.directPath;
-          if (!mediaUrl) {
-            throw new Error('URL do áudio não encontrada');
-          }
+          console.log(`📥 Tentando baixar áudio via Mega API...`);
           
-          console.log(`📥 Baixando áudio de: ${mediaUrl}`);
-          
-          // Baixar e descriptografar o áudio usando a API do Mega
-          const downloadUrl = `https://${megaApiHost}/message/download`;
-          console.log(`🔗 URL de download: ${downloadUrl}`);
-          
-          const audioResponse = await fetch(downloadUrl, {
+          // Tentar baixar mídia descriptografada via Mega API
+          const downloadResponse = await fetch(`https://${megaApiHost}/message/downloadMedia`, {
             method: 'POST',
             headers: {
               'x-api-key': megaApiKey,
@@ -93,35 +91,44 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               instance_key: megaInstanceKey,
-              message_data: {
-                key: payload.key,
-                message: {
-                  audioMessage: audioMessage
-                }
-              }
+              message_id: payload.key.id
             })
           });
           
-          if (!audioResponse.ok) {
-            throw new Error(`Erro ao baixar áudio: ${audioResponse.statusText}`);
+          if (!downloadResponse.ok) {
+            const errorText = await downloadResponse.text();
+            console.error(`❌ Erro na API Mega: ${errorText}`);
+            throw new Error(`Erro ao baixar mídia: ${downloadResponse.statusText}`);
           }
           
-          const audioBuffer = await audioResponse.arrayBuffer();
-          const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+          const mediaData = await downloadResponse.json();
+          console.log(`✅ Mídia baixada:`, mediaData);
           
-          console.log(`✅ Áudio baixado (${audioBuffer.byteLength} bytes)`);
+          // Extrair base64 do áudio
+          let audioBase64 = mediaData.media || mediaData.base64 || mediaData.data;
           
-          // Transcrever áudio com Whisper
-          console.log('🔄 Transcrevendo áudio...');
+          if (!audioBase64) {
+            throw new Error('Mídia não encontrada na resposta');
+          }
+          
+          // Remover prefixo data:audio se existir
+          if (audioBase64.includes('base64,')) {
+            audioBase64 = audioBase64.split('base64,')[1];
+          }
+          
+          console.log(`🔄 Transcrevendo áudio (${audioBase64.length} caracteres base64)...`);
+          
           const openAIKey = Deno.env.get('OPENAI_API_KEY');
-          
           if (!openAIKey) {
             throw new Error('OPENAI_API_KEY não configurada');
           }
           
-          // Converter para formato que o Whisper aceita
+          // Converter base64 para buffer
+          const audioBuffer = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
+          
+          // Criar FormData com o áudio
           const formData = new FormData();
-          const audioBlob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/ogg' });
+          const audioBlob = new Blob([audioBuffer], { type: 'audio/ogg' });
           formData.append('file', audioBlob, 'audio.ogg');
           formData.append('model', 'whisper-1');
           formData.append('language', 'pt');
@@ -171,7 +178,7 @@ Deno.serve(async (req) => {
           supabase.functions.invoke('send-whatsapp-notification', {
             body: {
               whatsapp: fromNumber,
-              message: 'Desculpe, tive um problema ao processar seu áudio. Por favor, tente enviar uma mensagem de texto ou tente novamente. 😊'
+              message: 'Desculpe, tive um problema ao processar seu áudio. Por favor, tente enviar uma mensagem de texto. 😊'
             }
           }).catch(err => {
             console.error('❌ Erro ao enviar notificação de erro:', err);
@@ -181,7 +188,7 @@ Deno.serve(async (req) => {
             success: false,
             error: error instanceof Error ? error.message : 'Erro ao processar áudio'
           }), {
-            status: 200, // Ainda retorna 200 para o Mega API não reenviar
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
