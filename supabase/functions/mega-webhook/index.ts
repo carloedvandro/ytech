@@ -26,14 +26,19 @@ Deno.serve(async (req) => {
                               payload.key?.remoteJid !== 'status@broadcast';
 
     if (isIncomingMessage) {
-      const messageText = payload.message?.conversation || 
-                         payload.message?.extendedTextMessage?.text || 
-                         '';
       const fromNumber = payload.key?.remoteJid?.replace('@s.whatsapp.net', '').replace('@lid', '') || '';
       const senderName = payload.pushName || 'Cliente';
       
+      // Processar mensagens de texto
+      const messageText = payload.message?.conversation || 
+                         payload.message?.extendedTextMessage?.text || 
+                         '';
+      
+      // Processar mensagens de áudio
+      const audioMessage = payload.message?.audioMessage;
+      
       if (messageText && fromNumber) {
-        console.log(`📨 Mensagem recebida de ${fromNumber} (${senderName}): "${messageText}"`);
+        console.log(`📨 Mensagem de texto recebida de ${fromNumber} (${senderName}): "${messageText}"`);
         
         // Processar com chatbot IA (não aguardar resposta para não bloquear webhook)
         supabase.functions.invoke('chatbot-handler', {
@@ -53,6 +58,125 @@ Deno.serve(async (req) => {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
+      }
+      
+      if (audioMessage && fromNumber) {
+        console.log(`🎙️ Áudio recebido de ${fromNumber} (${senderName})`);
+        
+        try {
+          // Baixar áudio do Mega API
+          const megaApiHost = Deno.env.get('MEGA_API_HOST');
+          const megaApiKey = Deno.env.get('MEGA_API_KEY');
+          const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
+          
+          if (!megaApiHost || !megaApiKey || !megaInstanceKey) {
+            throw new Error('Configurações do Mega API não encontradas');
+          }
+          
+          // URL para baixar mídia do Mega API
+          const mediaUrl = audioMessage.url || audioMessage.directPath;
+          if (!mediaUrl) {
+            throw new Error('URL do áudio não encontrada');
+          }
+          
+          console.log(`📥 Baixando áudio de: ${mediaUrl}`);
+          
+          // Baixar o áudio
+          const audioResponse = await fetch(`${megaApiHost}/message/download-media`, {
+            method: 'POST',
+            headers: {
+              'x-api-key': megaApiKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              instance_key: megaInstanceKey,
+              message_key: payload.key
+            })
+          });
+          
+          if (!audioResponse.ok) {
+            throw new Error(`Erro ao baixar áudio: ${audioResponse.statusText}`);
+          }
+          
+          const audioBuffer = await audioResponse.arrayBuffer();
+          const audioBase64 = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+          
+          console.log(`✅ Áudio baixado (${audioBuffer.byteLength} bytes)`);
+          
+          // Transcrever áudio com Whisper
+          console.log('🔄 Transcrevendo áudio...');
+          const openAIKey = Deno.env.get('OPENAI_API_KEY');
+          
+          if (!openAIKey) {
+            throw new Error('OPENAI_API_KEY não configurada');
+          }
+          
+          // Converter para formato que o Whisper aceita
+          const formData = new FormData();
+          const audioBlob = new Blob([new Uint8Array(audioBuffer)], { type: 'audio/ogg' });
+          formData.append('file', audioBlob, 'audio.ogg');
+          formData.append('model', 'whisper-1');
+          formData.append('language', 'pt');
+          
+          const transcriptionResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openAIKey}`
+            },
+            body: formData
+          });
+          
+          if (!transcriptionResponse.ok) {
+            const errorText = await transcriptionResponse.text();
+            throw new Error(`Erro na transcrição: ${errorText}`);
+          }
+          
+          const transcription = await transcriptionResponse.json();
+          const transcribedText = transcription.text;
+          
+          console.log(`✅ Áudio transcrito: "${transcribedText}"`);
+          
+          // Processar com chatbot IA
+          supabase.functions.invoke('chatbot-handler', {
+            body: {
+              whatsapp: fromNumber,
+              message: transcribedText,
+              userName: senderName
+            }
+          }).catch(err => {
+            console.error('❌ Erro ao processar com chatbot:', err);
+          });
+          
+          return new Response(JSON.stringify({ 
+            success: true,
+            message: 'Áudio transcrito e processando com IA',
+            transcription: transcribedText
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+          
+        } catch (error) {
+          console.error('❌ Erro ao processar áudio:', error);
+          
+          // Enviar mensagem de erro ao usuário
+          supabase.functions.invoke('send-whatsapp-notification', {
+            body: {
+              whatsapp: fromNumber,
+              message: 'Desculpe, tive um problema ao processar seu áudio. Por favor, tente enviar uma mensagem de texto ou tente novamente. 😊'
+            }
+          }).catch(err => {
+            console.error('❌ Erro ao enviar notificação de erro:', err);
+          });
+          
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: error instanceof Error ? error.message : 'Erro ao processar áudio'
+          }), {
+            status: 200, // Ainda retorna 200 para o Mega API não reenviar
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
       }
     }
 
