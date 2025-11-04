@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { decodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,21 +64,141 @@ Deno.serve(async (req) => {
       if (audioMessage && fromNumber) {
         console.log(`🎙️ Áudio recebido de ${fromNumber} (${senderName})`);
         
-        // Por enquanto, áudios não são suportados devido à criptografia do WhatsApp
-        supabase.functions.invoke('send-whatsapp-notification', {
-          body: {
-            whatsapp: fromNumber,
-            message: 'Desculpe, ainda não consigo processar áudios. 🎤\n\nPor favor, envie sua mensagem por texto que terei prazer em ajudar! 😊'
+        try {
+          // Notificar usuário que está processando
+          supabase.functions.invoke('send-whatsapp-notification', {
+            body: {
+              whatsapp: fromNumber,
+              message: '🎤 Recebi seu áudio! Estou processando...'
+            }
+          }).catch(err => console.error('Erro ao enviar notificação:', err));
+
+          const megaApiHost = Deno.env.get('MEGA_API_HOST');
+          const megaInstanceKey = Deno.env.get('MEGA_API_INSTANCE_KEY');
+          const megaApiToken = Deno.env.get('MEGA_API_TOKEN');
+
+          // Fazer download do áudio usando o endpoint correto da documentação
+          const downloadUrl = `https://${megaApiHost}/rest/instance/downloadMediaMessage/${megaInstanceKey}`;
+          console.log('📥 Fazendo download do áudio...');
+
+          const downloadResponse = await fetch(downloadUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${megaApiToken}`
+            },
+            body: JSON.stringify({
+              messageKeys: {
+                mediaKey: audioMessage.mediaKey,
+                directPath: audioMessage.directPath,
+                url: audioMessage.url,
+                mimetype: audioMessage.mimetype,
+                messageType: 'audio'
+              }
+            })
+          });
+
+          if (!downloadResponse.ok) {
+            const errorText = await downloadResponse.text();
+            console.error('❌ Erro ao baixar áudio:', downloadResponse.status, errorText);
+            throw new Error(`Erro ao baixar áudio: ${downloadResponse.status}`);
           }
-        }).catch(err => console.error('Erro ao enviar notificação:', err));
-        
-        return new Response(JSON.stringify({ 
-          success: true,
-          message: 'Áudio não suportado - usuário notificado'
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+
+          const downloadData = await downloadResponse.json();
+          console.log('✅ Áudio baixado com sucesso');
+
+          // O áudio já vem descriptografado em base64
+          const audioBase64 = downloadData.base64 || downloadData.media || downloadData.data;
+          
+          if (!audioBase64) {
+            console.error('❌ Base64 do áudio não encontrado na resposta');
+            throw new Error('Base64 do áudio não encontrado');
+          }
+
+          // Transcrever com OpenAI Whisper
+          const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+          if (!OPENAI_API_KEY) {
+            console.error('❌ OPENAI_API_KEY não configurada');
+            throw new Error('OPENAI_API_KEY não configurada');
+          }
+
+          console.log('🎯 Transcrevendo áudio com Whisper...');
+          
+          // Converter base64 para Uint8Array
+          const audioBuffer = decodeBase64(audioBase64);
+          
+          // Criar um novo Uint8Array para evitar problemas de tipo
+          const audioData = new Uint8Array(audioBuffer);
+          
+          // Criar Blob do áudio
+          const audioBlob = new Blob([audioData], { 
+            type: audioMessage.mimetype || 'audio/ogg; codecs=opus' 
+          });
+          
+          // Criar FormData para enviar ao Whisper
+          const formData = new FormData();
+          formData.append('file', audioBlob, 'audio.ogg');
+          formData.append('model', 'whisper-1');
+          formData.append('language', 'pt');
+
+          const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: formData
+          });
+
+          if (!whisperResponse.ok) {
+            const errorText = await whisperResponse.text();
+            console.error('❌ Erro no Whisper:', whisperResponse.status, errorText);
+            throw new Error(`Erro na transcrição: ${whisperResponse.status}`);
+          }
+
+          const transcription = await whisperResponse.json();
+          const transcribedText = transcription.text;
+          
+          console.log(`📝 Áudio transcrito: "${transcribedText}"`);
+
+          // Processar com chatbot IA
+          supabase.functions.invoke('chatbot-handler', {
+            body: {
+              whatsapp: fromNumber,
+              message: transcribedText,
+              userName: senderName
+            }
+          }).catch(err => {
+            console.error('❌ Erro ao processar com chatbot:', err);
+          });
+
+          return new Response(JSON.stringify({ 
+            success: true,
+            message: 'Áudio transcrito e processando com IA',
+            transcription: transcribedText
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+
+        } catch (error) {
+          console.error('❌ Erro ao processar áudio:', error);
+          
+          // Notificar usuário sobre o erro
+          supabase.functions.invoke('send-whatsapp-notification', {
+            body: {
+              whatsapp: fromNumber,
+              message: 'Desculpe, tive um problema ao processar seu áudio. 😔\n\nPor favor, tente enviar sua mensagem por texto!'
+            }
+          }).catch(err => console.error('Erro ao enviar notificação:', err));
+
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: error instanceof Error ? error.message : 'Erro desconhecido'
+          }), {
+            status: 200, // Retornar 200 para não reenviar webhook
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
       }
     }
 
