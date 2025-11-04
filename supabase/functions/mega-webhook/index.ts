@@ -81,8 +81,11 @@ Deno.serve(async (req) => {
           
           console.log(`📥 Baixando áudio de: ${mediaUrl}`);
           
-          // Baixar o áudio
-          const audioResponse = await fetch(`${megaApiHost}/message/download-media`, {
+          // Baixar o áudio usando a API do Mega
+          const downloadUrl = `https://${megaApiHost}/message/download-media`;
+          console.log(`🔗 URL de download: ${downloadUrl}`);
+          
+          const audioResponse = await fetch(downloadUrl, {
             method: 'POST',
             headers: {
               'x-api-key': megaApiKey,
@@ -90,7 +93,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               instance_key: megaInstanceKey,
-              message_key: payload.key
+              message_id: payload.key.id
             })
           });
           
