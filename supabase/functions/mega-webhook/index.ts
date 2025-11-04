@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
 
           const megaApiHost = Deno.env.get('MEGA_API_HOST');
           const megaInstanceKey = payload.instance_key; // Usar a instance_key do payload
-          const megaApiToken = Deno.env.get('MEGA_API_TOKEN');
+          const megaApiToken = Deno.env.get('MEGA_API_KEY');
 
           console.log('🔐 Token disponível:', megaApiToken ? 'Sim' : 'Não');
           console.log('🌐 Host:', megaApiHost);
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
           }
 
           if (!megaApiToken) {
-            throw new Error('MEGA_API_TOKEN não configurado');
+            throw new Error('MEGA_API_KEY não configurado');
           }
 
           // Fazer download do áudio usando o endpoint correto da documentação
