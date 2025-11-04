@@ -19,24 +19,21 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     console.log('📩 Webhook recebido do Mega API:', JSON.stringify(payload, null, 2));
 
-    // Extrair dados do evento
-    const {
-      event,
-      data,
-      timestamp
-    } = payload;
+    // Detectar mensagem RECEBIDA baseado na estrutura real do Mega API
+    const isIncomingMessage = payload.key?.fromMe === false && 
+                              payload.message && 
+                              !payload.isGroup &&
+                              payload.key?.remoteJid !== 'status@broadcast';
 
-    // NOVO: Detectar mensagens RECEBIDAS (de clientes)
-    if (event === 'message.received' || event === 'messages.upsert') {
-      const message = data?.message;
-      const fromNumber = data?.key?.remoteJid?.replace('@s.whatsapp.net', '') || data?.from;
+    if (isIncomingMessage) {
+      const messageText = payload.message?.conversation || 
+                         payload.message?.extendedTextMessage?.text || 
+                         '';
+      const fromNumber = payload.key?.remoteJid?.replace('@s.whatsapp.net', '').replace('@lid', '') || '';
+      const senderName = payload.pushName || 'Cliente';
       
-      // Verificar se é uma mensagem de texto
-      if (message?.conversation || message?.extendedTextMessage?.text) {
-        const messageText = message.conversation || message?.extendedTextMessage?.text;
-        const senderName = data?.pushName || 'Cliente';
-        
-        console.log(`📨 Mensagem recebida de ${fromNumber}: "${messageText}"`);
+      if (messageText && fromNumber) {
+        console.log(`📨 Mensagem recebida de ${fromNumber} (${senderName}): "${messageText}"`);
         
         // Processar com chatbot IA (não aguardar resposta para não bloquear webhook)
         supabase.functions.invoke('chatbot-handler', {
@@ -58,6 +55,13 @@ Deno.serve(async (req) => {
         });
       }
     }
+
+    // Extrair dados do evento (para atualizações de status)
+    const {
+      event,
+      data,
+      timestamp
+    } = payload;
 
     // Mapear eventos do Mega API para nosso status
     let status = 'sent';

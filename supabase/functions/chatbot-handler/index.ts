@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     // Preparar mensagens para a IA
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
-      ...conversationHistory.map(msg => ({
+      ...conversationHistory.map((msg: any) => ({
         role: msg.role,
         content: msg.content
       }))
