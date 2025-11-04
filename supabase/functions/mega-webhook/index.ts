@@ -153,6 +153,15 @@ Deno.serve(async (req) => {
           
           console.log('✅ Base64 encontrado, tamanho:', audioBase64.length);
 
+          // Se for um data URL, extrair apenas a parte base64
+          if (audioBase64.startsWith('data:')) {
+            const base64Match = audioBase64.match(/base64,(.+)/);
+            if (base64Match) {
+              audioBase64 = base64Match[1];
+              console.log('✅ Extraído base64 do data URL, novo tamanho:', audioBase64.length);
+            }
+          }
+
           // Transcrever com OpenAI Whisper
           const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
           if (!OPENAI_API_KEY) {
