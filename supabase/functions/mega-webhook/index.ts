@@ -106,14 +106,40 @@ Deno.serve(async (req) => {
 
           const downloadData = await downloadResponse.json();
           console.log('✅ Áudio baixado com sucesso');
+          console.log('📦 Estrutura da resposta:', JSON.stringify(downloadData, null, 2));
 
-          // O áudio já vem descriptografado em base64
-          const audioBase64 = downloadData.base64 || downloadData.media || downloadData.data;
+          // Tentar extrair o base64 de diferentes possíveis localizações
+          let audioBase64 = downloadData.base64 || 
+                           downloadData.media || 
+                           downloadData.data ||
+                           downloadData.message?.base64 ||
+                           downloadData.message?.media ||
+                           downloadData.message?.data;
+          
+          // Se não encontrou diretamente, tentar buscar recursivamente
+          if (!audioBase64 && typeof downloadData === 'object') {
+            const findBase64 = (obj: any): string | null => {
+              for (const key in obj) {
+                if (typeof obj[key] === 'string' && obj[key].length > 1000) {
+                  return obj[key];
+                }
+                if (typeof obj[key] === 'object' && obj[key] !== null) {
+                  const result = findBase64(obj[key]);
+                  if (result) return result;
+                }
+              }
+              return null;
+            };
+            audioBase64 = findBase64(downloadData);
+          }
           
           if (!audioBase64) {
             console.error('❌ Base64 do áudio não encontrado na resposta');
+            console.error('📦 Chaves disponíveis:', Object.keys(downloadData));
             throw new Error('Base64 do áudio não encontrado');
           }
+          
+          console.log('✅ Base64 encontrado, tamanho:', audioBase64.length);
 
           // Transcrever com OpenAI Whisper
           const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
