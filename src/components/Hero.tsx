@@ -11,12 +11,11 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
   const signupUrl = referrerUsername 
     ? `/cadastro?ref=${referrerUsername}` 
     : '/cadastro';
-  return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#8B5CF6] via-[#6366F1] to-[#3B82F6] px-4 py-20">
-      {/* Animated gradient orbs */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 -left-40 w-80 h-80 bg-[#06B6D4] rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-        <div className="absolute top-0 -right-40 w-80 h-80 bg-[#8B5CF6] rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute -bottom-40 left-20 w-80 h-80 bg-[#6366F1] rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '4s' }}></div>
+  return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-secondary px-4 py-20">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden opacity-20">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-secondary blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-accent blur-3xl animate-pulse delay-1000"></div>
       </div>
 
       <div className="container relative z-10 mx-auto max-w-7xl">
@@ -76,7 +75,7 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
               size="lg" 
               variant="outline" 
               onClick={() => document.getElementById('como-participar')?.scrollIntoView({ behavior: 'smooth' })} 
-              className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-primary transition-all"
+              className="text-lg px-8 py-6 border-white bg-gray-50 text-purple-600"
             >
               Como Funciona
             </Button>
