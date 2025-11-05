@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { ShadowOverlay } from "@/components/ui/shadow-overlay";
 
 interface HeroProps {
   referrerUsername?: string;
@@ -11,12 +12,14 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
   const signupUrl = referrerUsername 
     ? `/cadastro?ref=${referrerUsername}` 
     : '/cadastro';
-  return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-secondary px-4 py-20">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden opacity-20">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-secondary blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-accent blur-3xl animate-pulse delay-1000"></div>
-      </div>
+  return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-20">
+      {/* Interactive shadow overlay background */}
+      <ShadowOverlay
+        color="hsl(262, 83%, 58%)"
+        animation={{ scale: 50, speed: 30 }}
+        noise={{ opacity: 0.3, scale: 1 }}
+        className="absolute inset-0"
+      />
 
       <div className="container relative z-10 mx-auto max-w-7xl">
         <div className={`text-center space-y-8 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
