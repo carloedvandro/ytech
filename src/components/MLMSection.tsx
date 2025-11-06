@@ -1,18 +1,20 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Users2, Wallet } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { ShadowOverlay } from "@/components/ui/shadow-overlay";
 
 export const MLMSection = () => {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
   
   return (
     <section className="relative py-20 px-4 bg-black overflow-hidden">
-      {/* Tech Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-50" />
-      
-      {/* Glowing accents */}
-      <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[150px]"></div>
-      <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[150px]"></div>
+      {/* Animated Shadow Overlay Background */}
+      <ShadowOverlay
+        color="rgba(0, 255, 255, 0.16)"
+        animation={{ scale: 48, speed: 32 }}
+        noise={{ opacity: 0.14, scale: 1.5 }}
+        className="absolute inset-0"
+      />
       
       <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">

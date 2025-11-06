@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { TechParticles } from "@/components/ui/tech-particles";
+import { ShadowOverlay } from "@/components/ui/shadow-overlay";
 
 interface HeroProps {
   referrerUsername?: string;
@@ -13,17 +13,13 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
     ? `/cadastro?ref=${referrerUsername}` 
     : '/cadastro';
   return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
-      {/* Tech Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
-      
-      {/* Animated Particles */}
-      <TechParticles />
-      
-      {/* Glowing Orbs */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
+      {/* Animated Shadow Overlay Background */}
+      <ShadowOverlay
+        color="rgba(0, 255, 255, 0.2)"
+        animation={{ scale: 50, speed: 30 }}
+        noise={{ opacity: 0.15, scale: 1.5 }}
+        className="absolute inset-0"
+      />
 
       <div className="container relative z-10 mx-auto max-w-7xl">
         <div className={`text-center space-y-8 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>

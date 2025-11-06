@@ -1,5 +1,6 @@
 import { UserPlus, Wifi, DollarSign, Users } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { ShadowOverlay } from "@/components/ui/shadow-overlay";
 
 const steps = [
   {
@@ -29,11 +30,13 @@ export const HowItWorks = () => {
   
   return (
     <section className="relative py-20 px-4 bg-black overflow-hidden">
-      {/* Tech Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-50" />
-      
-      {/* Glowing accent */}
-      <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px]"></div>
+      {/* Animated Shadow Overlay Background */}
+      <ShadowOverlay
+        color="rgba(168, 85, 247, 0.2)"
+        animation={{ scale: 55, speed: 35 }}
+        noise={{ opacity: 0.13, scale: 1.5 }}
+        className="absolute inset-0"
+      />
       
       <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">

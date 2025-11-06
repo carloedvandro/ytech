@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus, Link2, ShoppingCart, Users } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { ShadowOverlay } from "@/components/ui/shadow-overlay";
 
 const steps = [
   {
@@ -30,11 +31,13 @@ export const HowToJoin = () => {
   
   return (
     <section id="como-participar" className="relative py-20 px-4 bg-black overflow-hidden">
-      {/* Tech Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-50" />
-      
-      {/* Glowing accent */}
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[150px]"></div>
+      {/* Animated Shadow Overlay Background */}
+      <ShadowOverlay
+        color="rgba(0, 255, 255, 0.18)"
+        animation={{ scale: 45, speed: 28 }}
+        noise={{ opacity: 0.12, scale: 1.5 }}
+        className="absolute inset-0"
+      />
       
       <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">
