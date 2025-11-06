@@ -71,25 +71,27 @@ export function EtheralShadow({
 
     useEffect(() => {
         if (feTurbulenceRef.current && animationEnabled) {
-            let baseValue = 0;
+            let time = 0;
+            let animationId: number;
 
             const animate = () => {
-                baseValue += 0.0001 * animationDuration;
+                time += 0.002 * animationDuration;
                 
                 if (feTurbulenceRef.current) {
-                    const baseFreqX = mapRange(animation.scale, 0, 100, 0.001, 0.0005) + Math.sin(baseValue) * 0.0001;
-                    const baseFreqY = mapRange(animation.scale, 0, 100, 0.004, 0.002) + Math.cos(baseValue) * 0.0002;
+                    // Criar movimento ondulante mais pronunciado
+                    const baseFreqX = 0.015 + Math.sin(time * 0.5) * 0.008;
+                    const baseFreqY = 0.015 + Math.cos(time * 0.7) * 0.008;
                     feTurbulenceRef.current.setAttribute("baseFrequency", `${baseFreqX} ${baseFreqY}`);
                 }
 
-                animationFrameRef.current = requestAnimationFrame(animate);
+                animationId = requestAnimationFrame(animate);
             };
 
-            animationFrameRef.current = requestAnimationFrame(animate);
+            animationId = requestAnimationFrame(animate);
 
             return () => {
-                if (animationFrameRef.current) {
-                    cancelAnimationFrame(animationFrameRef.current);
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
                 }
             };
         }
@@ -112,28 +114,28 @@ export function EtheralShadow({
                 style={{
                     position: "absolute",
                     inset: -displacementScale,
-                    filter: animationEnabled ? `url(#${id}) blur(4px)` : "none"
+                    filter: animationEnabled ? `url(#${id})` : "none",
+                    willChange: "filter"
                 }}
             >
                 {animationEnabled && (
                     <svg style={{ position: "absolute", width: 0, height: 0 }}>
                         <defs>
-                            <filter id={id}>
+                            <filter id={id} x="-50%" y="-50%" width="200%" height="200%">
                                 <feTurbulence
                                     ref={feTurbulenceRef}
-                                    result="undulation"
-                                    numOctaves="3"
-                                    baseFrequency={`${mapRange(animation.scale, 0, 100, 0.001, 0.0005)},${mapRange(animation.scale, 0, 100, 0.004, 0.002)}`}
-                                    seed="0"
+                                    result="turbulence"
+                                    numOctaves="4"
+                                    baseFrequency="0.015 0.015"
+                                    seed="2"
                                     type="fractalNoise"
                                 />
                                 <feDisplacementMap
                                     in="SourceGraphic"
-                                    in2="undulation"
-                                    scale={displacementScale}
+                                    in2="turbulence"
+                                    scale={displacementScale * 2}
                                     xChannelSelector="R"
                                     yChannelSelector="G"
-                                    result="output"
                                 />
                             </filter>
                         </defs>
