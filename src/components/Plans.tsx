@@ -2,7 +2,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 
 interface PlansProps {
   referrerUsername?: string;
@@ -43,63 +42,64 @@ export const Plans = ({ referrerUsername }: PlansProps = {}) => {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
   
   return (
-    <section id="planos" className="py-20 px-4 bg-muted/30">
-      <div ref={ref} className={`container mx-auto max-w-7xl transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+    <section id="planos" className="relative py-20 px-4 bg-black overflow-hidden">
+      {/* Tech Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-50" />
+      
+      {/* Glowing accent */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/10 rounded-full blur-[150px]"></div>
+      
+      <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+          <h2 className="text-4xl md:text-5xl font-bold text-white drop-shadow-[0_0_30px_rgba(0,255,255,0.3)]">
             Escolha o Melhor Plano
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-white/70 max-w-2xl mx-auto">
             Planos flexíveis para atender suas necessidades, com a melhor internet 5G do mercado
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {plans.map((plan) => (
             <Card 
               key={plan.name}
-              className={`relative overflow-hidden transition-all hover:shadow-xl backdrop-blur-xl bg-background/50 ${
+              className={`relative overflow-hidden transition-all hover:shadow-[0_0_40px_rgba(0,255,255,0.4)] bg-black/60 backdrop-blur-xl ${
                 plan.popular 
-                  ? 'border-primary shadow-lg scale-105' 
-                  : 'border-border'
+                  ? 'border-primary/60 shadow-[0_0_30px_rgba(0,255,255,0.3)] scale-105' 
+                  : 'border-primary/30'
               }`}
             >
-              <AnimatedGradient 
-                colors={plan.popular ? ["#8b5cf6", "#a78bfa", "#c4b5fd"] : ["#3b82f6", "#60a5fa", "#93c5fd"]} 
-                speed={0.05} 
-                blur="medium" 
-              />
               {plan.popular && (
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold rounded-bl-lg z-10">
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-primary to-secondary text-black px-4 py-1 text-sm font-semibold rounded-bl-lg z-10">
                   Mais Popular
                 </div>
               )}
 
               <CardHeader className="relative z-10 text-center pb-8 pt-8">
-                <CardTitle className="text-2xl mb-2">{plan.name}</CardTitle>
+                <CardTitle className="text-2xl mb-2 text-white">{plan.name}</CardTitle>
                 <CardDescription className="text-lg font-medium text-primary">
                   {plan.data}
                 </CardDescription>
                 <div className="mt-4">
-                  <span className="text-5xl font-bold text-foreground">
+                  <span className="text-5xl font-bold text-white drop-shadow-[0_0_20px_rgba(0,255,255,0.5)]">
                     R$ {plan.price.toFixed(2).replace('.', ',')}
                   </span>
-                  <span className="text-muted-foreground">/mês</span>
+                  <span className="text-white/60">/mês</span>
                 </div>
               </CardHeader>
 
               <CardContent className="relative z-10 space-y-4">
                 {plan.features.map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
-                    <span className="text-sm text-foreground">{feature}</span>
+                    <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <span className="text-sm text-white/80">{feature}</span>
                   </div>
                 ))}
               </CardContent>
 
               <CardFooter className="relative z-10 pt-6">
-                <div className="w-full text-center py-3 px-4 rounded-lg bg-muted border border-border">
-                  <p className="text-sm font-medium text-muted-foreground">
+                <div className="w-full text-center py-3 px-4 rounded-lg bg-primary/10 border border-primary/30">
+                  <p className="text-sm font-medium text-primary">
                     Disponível apenas por indicação
                   </p>
                 </div>
@@ -109,8 +109,8 @@ export const Plans = ({ referrerUsername }: PlansProps = {}) => {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-sm text-muted-foreground">
-            💰 Ganhe comissões indicando amigos! <span className="font-semibold text-primary">Até R$ 26 por indicação</span>
+          <p className="text-sm text-white/70">
+            💰 Ganhe comissões indicando amigos! <span className="font-semibold text-primary drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">Até R$ 26 por indicação</span>
           </p>
         </div>
       </div>

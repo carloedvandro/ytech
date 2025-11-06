@@ -28,13 +28,19 @@ export const HowItWorks = () => {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
   
   return (
-    <section className="py-20 px-4 bg-background">
-      <div ref={ref} className={`container mx-auto max-w-7xl transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+    <section className="relative py-20 px-4 bg-black overflow-hidden">
+      {/* Tech Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-50" />
+      
+      {/* Glowing accent */}
+      <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px]"></div>
+      
+      <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground">
+          <h2 className="text-4xl md:text-5xl font-bold text-white drop-shadow-[0_0_30px_rgba(0,255,255,0.3)]">
             Como Funciona
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-white/70 max-w-2xl mx-auto">
             É simples começar a usar a melhor internet 5G e ainda ganhar dinheiro
           </p>
         </div>
@@ -46,24 +52,24 @@ export const HowItWorks = () => {
               <div key={index} className="relative">
                 {/* Connector line */}
                 {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-16 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-primary to-secondary -z-10"></div>
+                  <div className="hidden lg:block absolute top-16 left-[60%] w-[80%] h-[2px] bg-gradient-to-r from-primary via-primary/50 to-transparent -z-10"></div>
                 )}
 
                 <div className="flex flex-col items-center text-center space-y-4">
                   {/* Number badge */}
-                  <div className="relative">
-                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-                      <Icon className="w-14 h-14 text-white" />
+                  <div className="relative group">
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-[0_0_40px_rgba(0,255,255,0.4)] group-hover:shadow-[0_0_60px_rgba(0,255,255,0.6)] transition-all">
+                      <Icon className="w-14 h-14 text-black" />
                     </div>
-                    <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center font-bold text-lg shadow-lg">
+                    <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-black border-2 border-primary text-primary flex items-center justify-center font-bold text-lg shadow-[0_0_20px_rgba(0,255,255,0.5)]">
                       {index + 1}
                     </div>
                   </div>
 
-                  <h3 className="text-xl font-semibold text-foreground">
+                  <h3 className="text-xl font-semibold text-white">
                     {step.title}
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-white/70">
                     {step.description}
                   </p>
                 </div>
