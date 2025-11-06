@@ -5,7 +5,7 @@ import { Hero } from "@/components/Hero";
 import { Plans } from "@/components/Plans";
 import { HowToJoin } from "@/components/HowToJoin";
 import { HowItWorks } from "@/components/HowItWorks";
-import { MLMSection } from "@/components/MLMSection";
+import { MMNSection } from "@/components/MMNSection";
 import { Footer } from "@/components/Footer";
 import { Loader2 } from "lucide-react";
 
@@ -83,7 +83,7 @@ const MiniSite = () => {
       <Plans referrerUsername={referrer.username} />
       <HowToJoin />
       <HowItWorks />
-      <MLMSection />
+      <MMNSection />
       <Footer />
     </main>
   );

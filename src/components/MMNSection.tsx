@@ -3,7 +3,7 @@ import { TrendingUp, Users2, Wallet } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { EtheralShadow } from "@/components/ui/etheral-shadow";
 
-export const MLMSection = () => {
+export const MMNSection = () => {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
   
   return (
