@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useId, useEffect, CSSProperties } from 'react';
-import { animate, useMotionValue, AnimationPlaybackControls } from 'framer-motion';
 
 // Type definitions
 interface ResponsiveImage {
@@ -64,40 +63,37 @@ export function EtheralShadow({
 }: ShadowOverlayProps) {
     const id = useInstanceId();
     const animationEnabled = animation && animation.scale > 0;
-    const feColorMatrixRef = useRef<SVGFEColorMatrixElement>(null);
-    const hueRotateMotionValue = useMotionValue(180);
-    const hueRotateAnimation = useRef<AnimationPlaybackControls | null>(null);
+    const feTurbulenceRef = useRef<SVGFETurbulenceElement>(null);
+    const animationFrameRef = useRef<number>();
 
     const displacementScale = animation ? mapRange(animation.scale, 1, 100, 20, 100) : 0;
-    const animationDuration = animation ? mapRange(animation.speed, 1, 100, 1000, 50) : 1;
+    const animationDuration = animation ? mapRange(animation.speed, 1, 100, 10, 1) : 1;
 
     useEffect(() => {
-        if (feColorMatrixRef.current && animationEnabled) {
-            if (hueRotateAnimation.current) {
-                hueRotateAnimation.current.stop();
-            }
-            hueRotateMotionValue.set(0);
-            hueRotateAnimation.current = animate(hueRotateMotionValue, 360, {
-                duration: animationDuration / 25,
-                repeat: Infinity,
-                repeatType: "loop",
-                repeatDelay: 0,
-                ease: "linear",
-                delay: 0,
-                onUpdate: (value: number) => {
-                    if (feColorMatrixRef.current) {
-                        feColorMatrixRef.current.setAttribute("values", String(value));
-                    }
+        if (feTurbulenceRef.current && animationEnabled) {
+            let baseValue = 0;
+
+            const animate = () => {
+                baseValue += 0.0001 * animationDuration;
+                
+                if (feTurbulenceRef.current) {
+                    const baseFreqX = mapRange(animation.scale, 0, 100, 0.001, 0.0005) + Math.sin(baseValue) * 0.0001;
+                    const baseFreqY = mapRange(animation.scale, 0, 100, 0.004, 0.002) + Math.cos(baseValue) * 0.0002;
+                    feTurbulenceRef.current.setAttribute("baseFrequency", `${baseFreqX} ${baseFreqY}`);
                 }
-            });
+
+                animationFrameRef.current = requestAnimationFrame(animate);
+            };
+
+            animationFrameRef.current = requestAnimationFrame(animate);
 
             return () => {
-                if (hueRotateAnimation.current) {
-                    hueRotateAnimation.current.stop();
+                if (animationFrameRef.current) {
+                    cancelAnimationFrame(animationFrameRef.current);
                 }
             };
         }
-    }, [animationEnabled, animationDuration, hueRotateMotionValue]);
+    }, [animationEnabled, animationDuration, animation]);
 
     return (
         <div
@@ -120,38 +116,23 @@ export function EtheralShadow({
                 }}
             >
                 {animationEnabled && (
-                    <svg style={{ position: "absolute" }}>
+                    <svg style={{ position: "absolute", width: 0, height: 0 }}>
                         <defs>
                             <filter id={id}>
                                 <feTurbulence
+                                    ref={feTurbulenceRef}
                                     result="undulation"
-                                    numOctaves="2"
+                                    numOctaves="3"
                                     baseFrequency={`${mapRange(animation.scale, 0, 100, 0.001, 0.0005)},${mapRange(animation.scale, 0, 100, 0.004, 0.002)}`}
                                     seed="0"
-                                    type="turbulence"
-                                />
-                                <feColorMatrix
-                                    ref={feColorMatrixRef}
-                                    in="undulation"
-                                    type="hueRotate"
-                                    values="180"
-                                />
-                                <feColorMatrix
-                                    in="dist"
-                                    result="circulation"
-                                    type="matrix"
-                                    values="4 0 0 0 1  4 0 0 0 1  4 0 0 0 1  1 0 0 0 0"
+                                    type="fractalNoise"
                                 />
                                 <feDisplacementMap
                                     in="SourceGraphic"
-                                    in2="circulation"
-                                    scale={displacementScale}
-                                    result="dist"
-                                />
-                                <feDisplacementMap
-                                    in="dist"
                                     in2="undulation"
                                     scale={displacementScale}
+                                    xChannelSelector="R"
+                                    yChannelSelector="G"
                                     result="output"
                                 />
                             </filter>
