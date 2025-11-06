@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { ShadowOverlay } from "@/components/ui/shadow-overlay";
+import { EtheralShadow } from "@/components/ui/etheral-shadow";
 
 interface HeroProps {
   referrerUsername?: string;
@@ -14,11 +14,10 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
     : '/cadastro';
   return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
       {/* Animated Shadow Overlay Background */}
-      <ShadowOverlay
+      <EtheralShadow
         color="rgba(0, 255, 255, 0.2)"
         animation={{ scale: 50, speed: 30 }}
         noise={{ opacity: 0.15, scale: 1.5 }}
-        className="absolute inset-0"
       />
 
       <div className="container relative z-10 mx-auto max-w-7xl">

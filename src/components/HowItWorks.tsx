@@ -1,6 +1,6 @@
 import { UserPlus, Wifi, DollarSign, Users } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { ShadowOverlay } from "@/components/ui/shadow-overlay";
+import { EtheralShadow } from "@/components/ui/etheral-shadow";
 
 const steps = [
   {
@@ -31,11 +31,10 @@ export const HowItWorks = () => {
   return (
     <section className="relative py-20 px-4 bg-black overflow-hidden">
       {/* Animated Shadow Overlay Background */}
-      <ShadowOverlay
+      <EtheralShadow
         color="rgba(168, 85, 247, 0.2)"
         animation={{ scale: 55, speed: 35 }}
         noise={{ opacity: 0.13, scale: 1.5 }}
-        className="absolute inset-0"
       />
       
       <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
