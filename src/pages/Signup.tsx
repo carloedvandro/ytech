@@ -20,6 +20,13 @@ const signupSchema = z.object({
   whatsapp: z.string().regex(/^\d{11}$/, "WhatsApp deve ter 11 dígitos (DDD + número)"),
   cpf: z.string().regex(/^\d{11}$/, "CPF deve ter 11 dígitos"),
   verificationCode: z.string().length(6, "Código deve ter 6 dígitos"),
+  cep: z.string().regex(/^\d{8}$/, "CEP deve ter 8 dígitos"),
+  rua: z.string().min(1, "Rua é obrigatória"),
+  numero: z.string().min(1, "Número é obrigatório"),
+  complemento: z.string().optional(),
+  bairro: z.string().min(1, "Bairro é obrigatório"),
+  cidade: z.string().min(1, "Cidade é obrigatória"),
+  estado: z.string().length(2, "Estado deve ter 2 caracteres"),
 });
 
 type SignupForm = z.infer<typeof signupSchema>;
@@ -36,6 +43,7 @@ const Signup = () => {
   const [whatsappVerified, setWhatsappVerified] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
+  const [cepLoading, setCepLoading] = useState(false);
 
   const {
     register,
@@ -43,6 +51,7 @@ const Signup = () => {
     formState: { errors },
     watch,
     trigger,
+    setValue,
   } = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
     mode: "onChange",
@@ -50,6 +59,7 @@ const Signup = () => {
 
   const whatsapp = watch("whatsapp");
   const cpf = watch("cpf");
+  const cep = watch("cep");
 
   // Validar CPF
   const validateCPF = async () => {
@@ -170,6 +180,45 @@ const Signup = () => {
     }
   };
 
+  // Buscar endereço pelo CEP
+  const fetchAddressByCEP = async (cepValue: string) => {
+    if (!cepValue || cepValue.length !== 8) return;
+
+    setCepLoading(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepValue}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP digitado",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Preencher automaticamente os campos
+      setValue("rua", data.logradouro || "");
+      setValue("bairro", data.bairro || "");
+      setValue("cidade", data.localidade || "");
+      setValue("estado", data.uf || "");
+
+      toast({
+        title: "Endereço encontrado!",
+        description: "Dados preenchidos automaticamente",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
   // Finalizar cadastro
   const onSubmit = async (data: SignupForm) => {
     if (!referralCode) {
@@ -252,6 +301,15 @@ const Signup = () => {
             cpf: data.cpf,
             whatsapp: data.whatsapp,
             referred_by: referrer.id,
+            address: {
+              cep: data.cep,
+              rua: data.rua,
+              numero: data.numero,
+              complemento: data.complemento || "",
+              bairro: data.bairro,
+              cidade: data.cidade,
+              estado: data.estado,
+            }
           }
         }
       });
@@ -334,7 +392,10 @@ const Signup = () => {
 
   const nextStep = async () => {
     const isValid = await trigger(
-      step === 1 ? ["fullName", "email", "password"] : step === 2 ? ["whatsapp"] : ["cpf"]
+      step === 1 ? ["fullName", "email", "password"] : 
+      step === 2 ? ["whatsapp"] : 
+      step === 3 ? ["cpf"] :
+      ["cep", "rua", "numero", "bairro", "cidade", "estado"]
     );
     if (isValid) {
       if (step === 2 && !whatsappVerified) return;
@@ -378,7 +439,7 @@ const Signup = () => {
         <CardHeader>
           <CardTitle>Criar Conta</CardTitle>
           <CardDescription>
-            Etapa {step} de 4 • Código: {referralCode.slice(0, 8)}...
+            Etapa {step} de 5 • Código: {referralCode.slice(0, 8)}...
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -549,8 +610,104 @@ const Signup = () => {
               </>
             )}
 
-            {/* Etapa 4: Confirmação */}
+            {/* Etapa 4: Endereço */}
             {step === 4 && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP</Label>
+                  <Input
+                    id="cep"
+                    placeholder="12345678"
+                    maxLength={8}
+                    {...register("cep")}
+                    onBlur={(e) => fetchAddressByCEP(e.target.value)}
+                  />
+                  {errors.cep && <p className="text-sm text-destructive">{errors.cep.message}</p>}
+                  {cepLoading && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Buscando endereço...
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rua">Rua</Label>
+                  <Input
+                    id="rua"
+                    placeholder="Nome da rua"
+                    {...register("rua")}
+                  />
+                  {errors.rua && <p className="text-sm text-destructive">{errors.rua.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="numero">Número</Label>
+                    <Input
+                      id="numero"
+                      placeholder="123"
+                      {...register("numero")}
+                    />
+                    {errors.numero && <p className="text-sm text-destructive">{errors.numero.message}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="complemento">Complemento</Label>
+                    <Input
+                      id="complemento"
+                      placeholder="Apto 45"
+                      {...register("complemento")}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bairro">Bairro</Label>
+                  <Input
+                    id="bairro"
+                    placeholder="Nome do bairro"
+                    {...register("bairro")}
+                  />
+                  {errors.bairro && <p className="text-sm text-destructive">{errors.bairro.message}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cidade">Cidade</Label>
+                    <Input
+                      id="cidade"
+                      placeholder="Cidade"
+                      {...register("cidade")}
+                    />
+                    {errors.cidade && <p className="text-sm text-destructive">{errors.cidade.message}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="estado">Estado</Label>
+                    <Input
+                      id="estado"
+                      placeholder="SP"
+                      maxLength={2}
+                      {...register("estado")}
+                    />
+                    {errors.estado && <p className="text-sm text-destructive">{errors.estado.message}</p>}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="w-full" onClick={() => setStep(3)}>
+                    Voltar
+                  </Button>
+                  <Button type="button" className="w-full" onClick={nextStep}>
+                    Continuar
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Etapa 5: Confirmação */}
+            {step === 5 && (
               <>
                 <Alert>
                   <CheckCircle2 className="h-4 w-4" />
@@ -572,10 +729,13 @@ const Signup = () => {
                   <p>
                     <strong>CPF:</strong> {watch("cpf")}
                   </p>
+                  <p>
+                    <strong>Endereço:</strong> {watch("rua")}, {watch("numero")} - {watch("bairro")}, {watch("cidade")}/{watch("estado")}
+                  </p>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={() => setStep(3)}>
+                  <Button type="button" variant="outline" className="w-full" onClick={() => setStep(4)}>
                     Voltar
                   </Button>
                   <Button type="submit" className="w-full" disabled={loading}>
