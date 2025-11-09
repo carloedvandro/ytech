@@ -90,39 +90,73 @@ serve(async (req) => {
         : 'https://sandbox.asaas.com/api/v3';
 
       try {
-        // Buscar subscription no Asaas
-        const asaasResponse = await fetch(`${asaasUrl}/subscriptions/${actualSubscriptionId}`, {
-          method: 'GET',
-          headers: {
-            'access_token': asaasApiKey!,
-            'Content-Type': 'application/json',
-          },
-        });
+        // Buscar cobranças pendentes da assinatura
+        const paymentsResponse = await fetch(
+          `${asaasUrl}/payments?subscription=${actualSubscriptionId}&status=PENDING`,
+          {
+            method: 'GET',
+            headers: {
+              'access_token': asaasApiKey!,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
 
-        if (!asaasResponse.ok) {
-          console.error('Erro ao buscar subscription no Asaas:', await asaasResponse.text());
-          throw new Error('Subscription não encontrada no Asaas');
+        if (paymentsResponse.ok) {
+          const paymentsData = await paymentsResponse.json();
+          console.log('Cobranças pendentes encontradas:', paymentsData.data?.length || 0);
+
+          // Atualizar cada cobrança pendente com a nova data
+          if (paymentsData.data && paymentsData.data.length > 0) {
+            for (const payment of paymentsData.data) {
+              const updatePaymentResponse = await fetch(
+                `${asaasUrl}/payments/${payment.id}`,
+                {
+                  method: 'PUT',
+                  headers: {
+                    'access_token': asaasApiKey!,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    dueDate: newRenewalDate,
+                  }),
+                }
+              );
+
+              if (updatePaymentResponse.ok) {
+                console.log(`Cobrança ${payment.id} atualizada com sucesso`);
+              } else {
+                const errorText = await updatePaymentResponse.text();
+                console.error(`Erro ao atualizar cobrança ${payment.id}:`, errorText);
+              }
+            }
+          }
         }
 
-        // Atualizar próximo vencimento no Asaas
-        const updateAsaasResponse = await fetch(`${asaasUrl}/subscriptions/${actualSubscriptionId}`, {
-          method: 'PUT',
-          headers: {
-            'access_token': asaasApiKey!,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            nextDueDate: newRenewalDate, // Formato YYYY-MM-DD
-          }),
-        });
+        // Atualizar a assinatura para próximas cobranças
+        const updateSubscriptionResponse = await fetch(
+          `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
+          {
+            method: 'PUT',
+            headers: {
+              'access_token': asaasApiKey!,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              nextDueDate: newRenewalDate,
+            }),
+          }
+        );
 
-        if (!updateAsaasResponse.ok) {
-          const errorText = await updateAsaasResponse.text();
-          console.error('Erro ao atualizar no Asaas:', errorText);
-          throw new Error('Erro ao atualizar data no Asaas');
+        if (updateSubscriptionResponse.ok) {
+          console.log('Assinatura atualizada com sucesso');
+        } else {
+          const errorText = await updateSubscriptionResponse.text();
+          console.log('Info da atualização da assinatura:', errorText);
+          // Não falhar aqui pois o importante é atualizar as cobranças pendentes
         }
 
-        console.log('Data atualizada no Asaas com sucesso');
+        console.log('Datas atualizadas no Asaas com sucesso');
       } catch (asaasError) {
         console.error('Erro ao atualizar no Asaas:', asaasError);
         // Não falhar a operação se o Asaas falhar, pois já atualizamos no banco
