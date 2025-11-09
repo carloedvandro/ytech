@@ -66,10 +66,10 @@ serve(async (req) => {
 
     console.log('Payment encontrado:', latestPayment);
 
-    // Atualizar o payment específico por ID
+    // Atualizar o payment específico por ID com data no formato correto
     const { error: updateError } = await supabase
       .from('payments')
-      .update({ next_renewal_date: newRenewalDate })
+      .update({ next_renewal_date: `${newRenewalDate}T00:00:00+00:00` })
       .eq('id', latestPayment.id);
 
     if (updateError) {
@@ -106,13 +106,13 @@ serve(async (req) => {
 
         // Atualizar próximo vencimento no Asaas
         const updateAsaasResponse = await fetch(`${asaasUrl}/subscriptions/${actualSubscriptionId}`, {
-          method: 'POST',
+          method: 'PUT',
           headers: {
             'access_token': asaasApiKey!,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            nextDueDate: newRenewalDate.split('T')[0], // Formato YYYY-MM-DD
+            nextDueDate: newRenewalDate, // Formato YYYY-MM-DD
           }),
         });
 

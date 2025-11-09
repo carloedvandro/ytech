@@ -244,7 +244,7 @@ const Users = () => {
       const { data, error } = await supabase.functions.invoke('admin-update-renewal-date', {
         body: {
           userId: selectedUser.id,
-          newRenewalDate: new Date(newRenewalDate).toISOString(),
+          newRenewalDate: newRenewalDate, // Envia formato YYYY-MM-DD direto
           subscriptionId: userLastPayment.subscription_id
         }
       });
