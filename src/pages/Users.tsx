@@ -23,6 +23,7 @@ interface User {
   whatsapp: string;
   status: string;
   created_at: string;
+  next_renewal_date?: string | null;
 }
 
 const Users = () => {
@@ -60,14 +61,33 @@ const Users = () => {
   const { data: users, isLoading, refetch } = useQuery({
     queryKey: ["admin-all-users"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: profiles, error } = await supabase
         .from("profiles")
         .select("*")
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as User[];
+
+      // Buscar a data de renovação de cada usuário
+      const usersWithRenewal = await Promise.all(
+        profiles.map(async (profile) => {
+          const { data: payment } = await supabase
+            .from("payments")
+            .select("next_renewal_date")
+            .eq("user_id", profile.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          return {
+            ...profile,
+            next_renewal_date: payment?.next_renewal_date || null,
+          } as User;
+        })
+      );
+
+      return usersWithRenewal;
     },
   });
 
@@ -313,6 +333,11 @@ const Users = () => {
                           <p className="text-sm text-muted-foreground">
                             Cadastrado em: {new Date(user.created_at).toLocaleDateString("pt-BR")}
                           </p>
+                          {user.next_renewal_date && (
+                            <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                              Próximo vencimento: {new Date(user.next_renewal_date).toLocaleDateString("pt-BR")}
+                            </p>
+                          )}
                         </div>
                         <div className="flex gap-2 flex-wrap">
                           <Button
