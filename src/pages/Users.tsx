@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserCog, DollarSign, Search, CheckCircle } from "lucide-react";
+import { UserCog, DollarSign, Search, CheckCircle, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 
@@ -30,11 +30,14 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
   const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [showRenewalDateDialog, setShowRenewalDateDialog] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [adjustmentType, setAdjustmentType] = useState<"add" | "remove">("add");
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
+  const [newRenewalDate, setNewRenewalDate] = useState("");
   const [activating, setActivating] = useState(false);
+  const [updatingRenewal, setUpdatingRenewal] = useState(false);
   const navigate = useNavigate();
   const { setImpersonatedUser } = useImpersonation();
 
@@ -106,6 +109,26 @@ const Users = () => {
       return commissionsAvailable + additionsTotal - deductionsTotal;
     },
     enabled: !!selectedUser,
+  });
+
+  // Buscar última renovação do usuário
+  const { data: userLastPayment } = useQuery({
+    queryKey: ["user-last-payment", selectedUser?.id],
+    queryFn: async () => {
+      if (!selectedUser) return null;
+
+      const { data, error } = await supabase
+        .from("payments")
+        .select("next_renewal_date, subscription_id")
+        .eq("user_id", selectedUser.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedUser && showRenewalDateDialog,
   });
 
   const handleImpersonate = (user: User) => {
@@ -182,6 +205,47 @@ const Users = () => {
     } catch (error) {
       console.error("Error adjusting balance:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao ajustar saldo");
+    }
+  };
+
+  const handleUpdateRenewalDate = async () => {
+    if (!selectedUser || !newRenewalDate) {
+      toast.error("Selecione uma nova data de renovação");
+      return;
+    }
+
+    if (!userLastPayment) {
+      toast.error("Não foi encontrado registro de pagamento para este usuário");
+      return;
+    }
+
+    setUpdatingRenewal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-update-renewal-date', {
+        body: {
+          userId: selectedUser.id,
+          newRenewalDate: new Date(newRenewalDate).toISOString(),
+          subscriptionId: userLastPayment.subscription_id
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Erro ao atualizar data de renovação');
+
+      if (data.warning) {
+        toast.warning(data.message);
+      } else {
+        toast.success("Data de renovação atualizada com sucesso!");
+      }
+
+      setShowRenewalDateDialog(false);
+      setNewRenewalDate("");
+      refetch();
+    } catch (error) {
+      console.error("Error updating renewal date:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao atualizar data de renovação");
+    } finally {
+      setUpdatingRenewal(false);
     }
   };
 
@@ -272,6 +336,20 @@ const Users = () => {
                             <DollarSign className="w-4 h-4 mr-1" />
                             Ajustar Saldo
                           </Button>
+                          {user.status === "active" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowRenewalDateDialog(true);
+                              }}
+                              className="text-orange-600"
+                            >
+                              <Calendar className="w-4 h-4 mr-1" />
+                              Alterar Data
+                            </Button>
+                          )}
                           {user.status === "pending_payment" && (
                             <Button
                               size="sm"
@@ -394,6 +472,59 @@ const Users = () => {
             </Button>
             <Button onClick={handleBalanceAdjustment}>
               Confirmar Ajuste
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de alteração de data de renovação */}
+      <Dialog open={showRenewalDateDialog} onOpenChange={setShowRenewalDateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Data de Renovação</DialogTitle>
+            <DialogDescription>
+              Usuário: {selectedUser?.full_name}
+              <br />
+              {userLastPayment?.next_renewal_date && (
+                <>
+                  Data Atual: {new Date(userLastPayment.next_renewal_date).toLocaleDateString("pt-BR")}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="renewal-date">Nova Data de Renovação</Label>
+              <Input
+                id="renewal-date"
+                type="date"
+                value={newRenewalDate}
+                onChange={(e) => setNewRenewalDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+              />
+              <p className="text-sm text-muted-foreground">
+                Esta data será atualizada tanto no banco de dados quanto no Asaas.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRenewalDateDialog(false);
+                setNewRenewalDate("");
+              }}
+              disabled={updatingRenewal}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleUpdateRenewalDate} 
+              disabled={updatingRenewal || !newRenewalDate}
+            >
+              {updatingRenewal ? "Atualizando..." : "Confirmar Alteração"}
             </Button>
           </DialogFooter>
         </DialogContent>
