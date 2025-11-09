@@ -113,6 +113,8 @@ serve(async (req) => {
             // Atualizar cada cobrança com a nova data
             if (paymentsData.data && paymentsData.data.length > 0) {
               for (const payment of paymentsData.data) {
+                console.log(`📋 Atualizando cobrança: ID=${payment.id}, Vencimento Atual=${payment.dueDate}, Novo Vencimento=${newRenewalDate}`);
+                
                 const updatePaymentResponse = await fetch(
                   `${asaasUrl}/payments/${payment.id}`,
                   {
@@ -128,11 +130,12 @@ serve(async (req) => {
                 );
 
                 if (updatePaymentResponse.ok) {
-                  console.log(`Cobrança ${payment.id} (${status}) atualizada com sucesso`);
+                  const updatedPayment = await updatePaymentResponse.json();
+                  console.log(`✅ Cobrança ${payment.id} (${status}) atualizada: ${payment.dueDate} → ${updatedPayment.dueDate}`);
                   totalPaymentsUpdated++;
                 } else {
                   const errorText = await updatePaymentResponse.text();
-                  console.error(`Erro ao atualizar cobrança ${payment.id}:`, errorText);
+                  console.error(`❌ Erro ao atualizar cobrança ${payment.id}:`, errorText);
                 }
               }
             }
