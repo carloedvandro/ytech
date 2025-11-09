@@ -129,21 +129,32 @@ serve(async (req) => {
         }
 
         // ⚠️ FILTRAR EVENTOS QUE NÃO SÃO DO SISTEMA
-        // Eventos sem externalReference são pagamentos criados diretamente no Asaas
-        // ou PIX recebidos automaticamente - não devem ser processados
+        // Primeiro, verificar se o pagamento existe no banco pelo asaas_payment_id
+        // (necessário para renovações antecipadas que não têm externalReference)
         if (!paymentId && !hasSubscription) {
-          console.log('⚠️ Evento ignorado - Pagamento não é do sistema (sem externalReference e sem subscription)');
-          console.log('   Descrição:', event.payment?.description);
-          console.log('   Asaas ID:', asaasPaymentId);
+          const { data: paymentByAsaasId } = await supabaseClient
+            .from('payments')
+            .select('id')
+            .eq('metadata->>asaas_payment_id', asaasPaymentId)
+            .maybeSingle();
           
-          await supabaseClient
-            .from('asaas_webhook_events')
-            .update({ 
-              response_message: 'Ignored: External payment (not from system)' 
-            })
-            .eq('event_id', eventId);
-          
-          return;
+          if (!paymentByAsaasId) {
+            console.log('⚠️ Evento ignorado - Pagamento não é do sistema (sem externalReference, subscription, e não encontrado no banco)');
+            console.log('   Descrição:', event.payment?.description);
+            console.log('   Asaas ID:', asaasPaymentId);
+            
+            await supabaseClient
+              .from('asaas_webhook_events')
+              .update({ 
+                response_message: 'Ignored: External payment (not from system)' 
+              })
+              .eq('event_id', eventId);
+            
+            return;
+          } else {
+            // Pagamento encontrado no banco, continuar processamento
+            console.log('✓ Pagamento encontrado pelo asaas_payment_id:', paymentByAsaasId.id);
+          }
         }
 
         console.log('🔄 Processing event:', event.event);
@@ -202,7 +213,7 @@ serve(async (req) => {
           let planId;
           let isEarlyRenewal = false;
           
-          // Buscar por ID
+          // Buscar por ID (externalReference)
           if (paymentId) {
             const { data: paymentData } = await supabaseClient
               .from('payments')
@@ -216,6 +227,23 @@ serve(async (req) => {
               planId = payment.plan_id;
               isEarlyRenewal = payment.metadata?.renewal_type === 'early';
               console.log('✓ Payment found by ID', isEarlyRenewal ? '(early renewal)' : '');
+            }
+          }
+          
+          // Buscar por asaas_payment_id (para renovações antecipadas)
+          if (!payment && asaasPaymentId) {
+            const { data: paymentByAsaasId } = await supabaseClient
+              .from('payments')
+              .select('*')
+              .eq('metadata->>asaas_payment_id', asaasPaymentId)
+              .maybeSingle();
+            
+            if (paymentByAsaasId) {
+              payment = paymentByAsaasId;
+              userId = payment.user_id;
+              planId = payment.plan_id;
+              isEarlyRenewal = payment.metadata?.renewal_type === 'early';
+              console.log('✓ Payment found by asaas_payment_id', isEarlyRenewal ? '(early renewal)' : '');
             }
           }
           
