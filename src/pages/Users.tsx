@@ -335,7 +335,7 @@ const Users = () => {
                           </p>
                           {user.next_renewal_date && (
                             <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
-                              Próximo vencimento: {new Date(user.next_renewal_date).toLocaleDateString("pt-BR")}
+                              Próximo vencimento: {user.next_renewal_date.split('T')[0].split('-').reverse().join('/')}
                             </p>
                           )}
                         </div>
@@ -512,7 +512,7 @@ const Users = () => {
               <br />
               {userLastPayment?.next_renewal_date && (
                 <>
-                  Data Atual: {new Date(userLastPayment.next_renewal_date).toLocaleDateString("pt-BR")}
+                  Data Atual: {userLastPayment.next_renewal_date.split('T')[0].split('-').reverse().join('/')}
                 </>
               )}
             </DialogDescription>

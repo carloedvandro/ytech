@@ -90,48 +90,56 @@ serve(async (req) => {
         : 'https://sandbox.asaas.com/api/v3';
 
       try {
-        // Buscar cobranças pendentes da assinatura
-        const paymentsResponse = await fetch(
-          `${asaasUrl}/payments?subscription=${actualSubscriptionId}&status=PENDING`,
-          {
-            method: 'GET',
-            headers: {
-              'access_token': asaasApiKey!,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        // Buscar todas as cobranças da assinatura (PENDING, CONFIRMED, OVERDUE)
+        const statuses = ['PENDING', 'CONFIRMED', 'OVERDUE'];
+        let totalPaymentsUpdated = 0;
 
-        if (paymentsResponse.ok) {
-          const paymentsData = await paymentsResponse.json();
-          console.log('Cobranças pendentes encontradas:', paymentsData.data?.length || 0);
+        for (const status of statuses) {
+          const paymentsResponse = await fetch(
+            `${asaasUrl}/payments?subscription=${actualSubscriptionId}&status=${status}`,
+            {
+              method: 'GET',
+              headers: {
+                'access_token': asaasApiKey!,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
 
-          // Atualizar cada cobrança pendente com a nova data
-          if (paymentsData.data && paymentsData.data.length > 0) {
-            for (const payment of paymentsData.data) {
-              const updatePaymentResponse = await fetch(
-                `${asaasUrl}/payments/${payment.id}`,
-                {
-                  method: 'PUT',
-                  headers: {
-                    'access_token': asaasApiKey!,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    dueDate: newRenewalDate,
-                  }),
+          if (paymentsResponse.ok) {
+            const paymentsData = await paymentsResponse.json();
+            console.log(`Cobranças ${status} encontradas:`, paymentsData.data?.length || 0);
+
+            // Atualizar cada cobrança com a nova data
+            if (paymentsData.data && paymentsData.data.length > 0) {
+              for (const payment of paymentsData.data) {
+                const updatePaymentResponse = await fetch(
+                  `${asaasUrl}/payments/${payment.id}`,
+                  {
+                    method: 'PUT',
+                    headers: {
+                      'access_token': asaasApiKey!,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      dueDate: newRenewalDate,
+                    }),
+                  }
+                );
+
+                if (updatePaymentResponse.ok) {
+                  console.log(`Cobrança ${payment.id} (${status}) atualizada com sucesso`);
+                  totalPaymentsUpdated++;
+                } else {
+                  const errorText = await updatePaymentResponse.text();
+                  console.error(`Erro ao atualizar cobrança ${payment.id}:`, errorText);
                 }
-              );
-
-              if (updatePaymentResponse.ok) {
-                console.log(`Cobrança ${payment.id} atualizada com sucesso`);
-              } else {
-                const errorText = await updatePaymentResponse.text();
-                console.error(`Erro ao atualizar cobrança ${payment.id}:`, errorText);
               }
             }
           }
         }
+
+        console.log(`Total de cobranças atualizadas: ${totalPaymentsUpdated}`);
 
         // Atualizar a assinatura para próximas cobranças
         const updateSubscriptionResponse = await fetch(
