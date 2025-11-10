@@ -231,8 +231,6 @@ const Dashboard = () => {
       let reservedBalance = 0;
       if (preferences?.use_balance_for_renewal) {
         const minBalance = Number(preferences.minimum_balance_to_keep || 0);
-        const availableForDiscount = Math.max(0, availableBalance - minBalance);
-        const monthlyFee = 129.99;
         
         // Verificar se há desconto já aplicado
         const metadata = paymentData?.metadata as any;
@@ -242,7 +240,11 @@ const Dashboard = () => {
           // Se já aplicou desconto, o saldo reservado é o que já foi usado
           reservedBalance = alreadyApplied;
         } else {
-          // Se ainda não aplicou, calcular quanto será reservado
+          // Se ainda não aplicou, calcular quanto DEVERIA ser reservado
+          // Usar o total de comissões + adições - descontos (ignorando status withdrawn se não houver desconto aplicado)
+          const netBalance = totalCommissions + additionsTotal - deductionsTotal;
+          const availableForDiscount = Math.max(0, netBalance - minBalance);
+          
           if (availableForDiscount >= 5) {
             reservedBalance = Math.min(availableForDiscount, 124.99); // Máximo R$ 124,99 (limitação Asaas)
           }
