@@ -34,6 +34,14 @@ serve(async (req) => {
       error: userError,
     } = await supabaseClient.auth.getUser();
 
+    console.log('🔐 getUser result:', { 
+      hasUser: !!user, 
+      userId: user?.id,
+      hasError: !!userError,
+      errorMsg: userError?.message,
+      errorName: userError?.name
+    });
+
     if (userError || !user) {
       console.log('❌ Erro na autenticação:', userError?.message || 'Usuário não encontrado');
       throw new Error('Usuário não autenticado');
