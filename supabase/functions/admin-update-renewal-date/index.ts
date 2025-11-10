@@ -84,9 +84,17 @@ serve(async (req) => {
     
     // Verificar se tem asaas_payment_id no metadata para deletar
     const currentAsaasPaymentId = latestPayment.metadata?.asaas_payment_id;
+    
+    console.log('🔍 Verificando processamento Asaas:', {
+      actualSubscriptionId,
+      currentAsaasPaymentId,
+      hasMetadata: !!latestPayment.metadata,
+      metadata: latestPayment.metadata
+    });
 
-    // Processar no Asaas se tiver subscription_id OU asaas_payment_id
-    if (actualSubscriptionId || currentAsaasPaymentId) {
+    // SEMPRE processar no Asaas para usuários ativos
+    // Mesmo sem subscription_id ou asaas_payment_id, vamos buscar o customer e criar a cobrança
+    if (actualSubscriptionId || currentAsaasPaymentId || true) {
       const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || Deno.env.get('ASAAS_SANDBOX_API_KEY');
       const asaasUrl = asaasApiKey?.includes('prod') 
         ? 'https://api.asaas.com/v3' 
