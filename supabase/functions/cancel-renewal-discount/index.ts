@@ -54,8 +54,12 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    console.log('📋 Status atual:', {
+    console.log('📋 STATUS INICIAL:', {
+      user_id: user.id,
+      user_email: user.email,
       has_pending_payment: !!pendingPayment,
+      payment_id: pendingPayment?.id,
+      payment_amount: pendingPayment?.amount,
       discount_applied: discountApplied,
       use_balance_for_renewal: currentPref?.use_balance_for_renewal
     });
@@ -82,7 +86,8 @@ serve(async (req) => {
       // Cancelar pagamento no Asaas se tiver ID
       const asaasPaymentId = metadata?.asaas_payment_id;
       if (asaasPaymentId) {
-        console.log('🔄 Tentando cancelar pagamento no Asaas:', asaasPaymentId);
+        console.log('🔄 PASSO 1: Cancelando pagamento no Asaas:', asaasPaymentId);
+        console.log('   URL:', `${ENV_CONFIG.asaas.baseUrl}/payments/${asaasPaymentId}`);
         
         const cancelResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${asaasPaymentId}`, {
           method: 'DELETE',
@@ -97,13 +102,14 @@ serve(async (req) => {
           throw new Error(`Falha ao cancelar fatura no Asaas: ${errorText}`);
         }
         
-        console.log('✅ Pagamento cancelado no Asaas com sucesso');
+        console.log('✅ PASSO 1 CONCLUÍDO: Pagamento cancelado no Asaas com sucesso');
       } else {
-        console.error('❌ Pagamento não tem ID do Asaas');
+        console.error('❌ ERRO PASSO 1: Pagamento não tem ID do Asaas');
         throw new Error('Pagamento não tem ID do Asaas para cancelamento');
       }
 
       // Atualizar status do pagamento para cancelled
+      console.log('🔄 PASSO 2: Marcando pagamento como cancelado no banco');
       const { error: updateError } = await supabaseClient
         .from('payments')
         .update({ 
@@ -117,12 +123,14 @@ serve(async (req) => {
         .eq('id', pendingPayment.id);
 
       if (updateError) {
-        console.error('Erro ao cancelar pagamento:', updateError);
+        console.error('❌ ERRO PASSO 2:', updateError);
         throw updateError;
       }
+      console.log('✅ PASSO 2 CONCLUÍDO: Status atualizado para cancelled');
 
       // Restaurar comissões que foram marcadas como withdrawn
-      console.log('🔄 Restaurando comissões...');
+      console.log('🔄 PASSO 3: Restaurando comissões withdrawn');
+      console.log('   Valor a restaurar: R$', discountApplied);
       const { data: withdrawnCommissions } = await supabaseClient
         .from('commissions')
         .select('id, amount')
@@ -132,12 +140,14 @@ serve(async (req) => {
         .limit(10);
 
       if (withdrawnCommissions && withdrawnCommissions.length > 0) {
+        console.log(`   Encontradas ${withdrawnCommissions.length} comissões withdrawn`);
         let remainingToRestore = discountApplied;
         const commsToRestore = [];
 
         for (const comm of withdrawnCommissions) {
           if (remainingToRestore <= 0) break;
           const amountToRestore = Math.min(Number(comm.amount), remainingToRestore);
+          console.log(`   - Restaurando comissão ${comm.id}: R$ ${amountToRestore}`);
           commsToRestore.push(comm.id);
           remainingToRestore -= amountToRestore;
         }
@@ -151,11 +161,12 @@ serve(async (req) => {
             })
             .in('id', commsToRestore);
 
-          console.log(`✅ ${commsToRestore.length} comissão(ões) restaurada(s)`);
+          console.log(`✅ PASSO 3A: ${commsToRestore.length} comissão(ões) restaurada(s)`);
         }
 
         // Se ainda sobrou valor, remover do ajuste negativo
         if (remainingToRestore > 0.01) {
+          console.log(`🔄 PASSO 3B: Criando ajuste positivo de R$ ${remainingToRestore.toFixed(2)}`);
           await supabaseClient
             .from('admin_balance_adjustments')
             .insert({
@@ -168,12 +179,14 @@ serve(async (req) => {
               balance_after: remainingToRestore
             });
 
-          console.log(`✅ Ajuste de +R$ ${remainingToRestore.toFixed(2)} criado`);
+          console.log(`✅ PASSO 3B CONCLUÍDO: Ajuste criado`);
         }
       }
+      console.log('✅ PASSO 3 CONCLUÍDO: Saldo restaurado');
     }
 
     // Desabilitar preferência de usar saldo
+    console.log('🔄 PASSO 4: Desabilitando preferência de renovação');
     const { error: prefError } = await supabaseClient
       .from('user_renewal_preferences')
       .update({
@@ -183,11 +196,11 @@ serve(async (req) => {
       .eq('user_id', user.id);
 
     if (prefError) {
-      console.error('Erro ao atualizar preferências:', prefError);
+      console.error('❌ ERRO PASSO 4:', prefError);
       throw prefError;
     }
 
-    console.log('✅ Preferência de renovação desabilitada');
+    console.log('✅ PASSO 4 CONCLUÍDO: Preferência desabilitada');
 
     // Se não havia fatura com desconto, apenas desabilitar e retornar
     if (!pendingPayment || discountApplied === 0) {
@@ -201,6 +214,7 @@ serve(async (req) => {
     }
 
     // Buscar perfil do usuário
+    console.log('🔄 PASSO 5: Buscando perfil do usuário');
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('*')
@@ -211,8 +225,10 @@ serve(async (req) => {
 
     const plan = pendingPayment.plans;
     const originalAmount = Number(plan.price);
+    console.log('   Plano:', plan.name, '- Valor integral: R$', originalAmount);
 
     // Buscar ou criar cliente no Asaas
+    console.log('🔄 PASSO 6: Buscando/criando cliente no Asaas');
     const customerData = {
       name: profile.full_name,
       cpfCnpj: profile.cpf.replace(/\D/g, ''),
@@ -247,9 +263,13 @@ serve(async (req) => {
     } else {
       asaasCustomer = await customerResponse.json();
     }
+    console.log('✅ PASSO 6 CONCLUÍDO: Customer ID:', asaasCustomer.id);
 
     // Criar nova cobrança com valor cheio, mantendo a mesma data
     const dueDate = new Date(pendingPayment.expires_at);
+    console.log('🔄 PASSO 7: Criando nova cobrança no Asaas');
+    console.log('   Valor: R$', originalAmount);
+    console.log('   Vencimento:', dueDate.toISOString().split('T')[0]);
 
     const newPaymentResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments`, {
       method: 'POST',
@@ -268,12 +288,15 @@ serve(async (req) => {
 
     if (!newPaymentResponse.ok) {
       const errorText = await newPaymentResponse.text();
+      console.error('❌ ERRO PASSO 7:', errorText);
       throw new Error(`Erro ao criar nova cobrança Asaas: ${errorText}`);
     }
 
     const newAsaasPayment = await newPaymentResponse.json();
+    console.log('✅ PASSO 7 CONCLUÍDO: Cobrança criada:', newAsaasPayment.id);
 
     // Buscar QR Code PIX
+    console.log('🔄 PASSO 8: Buscando QR Code PIX');
     const pixResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${newAsaasPayment.id}/pixQrCode`, {
       headers: {
         'access_token': ENV_CONFIG.asaas.apiKey,
@@ -281,8 +304,10 @@ serve(async (req) => {
     });
 
     const pixData = await pixResponse.json();
+    console.log('✅ PASSO 8 CONCLUÍDO: QR Code obtido');
 
     // Criar novo registro de pagamento no banco
+    console.log('🔄 PASSO 9: Inserindo novo pagamento no banco');
     const { data: newPayment, error: insertError } = await supabaseClient
       .from('payments')
       .insert({
@@ -304,13 +329,22 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('❌ ERRO PASSO 9:', insertError);
+      throw insertError;
+    }
 
-    console.log('✅ Nova fatura criada:', {
-      payment_id: newPayment.id,
-      amount: originalAmount,
-      discount_returned: discountApplied
-    });
+    console.log('✅ PASSO 9 CONCLUÍDO: Nova fatura criada no banco');
+    console.log('');
+    console.log('🎉 PROCESSO COMPLETO!');
+    console.log('═══════════════════════════════════════');
+    console.log('📋 RESUMO:');
+    console.log('   • Fatura antiga cancelada (R$', pendingPayment.amount, ')');
+    console.log('   • Nova fatura criada (R$', originalAmount, ')');
+    console.log('   • Desconto devolvido: R$', discountApplied);
+    console.log('   • ID nova fatura:', newPayment.id);
+    console.log('   • Vencimento mantido:', dueDate.toISOString().split('T')[0]);
+    console.log('═══════════════════════════════════════');
 
     return new Response(
       JSON.stringify({
