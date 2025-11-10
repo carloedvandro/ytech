@@ -144,6 +144,41 @@ const Financial = () => {
     try {
       if (!activeUserId) return;
 
+      // Se está ativando o uso de saldo, verificar prazo de 5 dias
+      if (useBalanceForRenewal) {
+        // Buscar fatura pendente para verificar data de vencimento
+        const { data: pendingPayment } = await supabase
+          .from("payments")
+          .select("expires_at")
+          .eq("user_id", activeUserId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .maybeSingle();
+
+        if (pendingPayment && pendingPayment.expires_at) {
+          const expiresAt = new Date(pendingPayment.expires_at);
+          const today = new Date();
+          const diffInMs = expiresAt.getTime() - today.getTime();
+          const daysUntilExpiration = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+
+          console.log('📅 Verificando prazo:', {
+            expiresAt: expiresAt.toISOString(),
+            today: today.toISOString(),
+            daysUntilExpiration
+          });
+
+          if (daysUntilExpiration < 5) {
+            toast({
+              title: "Não é possível ativar desconto",
+              description: `O desconto só pode ser ativado com 5 ou mais dias antes do vencimento. Faltam ${daysUntilExpiration} dia(s).`,
+              variant: "destructive",
+            });
+            setSavingPreferences(false);
+            return;
+          }
+        }
+      }
+
       const { error } = await supabase
         .from("user_renewal_preferences")
         .upsert({
@@ -827,6 +862,13 @@ const Financial = () => {
                 onCheckedChange={setUseBalanceForRenewal}
               />
             </div>
+
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                <strong>⏰ Importante:</strong> O desconto só pode ser ativado com 5 ou mais dias de antecedência do vencimento. A partir de 4 dias antes do vencimento, não será possível habilitar o desconto.
+              </AlertDescription>
+            </Alert>
 
             {useBalanceForRenewal && (
               <>

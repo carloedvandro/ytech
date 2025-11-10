@@ -78,6 +78,31 @@ serve(async (req) => {
 
     console.log(`📄 Fatura encontrada: ${payment.id} - R$ ${payment.amount}`);
 
+    // Verificar se faltam pelo menos 5 dias para o vencimento
+    if (payment.expires_at) {
+      const expiresAt = new Date(payment.expires_at);
+      const today = new Date();
+      const diffInMs = expiresAt.getTime() - today.getTime();
+      const daysUntilExpiration = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+
+      console.log('📅 Verificando prazo:', {
+        expiresAt: payment.expires_at,
+        today: today.toISOString(),
+        daysUntilExpiration
+      });
+
+      if (daysUntilExpiration < 5) {
+        console.log(`⚠️ Desconto bloqueado: faltam apenas ${daysUntilExpiration} dias`);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: `O desconto só pode ser aplicado com 5 ou mais dias antes do vencimento. Faltam ${daysUntilExpiration} dia(s).` 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+    }
+
     // 2️⃣ Buscar dados do usuário e plano
     const { data: profile } = await supabase
       .from('profiles')
