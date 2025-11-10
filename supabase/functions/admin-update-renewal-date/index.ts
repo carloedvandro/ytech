@@ -92,6 +92,52 @@ serve(async (req) => {
       try {
         console.log('🔍 Buscando informações para recriar cobrança...');
 
+        // 1️⃣ PRIMEIRO: Verificar se o payment atual tinha desconto aplicado
+        const currentPaymentMetadata = latestPayment.metadata as any;
+        const previousDiscount = currentPaymentMetadata?.discount_applied || 0;
+        const previousAsaasPaymentId = currentPaymentMetadata?.asaas_payment_id;
+
+        console.log(`💸 Desconto anterior: R$ ${previousDiscount}`);
+        console.log(`🆔 Asaas Payment ID anterior: ${previousAsaasPaymentId}`);
+
+        // 2️⃣ SEGUNDO: Se tinha desconto, REVERTER as comissões ANTES de deletar
+        if (previousDiscount > 0) {
+          console.log('🔄 Revertendo comissões usadas na fatura anterior...');
+          
+          const { data: withdrawnComms, error: fetchError } = await supabase
+            .from('commissions')
+            .select('id, amount, withdrawn_at')
+            .eq('user_id', userId)
+            .eq('status', 'withdrawn')
+            .order('withdrawn_at', { ascending: false })
+            .limit(10);
+
+          if (withdrawnComms && withdrawnComms.length > 0) {
+            let amountToRevert = previousDiscount;
+            
+            for (const comm of withdrawnComms) {
+              if (amountToRevert <= 0) break;
+              
+              const commAmount = Number(comm.amount);
+              if (commAmount <= amountToRevert) {
+                // Reverter comissão completa
+                await supabase
+                  .from('commissions')
+                  .update({ 
+                    status: 'available',
+                    withdrawn_at: null
+                  })
+                  .eq('id', comm.id);
+                
+                console.log(`✅ Revertida: R$ ${commAmount} (comissão ${comm.id})`);
+                amountToRevert -= commAmount;
+              }
+            }
+            
+            console.log(`✅ Total revertido: R$ ${previousDiscount - amountToRevert}`);
+          }
+        }
+
         // Buscar dados do usuário e plano
         const { data: profile } = await supabase
           .from('profiles')
@@ -107,7 +153,8 @@ serve(async (req) => {
 
         console.log(`📋 Plano: ${plan.name} - R$ ${plan.price}`);
 
-        // Calcular saldo disponível
+        // 4️⃣ QUARTO: Recalcular saldo disponível (agora com comissões revertidas)
+        console.log('💰 Recalculando saldo disponível...');
         const { data: commissionsData } = await supabase
           .from('commissions')
           .select('amount')
@@ -156,7 +203,11 @@ serve(async (req) => {
 
         console.log(`🔍 Buscando cobranças da assinatura ${actualSubscriptionId}...`);
 
-        for (const status of statuses) {
+        // 3️⃣ TERCEIRO: Buscar e deletar TODAS as faturas (inclusive a anterior se ainda existir)
+        // Incluir mais status para pegar todas as possibilidades
+        const allStatuses = ['PENDING', 'CONFIRMED', 'OVERDUE', 'RECEIVED', 'RECEIVED_IN_CASH'];
+        
+        for (const status of allStatuses) {
           let offset = 0;
           let hasMore = true;
           
@@ -220,7 +271,31 @@ serve(async (req) => {
 
         console.log(`📊 RESUMO: ${totalPaymentsFound} cobrança(s) encontrada(s), ${deletedPayments.length} deletada(s)`);
 
-        // Buscar customer_id da assinatura
+        // ⚠️ Se nenhuma fatura foi encontrada mas temos asaas_payment_id, tentar deletar diretamente
+        if (deletedPayments.length === 0 && previousAsaasPaymentId) {
+          console.log(`⚠️ Tentando deletar fatura anterior diretamente: ${previousAsaasPaymentId}`);
+          
+          const directDeleteResponse = await fetch(
+            `${asaasUrl}/payments/${previousAsaasPaymentId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                'access_token': asaasApiKey!,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (directDeleteResponse.ok) {
+            console.log(`✅ Fatura anterior ${previousAsaasPaymentId} deletada diretamente!`);
+            deletedPayments.push(previousAsaasPaymentId);
+          } else {
+            const errorText = await directDeleteResponse.text();
+            console.log(`ℹ️ Não foi possível deletar ${previousAsaasPaymentId}: ${errorText}`);
+          }
+        }
+
+        // 5️⃣ QUINTO: Buscar customer_id da assinatura
         const subscriptionResponse = await fetch(
           `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
           {
