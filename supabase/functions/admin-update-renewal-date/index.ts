@@ -90,55 +90,37 @@ serve(async (req) => {
         : 'https://sandbox.asaas.com/api/v3';
 
       try {
-        console.log('🔍 Buscando informações para recriar cobrança...');
+        console.log('🔍 Iniciando processo de recriação de cobrança...');
 
-        // 1️⃣ PRIMEIRO: Verificar se o payment atual tinha desconto aplicado
-        const currentPaymentMetadata = latestPayment.metadata as any;
-        const previousDiscount = currentPaymentMetadata?.discount_applied || 0;
-        const previousAsaasPaymentId = currentPaymentMetadata?.asaas_payment_id;
+        // 1️⃣ PRIMEIRO: REVERTER TODAS as comissões withdrawn deste usuário
+        console.log('🔄 Revertendo TODAS as comissões withdrawn do usuário...');
+        
+        const { data: withdrawnComms } = await supabase
+          .from('commissions')
+          .select('id, amount')
+          .eq('user_id', userId)
+          .eq('status', 'withdrawn');
 
-        console.log(`💸 Desconto anterior: R$ ${previousDiscount}`);
-        console.log(`🆔 Asaas Payment ID anterior: ${previousAsaasPaymentId}`);
-
-        // 2️⃣ SEGUNDO: Se tinha desconto, REVERTER as comissões ANTES de deletar
-        if (previousDiscount > 0) {
-          console.log('🔄 Revertendo comissões usadas na fatura anterior...');
-          
-          const { data: withdrawnComms, error: fetchError } = await supabase
-            .from('commissions')
-            .select('id, amount, withdrawn_at')
-            .eq('user_id', userId)
-            .eq('status', 'withdrawn')
-            .order('withdrawn_at', { ascending: false })
-            .limit(10);
-
-          if (withdrawnComms && withdrawnComms.length > 0) {
-            let amountToRevert = previousDiscount;
+        if (withdrawnComms && withdrawnComms.length > 0) {
+          for (const comm of withdrawnComms) {
+            await supabase
+              .from('commissions')
+              .update({ 
+                status: 'available',
+                withdrawn_at: null
+              })
+              .eq('id', comm.id);
             
-            for (const comm of withdrawnComms) {
-              if (amountToRevert <= 0) break;
-              
-              const commAmount = Number(comm.amount);
-              if (commAmount <= amountToRevert) {
-                // Reverter comissão completa
-                await supabase
-                  .from('commissions')
-                  .update({ 
-                    status: 'available',
-                    withdrawn_at: null
-                  })
-                  .eq('id', comm.id);
-                
-                console.log(`✅ Revertida: R$ ${commAmount} (comissão ${comm.id})`);
-                amountToRevert -= commAmount;
-              }
-            }
-            
-            console.log(`✅ Total revertido: R$ ${previousDiscount - amountToRevert}`);
+            console.log(`✅ Revertida comissão ${comm.id}: R$ ${comm.amount}`);
           }
+          
+          const totalReverted = withdrawnComms.reduce((sum, c) => sum + Number(c.amount), 0);
+          console.log(`✅ Total de ${withdrawnComms.length} comissão(ões) revertida(s): R$ ${totalReverted}`);
+        } else {
+          console.log('ℹ️ Nenhuma comissão withdrawn encontrada para reverter');
         }
 
-        // Buscar dados do usuário e plano
+        // 2️⃣ SEGUNDO: Buscar dados do usuário e plano
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -153,8 +135,8 @@ serve(async (req) => {
 
         console.log(`📋 Plano: ${plan.name} - R$ ${plan.price}`);
 
-        // 4️⃣ QUARTO: Recalcular saldo disponível (agora com comissões revertidas)
-        console.log('💰 Recalculando saldo disponível...');
+        // 3️⃣ TERCEIRO: Calcular saldo disponível (agora com todas as comissões revertidas)
+        console.log('💰 Calculando saldo disponível...');
         const { data: commissionsData } = await supabase
           .from('commissions')
           .select('amount')
@@ -203,8 +185,7 @@ serve(async (req) => {
 
         console.log(`🔍 Buscando cobranças da assinatura ${actualSubscriptionId}...`);
 
-        // 3️⃣ TERCEIRO: Buscar e deletar TODAS as faturas (inclusive a anterior se ainda existir)
-        // Incluir mais status para pegar todas as possibilidades
+        // 4️⃣ QUARTO: Buscar e deletar TODAS as cobranças vinculadas à assinatura
         const allStatuses = ['PENDING', 'CONFIRMED', 'OVERDUE', 'RECEIVED', 'RECEIVED_IN_CASH'];
         
         for (const status of allStatuses) {
@@ -271,30 +252,6 @@ serve(async (req) => {
 
         console.log(`📊 RESUMO: ${totalPaymentsFound} cobrança(s) encontrada(s), ${deletedPayments.length} deletada(s)`);
 
-        // ⚠️ Se nenhuma fatura foi encontrada mas temos asaas_payment_id, tentar deletar diretamente
-        if (deletedPayments.length === 0 && previousAsaasPaymentId) {
-          console.log(`⚠️ Tentando deletar fatura anterior diretamente: ${previousAsaasPaymentId}`);
-          
-          const directDeleteResponse = await fetch(
-            `${asaasUrl}/payments/${previousAsaasPaymentId}`,
-            {
-              method: 'DELETE',
-              headers: {
-                'access_token': asaasApiKey!,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-
-          if (directDeleteResponse.ok) {
-            console.log(`✅ Fatura anterior ${previousAsaasPaymentId} deletada diretamente!`);
-            deletedPayments.push(previousAsaasPaymentId);
-          } else {
-            const errorText = await directDeleteResponse.text();
-            console.log(`ℹ️ Não foi possível deletar ${previousAsaasPaymentId}: ${errorText}`);
-          }
-        }
-
         // 5️⃣ QUINTO: Buscar customer_id da assinatura
         const subscriptionResponse = await fetch(
           `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
@@ -343,7 +300,7 @@ serve(async (req) => {
         const newPaymentData = await newPaymentResponse.json();
         console.log(`✅ Nova cobrança criada: ${newPaymentData.id} - R$ ${finalAmount} - Vencimento: ${newRenewalDate}`);
 
-        // Se teve desconto, deduzir do saldo
+        // 6️⃣ SEXTO: Se teve desconto, deduzir do saldo
         if (discountApplied > 0) {
           // Marcar comissões como usadas
           const { data: commsToUse } = await supabase
@@ -374,20 +331,24 @@ serve(async (req) => {
           console.log(`💸 Desconto de R$ ${discountApplied} aplicado e deduzido do saldo`);
         }
 
-        // Atualizar o payment no banco com os novos dados do Asaas
+        // 7️⃣ SÉTIMO: Atualizar o payment no banco com os novos dados
         await supabase
           .from('payments')
           .update({
             pix_code: newPaymentData.invoiceUrl,
             pix_qr_code: newPaymentData.bankSlipUrl,
+            asaas_payment_id: newPaymentData.id,
             metadata: {
               discount_applied: discountApplied,
               final_amount: finalAmount,
               original_amount: Number(plan.price),
               asaas_payment_id: newPaymentData.id,
+              asaas_status: 'PENDING'
             }
           })
           .eq('id', latestPayment.id);
+
+        console.log('✅ Payment atualizado no banco com metadata completo');
 
         // Atualizar a assinatura para próximas cobranças
         const updateSubscriptionResponse = await fetch(
