@@ -27,14 +27,19 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     
-    // Criar cliente para validar o token do usuário
+    // Criar cliente com Authorization header para validar o token do usuário
     const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
     );
 
-    // Verificar usuário autenticado passando o token explicitamente
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+    // Verificar usuário autenticado
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     
     // Cliente com SERVICE_ROLE_KEY para operações no banco
     const supabaseClient = createClient(
