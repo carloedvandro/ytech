@@ -252,11 +252,14 @@ const Dashboard = () => {
       }
 
       const availableForWithdrawal = Math.max(0, availableBalance - reservedBalance);
+      
+      // Saldo disponível após reserva (o que realmente está disponível)
+      const currentBalance = Math.max(0, availableBalance - reservedBalance);
 
       setStats({
         totalReferrals: networkData?.length || 0,
         totalCommissions,
-        availableBalance,
+        availableBalance: currentBalance,
         discountApplied: 0,
         originalAmount: 0,
         finalAmount: 0,
@@ -467,7 +470,7 @@ const Dashboard = () => {
                 <span className="font-semibold">R$ {stats.reservedBalance.toFixed(2)}</span> do seu saldo está reservado para desconto na próxima fatura.
               </p>
               <p className="text-sm">
-                • Saldo total: R$ {stats.availableBalance.toFixed(2)}<br />
+                • Saldo disponível: R$ {stats.availableBalance.toFixed(2)}<br />
                 • Reservado: R$ {stats.reservedBalance.toFixed(2)}<br />
                 • <span className="font-semibold text-green-600 dark:text-green-400">Disponível para saque: R$ {stats.availableForWithdrawal.toFixed(2)}</span>
               </p>
