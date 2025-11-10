@@ -81,9 +81,12 @@ serve(async (req) => {
 
     // Usar o subscription_id do registro encontrado
     const actualSubscriptionId = latestPayment.subscription_id;
+    
+    // Verificar se tem asaas_payment_id no metadata para deletar
+    const currentAsaasPaymentId = latestPayment.metadata?.asaas_payment_id;
 
-    // Se tiver subscription_id, recriar cobrança no Asaas
-    if (actualSubscriptionId) {
+    // Processar no Asaas se tiver subscription_id OU asaas_payment_id
+    if (actualSubscriptionId || currentAsaasPaymentId) {
       const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || Deno.env.get('ASAAS_SANDBOX_API_KEY');
       const asaasUrl = asaasApiKey?.includes('prod') 
         ? 'https://api.asaas.com/v3' 
@@ -178,27 +181,77 @@ serve(async (req) => {
 
         console.log(`💰 Cálculo: Plano R$ ${plan.price} - Desconto R$ ${discountApplied} = R$ ${finalAmount}`);
 
-        // 4️⃣ QUARTO: Buscar customer ID primeiro
-        console.log('🔍 Buscando customer ID da subscription...');
+        // 4️⃣ QUARTO: Buscar customer ID
+        let customerId;
         
-        const subscriptionResponse = await fetch(
-          `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
-          {
-            method: 'GET',
-            headers: {
-              'access_token': asaasApiKey!,
-              'Content-Type': 'application/json',
-            },
+        if (actualSubscriptionId) {
+          console.log('🔍 Buscando customer ID da subscription...');
+          
+          const subscriptionResponse = await fetch(
+            `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
+            {
+              method: 'GET',
+              headers: {
+                'access_token': asaasApiKey!,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (!subscriptionResponse.ok) {
+            throw new Error('Erro ao buscar assinatura');
           }
-        );
 
-        if (!subscriptionResponse.ok) {
-          throw new Error('Erro ao buscar assinatura');
+          const subscriptionData = await subscriptionResponse.json();
+          customerId = subscriptionData.customer;
+          console.log(`👤 Customer ID da subscription: ${customerId}`);
+        } else if (currentAsaasPaymentId) {
+          // Se não tem subscription, buscar customer pelo payment atual
+          console.log('🔍 Buscando customer ID pelo payment atual...');
+          
+          const paymentResponse = await fetch(
+            `${asaasUrl}/payments/${currentAsaasPaymentId}`,
+            {
+              method: 'GET',
+              headers: {
+                'access_token': asaasApiKey!,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (paymentResponse.ok) {
+            const paymentData = await paymentResponse.json();
+            customerId = paymentData.customer;
+            console.log(`👤 Customer ID do payment: ${customerId}`);
+          } else {
+            // Se não conseguiu buscar, tentar buscar por CPF
+            console.log('🔍 Buscando customer ID pelo CPF do usuário...');
+            
+            const customersResponse = await fetch(
+              `${asaasUrl}/customers?cpfCnpj=${profile.cpf}`,
+              {
+                method: 'GET',
+                headers: {
+                  'access_token': asaasApiKey!,
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+
+            if (customersResponse.ok) {
+              const customersData = await customersResponse.json();
+              if (customersData.data && customersData.data.length > 0) {
+                customerId = customersData.data[0].id;
+                console.log(`👤 Customer ID pelo CPF: ${customerId}`);
+              }
+            }
+          }
         }
-
-        const subscriptionData = await subscriptionResponse.json();
-        const customerId = subscriptionData.customer;
-        console.log(`👤 Customer ID: ${customerId}`);
+        
+        if (!customerId) {
+          throw new Error('Não foi possível encontrar o customer ID no Asaas');
+        }
 
         // 5️⃣ QUINTO: Buscar TODAS as cobranças no Asaas pelo customer ID e deletar
         console.log('🔍 Buscando TODAS as cobranças no Asaas pelo customer ID...');
@@ -351,26 +404,28 @@ serve(async (req) => {
 
         console.log('✅ Payment atualizado no banco com metadata completo');
 
-        // Atualizar a assinatura para próximas cobranças
-        const updateSubscriptionResponse = await fetch(
-          `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
-          {
-            method: 'PUT',
-            headers: {
-              'access_token': asaasApiKey!,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              nextDueDate: newRenewalDate,
-            }),
-          }
-        );
+        // Atualizar a assinatura para próximas cobranças (se existir)
+        if (actualSubscriptionId) {
+          const updateSubscriptionResponse = await fetch(
+            `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
+            {
+              method: 'PUT',
+              headers: {
+                'access_token': asaasApiKey!,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                nextDueDate: newRenewalDate,
+              }),
+            }
+          );
 
-        if (updateSubscriptionResponse.ok) {
-          console.log('✅ Assinatura atualizada para próximas cobranças');
-        } else {
-          const errorText = await updateSubscriptionResponse.text();
-          console.log('ℹ️ Info da assinatura:', errorText);
+          if (updateSubscriptionResponse.ok) {
+            console.log('✅ Assinatura atualizada para próximas cobranças');
+          } else {
+            const errorText = await updateSubscriptionResponse.text();
+            console.log('ℹ️ Info da assinatura:', errorText);
+          }
         }
 
         console.log('✅ Processo completo: cobrança recriada no Asaas com sucesso!');
