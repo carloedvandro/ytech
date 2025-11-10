@@ -218,9 +218,10 @@ const Financial = () => {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      // Priorizar payment completed com subscription, depois qualquer um com desconto aplicado
+      // Priorizar payment completed com subscription, depois qualquer um com desconto aplicado (exceto cancelados)
       const lastPayment = payments?.find(p => p.status === 'completed' && p.subscription_id) || 
-                         payments?.find(p => (p.metadata as any)?.discount_applied) ||
+                         payments?.find(p => p.status !== 'cancelled' && (p.metadata as any)?.discount_applied) ||
+                         payments?.find(p => p.status !== 'cancelled')?.[0] ||
                          payments?.[0];
 
       if (userInfo) {

@@ -35,25 +35,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Buscar preferência de renovação primeiro
-    const { data: currentPref } = await supabaseClient
-      .from('user_renewal_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    // Se a preferência já está desabilitada, não há nada a fazer
-    if (!currentPref?.use_balance_for_renewal) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'A preferência de usar saldo já está desabilitada.',
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Buscar pagamento pendente
+    // Buscar pagamento pendente PRIMEIRO
     const { data: pendingPayment, error: paymentError } = await supabaseClient
       .from('payments')
       .select('*, plans!payments_plan_id_fkey(*)')
@@ -65,11 +47,29 @@ serve(async (req) => {
     const metadata = (pendingPayment?.metadata || {}) as any;
     const discountApplied = metadata?.discount_applied ? Number(metadata.discount_applied) : 0;
 
+    // Buscar preferência de renovação
+    const { data: currentPref } = await supabaseClient
+      .from('user_renewal_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     console.log('📋 Status atual:', {
       has_pending_payment: !!pendingPayment,
       discount_applied: discountApplied,
       use_balance_for_renewal: currentPref?.use_balance_for_renewal
     });
+
+    // Se NÃO há pagamento pendente com desconto E a preferência já está desabilitada, não há nada a fazer
+    if (discountApplied === 0 && !currentPref?.use_balance_for_renewal) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'A preferência de usar saldo já está desabilitada e não há desconto aplicado.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Se há pagamento pendente COM desconto, processar cancelamento completo
     if (pendingPayment && discountApplied > 0) {
