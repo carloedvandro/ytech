@@ -94,5 +94,5 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.check-and-create-renewal-payment]
-verify_jwt = false
+verify_jwt = true
 

@@ -16,7 +16,8 @@ serve(async (req) => {
     logEnvironment();
     validateConfig();
 
-    // Usar o mesmo padrão de process-sim-activation que funciona
+    // Com verify_jwt = true, o Supabase já validou o token
+    // Criar cliente com ANON_KEY e Authorization header
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -35,15 +36,12 @@ serve(async (req) => {
 
     if (userError || !user) {
       console.log('❌ Erro na autenticação:', userError?.message || 'Usuário não encontrado');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: userError?.message || 'User not found' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Usuário não autenticado');
     }
 
     console.log('✅ Usuário autenticado:', user.id);
     
-    // Cliente com SERVICE_ROLE_KEY para operações administrativas (Asaas, etc)
+    // Cliente com SERVICE_ROLE_KEY para operações administrativas
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
