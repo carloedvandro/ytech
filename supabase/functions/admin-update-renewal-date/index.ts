@@ -232,33 +232,46 @@ serve(async (req) => {
             const paymentData = await paymentResponse.json();
             customerId = paymentData.customer;
             console.log(`👤 Customer ID do payment: ${customerId}`);
-          } else {
-            // Se não conseguiu buscar, tentar buscar por CPF
-            console.log('🔍 Buscando customer ID pelo CPF do usuário...');
-            
-            const customersResponse = await fetch(
-              `${asaasUrl}/customers?cpfCnpj=${profile.cpf}`,
-              {
-                method: 'GET',
-                headers: {
-                  'access_token': asaasApiKey!,
-                  'Content-Type': 'application/json',
-                },
-              }
-            );
-
-            if (customersResponse.ok) {
-              const customersData = await customersResponse.json();
-              if (customersData.data && customersData.data.length > 0) {
-                customerId = customersData.data[0].id;
-                console.log(`👤 Customer ID pelo CPF: ${customerId}`);
-              }
+          }
+        }
+        
+        // Se ainda não encontrou customer, buscar por CPF
+        if (!customerId) {
+          console.log('🔍 Buscando customer ID pelo CPF do usuário...');
+          console.log(`   CPF: ${profile.cpf}`);
+          
+          const customersResponse = await fetch(
+            `${asaasUrl}/customers?cpfCnpj=${profile.cpf}`,
+            {
+              method: 'GET',
+              headers: {
+                'access_token': asaasApiKey!,
+                'Content-Type': 'application/json',
+              },
             }
+          );
+
+          if (customersResponse.ok) {
+            const customersData = await customersResponse.json();
+            console.log(`   Resposta Asaas:`, {
+              totalCount: customersData.totalCount,
+              dataLength: customersData.data?.length
+            });
+            
+            if (customersData.data && customersData.data.length > 0) {
+              customerId = customersData.data[0].id;
+              console.log(`👤 Customer ID pelo CPF: ${customerId}`);
+            } else {
+              console.log('⚠️ Nenhum customer encontrado com este CPF no Asaas');
+            }
+          } else {
+            const errorText = await customersResponse.text();
+            console.error(`❌ Erro ao buscar customer por CPF:`, errorText);
           }
         }
         
         if (!customerId) {
-          throw new Error('Não foi possível encontrar o customer ID no Asaas');
+          throw new Error('Não foi possível encontrar o customer ID no Asaas. O usuário pode não ter sido cadastrado ainda no Asaas.');
         }
 
         // 5️⃣ QUINTO: Buscar TODAS as cobranças no Asaas pelo customer ID e deletar
