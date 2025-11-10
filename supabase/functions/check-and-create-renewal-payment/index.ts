@@ -46,15 +46,41 @@ serve(async (req) => {
       .order('created_at', { ascending: false });
 
     if (pendingPayments && pendingPayments.length > 0) {
-      console.log('✅ Usuário já tem pagamento pendente');
-      return new Response(
-        JSON.stringify({
-          success: true,
-          has_pending: true,
-          payment: pendingPayments[0],
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const pendingPayment = pendingPayments[0];
+      const asaasPaymentId = pendingPayment.metadata?.asaas_payment_id;
+
+      // Verificar se a fatura realmente existe no Asaas
+      if (asaasPaymentId) {
+        try {
+          const checkResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${asaasPaymentId}`, {
+            headers: {
+              'access_token': ENV_CONFIG.asaas.apiKey,
+            },
+          });
+
+          if (checkResponse.ok) {
+            console.log('✅ Usuário já tem pagamento pendente válido no Asaas');
+            return new Response(
+              JSON.stringify({
+                success: true,
+                has_pending: true,
+                payment: pendingPayment,
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          } else {
+            console.log('⚠️ Fatura pendente não existe mais no Asaas, marcando como cancelled');
+            // Marcar como cancelled no banco
+            await supabaseClient
+              .from('payments')
+              .update({ status: 'cancelled' })
+              .eq('id', pendingPayment.id);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar fatura no Asaas:', error);
+          // Se der erro na verificação, criar nova fatura por segurança
+        }
+      }
     }
 
     // Buscar perfil do usuário
