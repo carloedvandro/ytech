@@ -384,10 +384,12 @@ serve(async (req) => {
           console.log(`💸 Desconto de R$ ${discountApplied} aplicado e deduzido do saldo`);
         }
 
-        // 7️⃣ SÉTIMO: Atualizar o payment no banco com os novos dados
+        // 7️⃣ SÉTIMO: Atualizar o payment no banco com os novos dados E STATUS
         await supabase
           .from('payments')
           .update({
+            status: 'pending', // ✅ IMPORTANTE: Garantir que o status seja 'pending' ao recriar cobrança
+            amount: finalAmount, // ✅ Atualizar com o valor final correto
             pix_code: newPaymentData.invoiceUrl,
             pix_qr_code: newPaymentData.bankSlipUrl,
             metadata: {
@@ -400,7 +402,7 @@ serve(async (req) => {
           })
           .eq('id', latestPayment.id);
 
-        console.log('✅ Payment atualizado no banco com metadata completo');
+        console.log('✅ Payment atualizado no banco com metadata completo e status PENDING');
 
         // Atualizar a assinatura para próximas cobranças (se existir)
         if (actualSubscriptionId) {
