@@ -204,7 +204,14 @@ const Financial = () => {
       if (!activeUserId) return;
 
       // Verificar e criar pagamento automaticamente se necessário
-      await supabase.functions.invoke('check-and-create-renewal-payment');
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.access_token) {
+        await supabase.functions.invoke('check-and-create-renewal-payment', {
+          headers: {
+            Authorization: `Bearer ${session.session.access_token}`,
+          },
+        });
+      }
 
       // Buscar dados atualizados do usuário
       const { data: userInfo } = await supabase
