@@ -16,42 +16,42 @@ serve(async (req) => {
     logEnvironment();
     validateConfig();
 
-    // Com verify_jwt = true, não precisa passar Authorization no client
-    // O Supabase já tem o contexto do usuário autenticado
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-
-    // Pegar o token do header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    // Verificar se tem authorization header
+    if (!req.headers.get('Authorization')) {
       throw new Error('No authorization header');
     }
-    
-    const token = authHeader.replace('Bearer ', '');
 
-    // Get authenticated user passando o token explicitamente
+    // Criar cliente com ANON_KEY e Authorization no global headers
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
+    );
+
+    // Get authenticated user (sem passar token, usa o header global)
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser(token);
+    } = await supabaseClient.auth.getUser();
 
-    console.log('🔐 getUser result:', { 
+    console.log('🔐 Auth result:', { 
       hasUser: !!user, 
       userId: user?.id,
-      hasError: !!userError,
       errorMsg: userError?.message
     });
 
     if (userError || !user) {
-      console.log('❌ Erro na autenticação:', userError?.message || 'Usuário não encontrado');
+      console.log('❌ Auth failed:', userError?.message);
       throw new Error('Usuário não autenticado');
     }
 
-    console.log('✅ Usuário autenticado:', user.id);
+    console.log('✅ User authenticated:', user.id);
     
-    // Cliente com SERVICE_ROLE_KEY para operações administrativas
+    // Cliente admin para operações no banco
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
