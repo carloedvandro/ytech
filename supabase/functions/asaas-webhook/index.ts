@@ -162,6 +162,56 @@ serve(async (req) => {
         // PAYMENT_CREATED
         if (event.event === 'PAYMENT_CREATED') {
           console.log('✓ Payment created:', paymentId);
+          
+          // Salvar asaas_payment_id no metadata do payment
+          if (paymentId && asaasPaymentId) {
+            const { data: existingPayment } = await supabaseClient
+              .from('payments')
+              .select('metadata')
+              .eq('id', paymentId)
+              .maybeSingle();
+            
+            if (existingPayment) {
+              await supabaseClient
+                .from('payments')
+                .update({
+                  metadata: {
+                    ...existingPayment.metadata,
+                    asaas_payment_id: asaasPaymentId,
+                    asaas_status: event.payment?.status || 'PENDING'
+                  }
+                })
+                .eq('id', paymentId);
+              
+              console.log('✓ Payment metadata updated with asaas_payment_id:', asaasPaymentId);
+            }
+          } else if (!paymentId && asaasPaymentId && event.payment?.subscription) {
+            // Renovação automática pela subscription - buscar payment pela subscription
+            const { data: subscriptionPayment } = await supabaseClient
+              .from('payments')
+              .select('id, metadata')
+              .eq('subscription_id', event.payment.subscription)
+              .is('metadata->asaas_payment_id', null)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            
+            if (subscriptionPayment) {
+              await supabaseClient
+                .from('payments')
+                .update({
+                  metadata: {
+                    ...subscriptionPayment.metadata,
+                    asaas_payment_id: asaasPaymentId,
+                    asaas_status: event.payment?.status || 'PENDING'
+                  }
+                })
+                .eq('id', subscriptionPayment.id);
+              
+              console.log('✓ Subscription payment metadata updated with asaas_payment_id:', asaasPaymentId);
+            }
+          }
+          
           await supabaseClient
             .from('asaas_webhook_events')
             .update({ response_message: 'Completed' })
