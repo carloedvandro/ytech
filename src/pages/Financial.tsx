@@ -150,7 +150,10 @@ const Financial = () => {
       if (useBalanceForRenewal) {
         console.log('🔄 Aplicando desconto na fatura pendente...');
         const { data: applyData, error: applyError } = await supabase.functions.invoke(
-          'apply-renewal-discount'
+          'apply-renewal-discount',
+          {
+            body: { userId: activeUserId }
+          }
         );
 
         if (applyError) {

@@ -26,18 +26,22 @@ serve(async (req) => {
       throw new Error('Não autenticado');
     }
 
-    console.log(`🔄 Aplicando desconto de renovação para usuário ${user.id}`);
+    // Pegar userId do body (para suportar impersonation) ou usar o user autenticado
+    const { userId: targetUserId } = await req.json();
+    const userId = targetUserId || user.id;
+
+    console.log(`🔄 Aplicando desconto de renovação para usuário ${userId}`);
 
     // 1️⃣ Buscar payment futuro (não pago) do usuário
     console.log('🔍 Buscando fatura futura...');
-    console.log(`   - user_id: ${user.id}`);
+    console.log(`   - user_id: ${userId}`);
     console.log(`   - status diferente de: completed`);
     console.log(`   - data futura a partir de: ${new Date().toISOString()}`);
 
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select('*, plan_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .neq('status', 'completed')
       .not('next_renewal_date', 'is', null)
       .gte('next_renewal_date', new Date().toISOString())
@@ -57,7 +61,7 @@ serve(async (req) => {
       const { data: allPayments } = await supabase
         .from('payments')
         .select('id, status, next_renewal_date')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(3);
       
@@ -78,7 +82,7 @@ serve(async (req) => {
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     const { data: plan } = await supabase
@@ -98,13 +102,13 @@ serve(async (req) => {
     const { data: commissionsData } = await supabase
       .from('commissions')
       .select('amount')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('status', 'available');
 
     const { data: adjustments } = await supabase
       .from('admin_balance_adjustments')
       .select('amount, type')
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     const commissionsTotal = commissionsData?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
     const adjustmentsTotal = adjustments?.reduce((sum, adj) => {
@@ -118,7 +122,7 @@ serve(async (req) => {
     const { data: preferences } = await supabase
       .from('user_renewal_preferences')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
     const minimumToKeep = Number(preferences?.minimum_balance_to_keep || 0);
@@ -275,7 +279,7 @@ serve(async (req) => {
       const { data: commsToUse } = await supabase
         .from('commissions')
         .select('id, amount')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('status', 'available')
         .order('created_at', { ascending: true });
 
@@ -306,7 +310,7 @@ serve(async (req) => {
         const { data: currentBalance } = await supabase
           .from('commissions')
           .select('amount')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('status', 'available');
 
         const currentBalanceTotal = currentBalance?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
@@ -314,8 +318,8 @@ serve(async (req) => {
         await supabase
           .from('admin_balance_adjustments')
           .insert({
-            user_id: user.id,
-            admin_id: user.id,
+            user_id: userId,
+            admin_id: userId,
             type: 'remove',
             amount: remainingDiscount,
             reason: 'Desconto na renovação',
