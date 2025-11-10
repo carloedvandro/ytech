@@ -459,12 +459,17 @@ const Dashboard = () => {
         {stats.reservedBalance > 0 && (
           <Alert className="border-blue-500/50 bg-blue-500/10">
             <Info className="h-4 w-4 text-blue-600" />
-            <AlertTitle>Saldo Reservado para Próxima Fatura</AlertTitle>
-            <AlertDescription>
-              R$ {stats.reservedBalance.toFixed(2)} do seu saldo está reservado para desconto na próxima fatura.
-              <br />
-              <span className="font-semibold">Disponível para saque: R$ {stats.availableForWithdrawal.toFixed(2)}</span>
-              <a href="/financial" className="ml-2 underline text-blue-600 hover:text-blue-700">
+            <AlertTitle>💰 Saldo Reservado para Próxima Fatura</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>
+                <span className="font-semibold">R$ {stats.reservedBalance.toFixed(2)}</span> do seu saldo está reservado para desconto na próxima fatura.
+              </p>
+              <p className="text-sm">
+                • Saldo total: R$ {stats.availableBalance.toFixed(2)}<br />
+                • Reservado: R$ {stats.reservedBalance.toFixed(2)}<br />
+                • <span className="font-semibold text-green-600 dark:text-green-400">Disponível para saque: R$ {stats.availableForWithdrawal.toFixed(2)}</span>
+              </p>
+              <a href="/financial" className="inline-block mt-2 underline text-blue-600 hover:text-blue-700 dark:text-blue-400">
                 Ver detalhes no Financeiro →
               </a>
             </AlertDescription>

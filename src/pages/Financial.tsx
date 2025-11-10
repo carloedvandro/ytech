@@ -627,7 +627,7 @@ const Financial = () => {
           <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
             <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
+              <CardTitle className="text-sm font-medium">Comissões Totais</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="relative z-10">
@@ -639,7 +639,7 @@ const Financial = () => {
           <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
             <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
+              <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
               <TrendingUp className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent className="relative z-10">
@@ -648,16 +648,18 @@ const Financial = () => {
             </CardContent>
           </Card>
 
-          {balance.reserved > 0 && (
+          {useBalanceForRenewal && (
             <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
               <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
               <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Reservado</CardTitle>
+                <CardTitle className="text-sm font-medium">Reservado para Fatura</CardTitle>
                 <Wallet className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent className="relative z-10">
                 <div className="text-2xl font-bold text-blue-500">R$ {balance.reserved.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">Para próxima fatura</p>
+                <p className="text-xs text-muted-foreground">
+                  {balance.reserved > 0 ? 'Será usado na próxima fatura' : 'Nenhum valor reservado ainda'}
+                </p>
               </CardContent>
             </Card>
           )}
