@@ -48,7 +48,7 @@ serve(async (req) => {
     // Buscar o payment mais recente do usuário
     const { data: latestPayment, error: fetchError } = await supabase
       .from('payments')
-      .select('id, subscription_id')
+      .select('id, subscription_id, plan_id, user_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -79,10 +79,10 @@ serve(async (req) => {
 
     console.log('Data atualizada no banco com sucesso');
 
-    // Usar o subscription_id do registro encontrado (não do parâmetro)
+    // Usar o subscription_id do registro encontrado
     const actualSubscriptionId = latestPayment.subscription_id;
 
-    // Se tiver subscription_id, atualizar no Asaas
+    // Se tiver subscription_id, recriar cobrança no Asaas
     if (actualSubscriptionId) {
       const asaasApiKey = Deno.env.get('ASAAS_API_KEY') || Deno.env.get('ASAAS_SANDBOX_API_KEY');
       const asaasUrl = asaasApiKey?.includes('prod') 
@@ -90,9 +90,68 @@ serve(async (req) => {
         : 'https://sandbox.asaas.com/api/v3';
 
       try {
-        // Buscar todas as cobranças da assinatura (PENDING, CONFIRMED, OVERDUE)
+        console.log('🔍 Buscando informações para recriar cobrança...');
+
+        // Buscar dados do usuário e plano
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+
+        const { data: plan } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('id', latestPayment.plan_id)
+          .single();
+
+        console.log(`📋 Plano: ${plan.name} - R$ ${plan.price}`);
+
+        // Calcular saldo disponível
+        const { data: commissionsData } = await supabase
+          .from('commissions')
+          .select('amount')
+          .eq('user_id', userId)
+          .eq('status', 'available');
+
+        const commissionsAvailable = commissionsData?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+
+        const { data: adjustmentsData } = await supabase
+          .from('admin_balance_adjustments')
+          .select('amount, type')
+          .eq('user_id', userId);
+
+        const additionsTotal = adjustmentsData?.filter(a => a.type === 'add').reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+        const deductionsTotal = adjustmentsData?.filter(a => a.type === 'remove').reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+        const availableBalance = commissionsAvailable + additionsTotal - deductionsTotal;
+
+        console.log(`💰 Saldo disponível: R$ ${availableBalance}`);
+
+        // Verificar preferências de renovação
+        const { data: preferences } = await supabase
+          .from('user_renewal_preferences')
+          .select('use_balance_for_renewal, minimum_balance_to_keep')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        const useBalance = preferences?.use_balance_for_renewal || false;
+        const minBalanceToKeep = Number(preferences?.minimum_balance_to_keep) || 0;
+
+        // Calcular valor final
+        let finalAmount = Number(plan.price);
+        let discountApplied = 0;
+
+        if (useBalance && availableBalance > minBalanceToKeep) {
+          const usableBalance = availableBalance - minBalanceToKeep;
+          discountApplied = Math.min(usableBalance, finalAmount);
+          finalAmount = Math.max(0, finalAmount - discountApplied);
+        }
+
+        console.log(`💰 Cálculo: Plano R$ ${plan.price} - Desconto R$ ${discountApplied} = R$ ${finalAmount}`);
+
+        // Buscar e deletar todas as cobranças da assinatura
         const statuses = ['PENDING', 'CONFIRMED', 'OVERDUE'];
-        let totalPaymentsUpdated = 0;
+        const deletedPayments = [];
 
         for (const status of statuses) {
           const paymentsResponse = await fetch(
@@ -108,41 +167,128 @@ serve(async (req) => {
 
           if (paymentsResponse.ok) {
             const paymentsData = await paymentsResponse.json();
-            console.log(`Cobranças ${status} encontradas:`, paymentsData.data?.length || 0);
-
-            // Atualizar cada cobrança com a nova data
+            
             if (paymentsData.data && paymentsData.data.length > 0) {
-              for (const payment of paymentsData.data) {
-                console.log(`📋 Atualizando cobrança: ID=${payment.id}, Vencimento Atual=${payment.dueDate}, Novo Vencimento=${newRenewalDate}`);
-                
-                const updatePaymentResponse = await fetch(
-                  `${asaasUrl}/payments/${payment.id}`,
+              for (const asaasPayment of paymentsData.data) {
+                // Deletar cobrança antiga
+                const deleteResponse = await fetch(
+                  `${asaasUrl}/payments/${asaasPayment.id}`,
                   {
-                    method: 'PUT',
+                    method: 'DELETE',
                     headers: {
                       'access_token': asaasApiKey!,
                       'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                      dueDate: newRenewalDate,
-                    }),
                   }
                 );
 
-                if (updatePaymentResponse.ok) {
-                  const updatedPayment = await updatePaymentResponse.json();
-                  console.log(`✅ Cobrança ${payment.id} (${status}) atualizada: ${payment.dueDate} → ${updatedPayment.dueDate}`);
-                  totalPaymentsUpdated++;
+                if (deleteResponse.ok) {
+                  console.log(`🗑️ Cobrança ${asaasPayment.id} (${status}) deletada - Valor: R$ ${asaasPayment.value}`);
+                  deletedPayments.push(asaasPayment.id);
                 } else {
-                  const errorText = await updatePaymentResponse.text();
-                  console.error(`❌ Erro ao atualizar cobrança ${payment.id}:`, errorText);
+                  const errorText = await deleteResponse.text();
+                  console.error(`❌ Erro ao deletar cobrança ${asaasPayment.id}:`, errorText);
                 }
               }
             }
           }
         }
 
-        console.log(`Total de cobranças atualizadas: ${totalPaymentsUpdated}`);
+        console.log(`✅ Total de ${deletedPayments.length} cobrança(s) deletada(s)`);
+
+        // Buscar customer_id da assinatura
+        const subscriptionResponse = await fetch(
+          `${asaasUrl}/subscriptions/${actualSubscriptionId}`,
+          {
+            method: 'GET',
+            headers: {
+              'access_token': asaasApiKey!,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!subscriptionResponse.ok) {
+          throw new Error('Erro ao buscar assinatura');
+        }
+
+        const subscriptionData = await subscriptionResponse.json();
+        
+        // Criar nova cobrança com o valor correto
+        const newPaymentResponse = await fetch(
+          `${asaasUrl}/payments`,
+          {
+            method: 'POST',
+            headers: {
+              'access_token': asaasApiKey!,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              customer: subscriptionData.customer,
+              billingType: 'PIX',
+              value: finalAmount,
+              dueDate: newRenewalDate,
+              description: `${plan.name} - MegaChip ${plan.type === 'premium' ? 'Rural' : 'Smartphone'}`,
+              externalReference: latestPayment.id,
+              subscription: actualSubscriptionId,
+            }),
+          }
+        );
+
+        if (!newPaymentResponse.ok) {
+          const errorText = await newPaymentResponse.text();
+          console.error('❌ Erro ao criar nova cobrança:', errorText);
+          throw new Error('Erro ao criar nova cobrança no Asaas');
+        }
+
+        const newPaymentData = await newPaymentResponse.json();
+        console.log(`✅ Nova cobrança criada: ${newPaymentData.id} - R$ ${finalAmount} - Vencimento: ${newRenewalDate}`);
+
+        // Se teve desconto, deduzir do saldo
+        if (discountApplied > 0) {
+          // Marcar comissões como usadas
+          const { data: commsToUse } = await supabase
+            .from('commissions')
+            .select('id, amount')
+            .eq('user_id', userId)
+            .eq('status', 'available')
+            .order('created_at', { ascending: true });
+
+          let remainingDiscount = discountApplied;
+          
+          for (const comm of commsToUse || []) {
+            if (remainingDiscount <= 0) break;
+            
+            const amountToUse = Math.min(Number(comm.amount), remainingDiscount);
+            
+            await supabase
+              .from('commissions')
+              .update({ 
+                status: 'withdrawn',
+                withdrawn_at: new Date().toISOString()
+              })
+              .eq('id', comm.id);
+            
+            remainingDiscount -= amountToUse;
+          }
+
+          console.log(`💸 Desconto de R$ ${discountApplied} aplicado e deduzido do saldo`);
+        }
+
+        // Atualizar o payment no banco com os novos dados do Asaas
+        await supabase
+          .from('payments')
+          .update({
+            pix_code: newPaymentData.invoiceUrl,
+            pix_qr_code: newPaymentData.bankSlipUrl,
+            metadata: {
+              discount_applied: discountApplied,
+              final_amount: finalAmount,
+              original_amount: Number(plan.price),
+              asaas_payment_id: newPaymentData.id,
+            }
+          })
+          .eq('id', latestPayment.id);
 
         // Atualizar a assinatura para próximas cobranças
         const updateSubscriptionResponse = await fetch(
@@ -160,22 +306,20 @@ serve(async (req) => {
         );
 
         if (updateSubscriptionResponse.ok) {
-          console.log('Assinatura atualizada com sucesso');
+          console.log('✅ Assinatura atualizada para próximas cobranças');
         } else {
           const errorText = await updateSubscriptionResponse.text();
-          console.log('Info da atualização da assinatura:', errorText);
-          // Não falhar aqui pois o importante é atualizar as cobranças pendentes
+          console.log('ℹ️ Info da assinatura:', errorText);
         }
 
-        console.log('Datas atualizadas no Asaas com sucesso');
+        console.log('✅ Processo completo: cobrança recriada no Asaas com sucesso!');
       } catch (asaasError) {
-        console.error('Erro ao atualizar no Asaas:', asaasError);
-        // Não falhar a operação se o Asaas falhar, pois já atualizamos no banco
+        console.error('Erro ao processar no Asaas:', asaasError);
         return new Response(
           JSON.stringify({ 
             success: true, 
-            message: 'Data atualizada no banco, mas falhou ao atualizar no Asaas',
-            warning: asaasError instanceof Error ? asaasError.message : 'Erro desconhecido'
+            message: 'Data atualizada no banco, mas falhou ao recriar cobrança no Asaas',
+            warning: asaasError instanceof Error ? asaasError.message : 'Erro ao atualizar no Asaas'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -185,7 +329,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Data de renovação atualizada com sucesso'
+        message: 'Data de renovação atualizada e cobrança recriada com sucesso'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
