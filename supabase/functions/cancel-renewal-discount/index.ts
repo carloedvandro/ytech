@@ -82,22 +82,25 @@ serve(async (req) => {
       // Cancelar pagamento no Asaas se tiver ID
       const asaasPaymentId = metadata?.asaas_payment_id;
       if (asaasPaymentId) {
-        try {
-          const cancelResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${asaasPaymentId}`, {
-            method: 'DELETE',
-            headers: {
-              'access_token': ENV_CONFIG.asaas.apiKey,
-            },
-          });
+        console.log('🔄 Tentando cancelar pagamento no Asaas:', asaasPaymentId);
+        
+        const cancelResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${asaasPaymentId}`, {
+          method: 'DELETE',
+          headers: {
+            'access_token': ENV_CONFIG.asaas.apiKey,
+          },
+        });
 
-          if (!cancelResponse.ok) {
-            console.error('Erro ao cancelar no Asaas:', await cancelResponse.text());
-          } else {
-            console.log('✅ Pagamento cancelado no Asaas');
-          }
-        } catch (error) {
-          console.error('Erro ao cancelar no Asaas:', error);
+        if (!cancelResponse.ok) {
+          const errorText = await cancelResponse.text();
+          console.error('❌ Erro ao cancelar no Asaas:', errorText);
+          throw new Error(`Falha ao cancelar fatura no Asaas: ${errorText}`);
         }
+        
+        console.log('✅ Pagamento cancelado no Asaas com sucesso');
+      } else {
+        console.error('❌ Pagamento não tem ID do Asaas');
+        throw new Error('Pagamento não tem ID do Asaas para cancelamento');
       }
 
       // Atualizar status do pagamento para cancelled
