@@ -60,6 +60,7 @@ const Financial = () => {
   const [savingPreferences, setSavingPreferences] = useState(false);
   const [commissionToDelete, setCommissionToDelete] = useState<string | null>(null);
   const [deletingCommission, setDeletingCommission] = useState(false);
+  const [hasPendingPayment, setHasPendingPayment] = useState(false);
 
   // ID do usuário ativo (impersonado ou real)
   const activeUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
@@ -232,6 +233,16 @@ const Financial = () => {
         });
       }
 
+      // Verificar se há pagamento pendente
+      const { data: pendingPayment } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("user_id", activeUserId)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      setHasPendingPayment(!!pendingPayment);
+
       // Buscar comissões com nome do indicado
       const { data: commissionsData, error: commissionsError } = await supabase
         .from("commissions")
@@ -360,15 +371,23 @@ const Financial = () => {
 
       if (error) throw error;
 
+      const discountApplied = data.payment.discount_applied || 0;
+      const finalAmount = data.payment.amount || 0;
+
       toast({
         title: "Pagamento criado!",
-        description: "Você será redirecionado para a página de pagamento",
+        description: discountApplied > 0
+          ? `Desconto de R$ ${discountApplied.toFixed(2)} aplicado! Valor a pagar: R$ ${finalAmount.toFixed(2)}`
+          : "Você será redirecionado para a página de pagamento",
       });
+
+      // Recarregar dados
+      await loadFinancialData();
 
       // Redirecionar para página de pagamento
       setTimeout(() => {
         window.location.href = `/payment/${data.payment.id}`;
-      }, 1000);
+      }, 1500);
     } catch (error) {
       console.error('Error creating early renewal:', error);
       toast({
@@ -519,7 +538,7 @@ const Financial = () => {
         </div>
 
         {/* Renovação Antecipada */}
-        {userPlan && userPlan.status === 'active' && userPlan.next_renewal_date && (
+        {userPlan && userPlan.status === 'active' && userPlan.next_renewal_date && !hasPendingPayment && (
           <Card className="bg-gradient-to-br from-green-500/5 to-green-600/10 border-green-500/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -549,6 +568,11 @@ const Financial = () => {
               </div>
               <p className="text-sm text-muted-foreground">
                 Antecipe sua renovação e estenda seu plano por mais 30 dias! 
+                {useBalanceForRenewal && balance.reserved > 0 && (
+                  <span className="block mt-2 font-semibold text-blue-600">
+                    💰 Seu saldo de R$ {balance.reserved.toFixed(2)} será usado como desconto!
+                  </span>
+                )}
                 Sua assinatura automática continuará normalmente após a nova data.
               </p>
             </CardContent>

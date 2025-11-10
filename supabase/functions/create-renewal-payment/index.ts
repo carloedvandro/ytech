@@ -69,20 +69,85 @@ serve(async (req) => {
       next_renewal_date: lastPayment.next_renewal_date
     });
 
-    // Verificar se já existe pagamento de renovação antecipada pendente
-    const { data: pendingRenewal } = await supabaseClient
+    // Verificar se já existe qualquer pagamento pendente
+    const { data: existingPending } = await supabaseClient
       .from('payments')
-      .select('id')
+      .select('id, amount, metadata, created_at')
       .eq('user_id', user.id)
       .eq('status', 'pending')
-      .eq('metadata->>renewal_type', 'early')
+      .order('created_at', { ascending: false })
       .maybeSingle();
 
-    if (pendingRenewal) {
-      throw new Error('Você já possui um pagamento de renovação antecipada pendente');
+    if (existingPending) {
+      const metadata = existingPending.metadata as any;
+      const hasDiscount = metadata?.discount_applied && Number(metadata.discount_applied) > 0;
+      
+      if (hasDiscount) {
+        throw new Error(
+          `Você já possui uma fatura pendente com desconto de R$ ${Number(metadata.discount_applied).toFixed(2)} aplicado. ` +
+          `Aguarde o processamento desta fatura antes de criar uma nova renovação.`
+        );
+      } else {
+        throw new Error('Você já possui uma fatura pendente. Aguarde o processamento antes de criar uma nova renovação.');
+      }
     }
 
     const plan = lastPayment.plans;
+
+    // Buscar preferências de renovação
+    const { data: preferences } = await supabaseClient
+      .from('user_renewal_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Calcular desconto disponível se a preferência estiver ativada
+    let discountAmount = 0;
+    let finalAmount = Number(plan.price);
+
+    if (preferences?.use_balance_for_renewal) {
+      console.log('🔄 Usuário tem preferência de usar saldo ativada');
+      
+      // Buscar comissões disponíveis
+      const { data: commissions } = await supabaseClient
+        .from('commissions')
+        .select('amount, status')
+        .eq('user_id', user.id);
+
+      // Buscar ajustes de saldo
+      const { data: adjustments } = await supabaseClient
+        .from('admin_balance_adjustments')
+        .select('amount, type')
+        .eq('user_id', user.id);
+
+      const totalCommissions = commissions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
+      const additionsTotal = adjustments?.filter(a => a.type === 'add').reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+      const deductionsTotal = adjustments?.filter(a => a.type === 'remove').reduce((sum, a) => sum + Number(a.amount), 0) || 0;
+
+      const netBalance = totalCommissions + additionsTotal - deductionsTotal;
+      const minBalance = Number(preferences.minimum_balance_to_keep || 0);
+      const availableForDiscount = Math.max(0, netBalance - minBalance);
+
+      console.log('💰 Cálculo de desconto:', {
+        totalCommissions,
+        additionsTotal,
+        deductionsTotal,
+        netBalance,
+        minBalance,
+        availableForDiscount
+      });
+
+      if (availableForDiscount >= 5) {
+        // Aplicar desconto (máximo R$ 124,99 devido à limitação do Asaas)
+        discountAmount = Math.min(availableForDiscount, Math.min(124.99, Number(plan.price) - 5));
+        finalAmount = Number(plan.price) - discountAmount;
+        
+        console.log('✅ Desconto aplicado:', {
+          discountAmount,
+          finalAmount
+        });
+      }
+    }
 
     // Buscar ou criar cliente no Asaas
     const customerData = {
@@ -134,8 +199,10 @@ serve(async (req) => {
         customer: asaasCustomer.id,
         billingType: 'PIX',
         dueDate: dueDate.toISOString().split('T')[0],
-        value: Number(plan.price),
-        description: `Renovação Antecipada - ${plan.name}`,
+        value: finalAmount,
+        description: discountAmount > 0 
+          ? `Renovação Antecipada - ${plan.name} (Desconto: R$ ${discountAmount.toFixed(2)})`
+          : `Renovação Antecipada - ${plan.name}`,
       }),
     });
 
@@ -164,7 +231,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         plan_id: plan.id,
-        amount: plan.price,
+        amount: finalAmount,
         status: 'pending',
         pix_code: pixData.payload,
         pix_qr_code: pixData.encodedImage,
@@ -175,6 +242,8 @@ serve(async (req) => {
           asaas_invoice_url: asaasPayment.invoiceUrl,
           original_subscription_id: lastPayment.subscription_id,
           current_renewal_date: lastPayment.next_renewal_date,
+          discount_applied: discountAmount,
+          original_amount: Number(plan.price),
         },
       })
       .select()
@@ -187,7 +256,9 @@ serve(async (req) => {
         success: true,
         payment: {
           id: newPayment.id,
-          amount: plan.price,
+          amount: finalAmount,
+          original_amount: Number(plan.price),
+          discount_applied: discountAmount,
           pix_code: pixData.payload,
           pix_qr_code: pixData.encodedImage,
           expires_at: expiresAt.toISOString(),
