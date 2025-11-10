@@ -177,18 +177,24 @@ serve(async (req) => {
 
         // Enviar notificação WhatsApp
         try {
-          await supabase.functions.invoke('send-whatsapp-notification', {
+          const notificationResponse = await supabase.functions.invoke('send-whatsapp-notification', {
             body: {
               whatsapp: profile.whatsapp,
-              type: 'renewal_invoice_created',
+              messageType: 'renewal_invoice_created',
               data: {
                 amount: lastPayment.amount,
                 dueDate: dueDate.toLocaleDateString('pt-BR'),
               },
             },
           });
+          
+          if (notificationResponse.error) {
+            console.error(`[DAILY-RENEWAL-CHECK] Error sending WhatsApp notification for user ${profile.id}:`, notificationResponse.error);
+          } else {
+            console.log(`[DAILY-RENEWAL-CHECK] WhatsApp notification sent successfully to user ${profile.id}`);
+          }
         } catch (notificationError) {
-          console.error(`[DAILY-RENEWAL-CHECK] Error sending WhatsApp notification for user ${profile.id}:`, notificationError);
+          console.error(`[DAILY-RENEWAL-CHECK] Exception sending WhatsApp notification for user ${profile.id}:`, notificationError);
         }
 
       } catch (userError) {

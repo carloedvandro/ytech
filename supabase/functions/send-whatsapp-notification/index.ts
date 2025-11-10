@@ -140,6 +140,17 @@ const messageTemplates = {
     `✅ *Seu plano está ativo e renovado!*\n` +
     `Sua próxima cobrança será gerada automaticamente 30 dias antes do vencimento.\n\n` +
     `Obrigado por estar com a Y-TECH! 🚀\n\n` +
+    `_Y-TECH Internet 5G_`,
+  
+  renewal_invoice_created: (data: any) =>
+    `🔔 *Nova Fatura de Renovação Gerada*\n\n` +
+    `Olá! Sua fatura de renovação foi criada automaticamente.\n\n` +
+    `💰 *Valor:* R$ ${Number(data.amount).toFixed(2)}\n` +
+    `📅 *Vencimento:* ${data.dueDate}\n\n` +
+    `✅ *Como pagar:*\n` +
+    `Acesse a área financeira para visualizar o QR Code PIX e realizar o pagamento.\n\n` +
+    `🔗 *Acesse agora:*\nhttps://ytech.lovable.app/financial\n\n` +
+    `⚠️ *Importante:* Mantenha seu pagamento em dia para não perder os benefícios!\n\n` +
     `_Y-TECH Internet 5G_`
 };
 
