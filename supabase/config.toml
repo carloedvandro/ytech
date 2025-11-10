@@ -84,6 +84,9 @@ verify_jwt = true
 [functions.cancel-renewal-discount]
 verify_jwt = true
 
+[functions.sync-payment-with-asaas]
+verify_jwt = true
+
 [functions.cancel-asaas-payment]
 verify_jwt = true
 
