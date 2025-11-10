@@ -93,3 +93,6 @@ verify_jwt = true
 [functions.remove-duplicate-commission]
 verify_jwt = true
 
+[functions.check-and-create-renewal-payment]
+verify_jwt = false
+
