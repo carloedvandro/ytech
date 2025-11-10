@@ -234,15 +234,29 @@ const Financial = () => {
         });
       }
 
-      // Verificar se há pagamento pendente
+      // Verificar se há pagamento pendente e buscar metadata
       const { data: pendingPayment } = await supabase
         .from("payments")
-        .select("id")
+        .select("id, amount, metadata")
         .eq("user_id", activeUserId)
         .eq("status", "pending")
+        .order("created_at", { ascending: false })
         .maybeSingle();
 
       setHasPendingPayment(!!pendingPayment);
+      
+      // Se houver pagamento pendente COM desconto, usar ele para mostrar no card
+      const pendingMetadata = pendingPayment?.metadata as any;
+      if (pendingPayment && pendingMetadata?.discount_applied) {
+        const userMetadata = userInfo?.metadata as { plan_end_date?: string } | null;
+        setUserPlan({
+          status: userInfo?.status || 'pending_payment',
+          plan_end_date: userMetadata?.plan_end_date || null,
+          next_renewal_date: lastPayment?.next_renewal_date || null,
+          amount: pendingPayment.amount,
+          metadata: pendingMetadata,
+        });
+      }
 
       // Buscar comissões com nome do indicado
       const { data: commissionsData, error: commissionsError } = await supabase

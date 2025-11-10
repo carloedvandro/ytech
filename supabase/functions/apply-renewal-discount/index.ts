@@ -32,20 +32,17 @@ serve(async (req) => {
 
     console.log(`🔄 Aplicando desconto de renovação para usuário ${userId}`);
 
-    // 1️⃣ Buscar payment futuro (não pago) do usuário
-    console.log('🔍 Buscando fatura futura...');
+    // 1️⃣ Buscar payment pendente do usuário (com ou sem next_renewal_date)
+    console.log('🔍 Buscando fatura pendente...');
     console.log(`   - user_id: ${userId}`);
-    console.log(`   - status diferente de: completed`);
-    console.log(`   - data futura a partir de: ${new Date().toISOString()}`);
+    console.log(`   - status: pending`);
 
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select('*, plan_id')
       .eq('user_id', userId)
-      .neq('status', 'completed')
-      .not('next_renewal_date', 'is', null)
-      .gte('next_renewal_date', new Date().toISOString())
-      .order('next_renewal_date', { ascending: true })
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -55,22 +52,25 @@ serve(async (req) => {
     }
 
     if (!payment) {
-      console.log('ℹ️ Nenhuma fatura futura encontrada');
-      console.log('   Verificando se existem faturas no banco...');
-      
-      const { data: allPayments } = await supabase
-        .from('payments')
-        .select('id, status, next_renewal_date')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(3);
-      
-      console.log('   Últimas faturas encontradas:', JSON.stringify(allPayments, null, 2));
+      console.log('ℹ️ Nenhuma fatura pendente encontrada');
       
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Nenhuma fatura futura para aplicar desconto. Verifique se já existe uma cobrança criada no sistema.' 
+          message: 'Nenhuma fatura pendente para aplicar desconto.' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verificar se já tem desconto aplicado
+    const currentDiscount = payment.metadata?.discount_applied ? Number(payment.metadata.discount_applied) : 0;
+    if (currentDiscount > 0) {
+      console.log(`ℹ️ Fatura já possui desconto aplicado: R$ ${currentDiscount}`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Esta fatura já possui um desconto de R$ ${currentDiscount.toFixed(2)} aplicado.` 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -218,11 +218,25 @@ serve(async (req) => {
 
     // 8️⃣ Criar nova cobrança com desconto
     console.log('📝 Criando nova cobrança com desconto...');
+    
+    // Determinar data de vencimento
+    let dueDate;
+    if (payment.next_renewal_date) {
+      dueDate = payment.next_renewal_date.split('T')[0];
+    } else if (payment.expires_at) {
+      dueDate = payment.expires_at.split('T')[0];
+    } else {
+      // Se não tem data, usar amanhã
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      dueDate = tomorrow.toISOString().split('T')[0];
+    }
+    
     const newPaymentData = {
       customer: customerId,
       billingType: 'PIX',
       value: finalAmount.toFixed(2),
-      dueDate: payment.next_renewal_date?.split('T')[0] || payment.expires_at?.split('T')[0],
+      dueDate: dueDate,
       description: `${plan.name} - Com desconto de R$ ${discountApplied.toFixed(2)}`,
       externalReference: payment.id,
       postalService: false
