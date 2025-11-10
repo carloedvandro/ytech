@@ -48,20 +48,26 @@ serve(async (req) => {
       throw new Error('Usuário não está ativo');
     }
 
-    // Buscar último pagamento ativo (assinatura)
+    // Buscar último pagamento completo do usuário
     const { data: lastPayment, error: paymentError } = await supabaseClient
       .from('payments')
       .select('*, plans!payments_plan_id_fkey(*)')
       .eq('user_id', user.id)
       .eq('status', 'completed')
-      .not('subscription_id', 'is', null)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (paymentError || !lastPayment) {
-      throw new Error('Nenhuma assinatura ativa encontrada');
+      console.error('Payment error:', paymentError);
+      throw new Error('Nenhum pagamento completo encontrado para criar renovação');
     }
+
+    console.log('✅ Último pagamento encontrado:', {
+      id: lastPayment.id,
+      subscription_id: lastPayment.subscription_id,
+      next_renewal_date: lastPayment.next_renewal_date
+    });
 
     // Verificar se já existe pagamento de renovação antecipada pendente
     const { data: pendingRenewal } = await supabaseClient
