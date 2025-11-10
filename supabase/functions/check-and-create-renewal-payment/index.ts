@@ -16,19 +16,36 @@ serve(async (req) => {
     logEnvironment();
     validateConfig();
 
-    // Criar cliente com ANON_KEY e Authorization header
+    const authHeader = req.headers.get('Authorization');
+    console.log('📥 Authorization header presente:', !!authHeader);
+    console.log('📥 Headers disponíveis:', Array.from(req.headers.keys()).join(', '));
+    
+    if (!authHeader) {
+      console.log('❌ Nenhum header de autorização encontrado');
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    console.log('🔑 Token presente (comprimento):', token.length);
+
+    // Criar cliente com ANON_KEY e usar getUser com o token explícito
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Verificar usuário autenticado
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    // Verificar usuário autenticado passando o token explicitamente
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    console.log('🔐 Resultado auth:', { 
+      hasUser: !!user, 
+      userId: user?.id,
+      hasError: !!authError,
+      errorMsg: authError?.message 
+    });
 
     if (authError || !user) {
       console.log('❌ Erro na autenticação:', authError?.message || 'Usuário não encontrado');
