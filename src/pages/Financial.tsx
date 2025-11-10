@@ -546,6 +546,9 @@ const Financial = () => {
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
         },
+        body: {
+          userId: activeUserId
+        }
       });
 
       if (error) throw error;

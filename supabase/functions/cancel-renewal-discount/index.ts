@@ -35,11 +35,31 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
+    // Pegar userId do body (para casos de admin personificando)
+    const body = await req.json().catch(() => ({}));
+    const targetUserId = body.userId || user.id;
+
+    // Se userId diferente do autenticado, verificar se é admin
+    if (targetUserId !== user.id) {
+      const { data: roles } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!roles || roles.role !== 'admin') {
+        throw new Error('Unauthorized: Only admins can cancel discount for other users');
+      }
+      console.log('✅ Admin confirmado, processando para usuário:', targetUserId);
+    }
+
+    const userId = targetUserId;
+
     // Buscar pagamento pendente PRIMEIRO
     const { data: pendingPayment, error: paymentError } = await supabaseClient
       .from('payments')
       .select('*, plans!payments_plan_id_fkey(*)')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .maybeSingle();
@@ -51,11 +71,12 @@ serve(async (req) => {
     const { data: currentPref } = await supabaseClient
       .from('user_renewal_preferences')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     console.log('📋 STATUS INICIAL:', {
-      user_id: user.id,
+      user_id: userId,
+      auth_user_id: user.id,
       user_email: user.email,
       has_pending_payment: !!pendingPayment,
       payment_id: pendingPayment?.id,
@@ -134,7 +155,7 @@ serve(async (req) => {
       const { data: withdrawnCommissions } = await supabaseClient
         .from('commissions')
         .select('id, amount')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('status', 'withdrawn')
         .order('withdrawn_at', { ascending: false })
         .limit(10);
@@ -170,7 +191,7 @@ serve(async (req) => {
           await supabaseClient
             .from('admin_balance_adjustments')
             .insert({
-              user_id: user.id,
+              user_id: userId,
               admin_id: user.id,
               type: 'add',
               amount: remainingToRestore,
@@ -193,7 +214,7 @@ serve(async (req) => {
         use_balance_for_renewal: false,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', user.id);
+      .eq('user_id', userId);
 
     if (prefError) {
       console.error('❌ ERRO PASSO 4:', prefError);
@@ -218,7 +239,7 @@ serve(async (req) => {
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     if (profileError) throw profileError;
@@ -311,7 +332,7 @@ serve(async (req) => {
     const { data: newPayment, error: insertError } = await supabaseClient
       .from('payments')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         plan_id: plan.id,
         amount: originalAmount,
         status: 'pending',
