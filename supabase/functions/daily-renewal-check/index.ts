@@ -62,10 +62,10 @@ serve(async (req) => {
           continue;
         }
 
-        // Buscar último pagamento confirmado para determinar o plano
+        // Buscar último pagamento confirmado para determinar o plano e next_renewal_date
         const { data: lastPayment, error: lastPaymentError } = await supabase
           .from('payments')
-          .select('plan_id, amount')
+          .select('plan_id, amount, next_renewal_date')
           .eq('user_id', profile.id)
           .eq('status', 'confirmed')
           .order('paid_at', { ascending: false })
@@ -74,6 +74,47 @@ serve(async (req) => {
 
         if (lastPaymentError || !lastPayment) {
           console.log(`[DAILY-RENEWAL-CHECK] No confirmed payment found for user ${profile.id}, skipping...`);
+          continue;
+        }
+
+        // Verificar se chegou a data de renovação
+        if (!lastPayment.next_renewal_date) {
+          console.log(`[DAILY-RENEWAL-CHECK] User ${profile.id} has no next_renewal_date set, skipping...`);
+          continue;
+        }
+
+        const renewalDate = new Date(lastPayment.next_renewal_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        renewalDate.setHours(0, 0, 0, 0);
+
+        // Só criar fatura se a data de renovação for hoje ou já passou
+        if (renewalDate > today) {
+          console.log(`[DAILY-RENEWAL-CHECK] User ${profile.id} renewal date is ${renewalDate.toISOString()}, not yet due, skipping...`);
+          continue;
+        }
+
+        // Verificar se já criou fatura hoje (evitar duplicatas)
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const { data: todayPayments, error: todayPaymentsError } = await supabase
+          .from('payments')
+          .select('id')
+          .eq('user_id', profile.id)
+          .gte('created_at', todayStart.toISOString())
+          .lte('created_at', todayEnd.toISOString());
+
+        if (todayPaymentsError) {
+          console.error(`[DAILY-RENEWAL-CHECK] Error checking today's payments for user ${profile.id}:`, todayPaymentsError);
+          errorCount++;
+          continue;
+        }
+
+        if (todayPayments && todayPayments.length > 0) {
+          console.log(`[DAILY-RENEWAL-CHECK] User ${profile.id} already has payment created today, skipping...`);
           continue;
         }
 
@@ -113,9 +154,9 @@ serve(async (req) => {
           console.log(`[DAILY-RENEWAL-CHECK] Created new customer ${customerId}`);
         }
 
-        // Criar pagamento PIX no Asaas
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + 1);
+        // Criar pagamento PIX no Asaas - vencimento em 30 dias
+        const dueDate = new Date(lastPayment.next_renewal_date);
+        dueDate.setDate(dueDate.getDate() + 30);
 
         const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
           method: 'POST',
