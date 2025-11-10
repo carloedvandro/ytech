@@ -287,10 +287,11 @@ serve(async (req) => {
     console.log('✅ PASSO 6 CONCLUÍDO: Customer ID:', asaasCustomer.id);
 
     // Criar nova cobrança com valor cheio, mantendo a mesma data
-    const dueDate = new Date(pendingPayment.expires_at);
+    // Extrair apenas a data sem conversões de timezone
+    const originalDueDate = pendingPayment.expires_at.split('T')[0];
     console.log('🔄 PASSO 7: Criando nova cobrança no Asaas');
     console.log('   Valor: R$', originalAmount);
-    console.log('   Vencimento:', dueDate.toISOString().split('T')[0]);
+    console.log('   Vencimento original:', originalDueDate);
 
     const newPaymentResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments`, {
       method: 'POST',
@@ -301,7 +302,7 @@ serve(async (req) => {
       body: JSON.stringify({
         customer: asaasCustomer.id,
         billingType: 'PIX',
-        dueDate: dueDate.toISOString().split('T')[0],
+        dueDate: originalDueDate,
         value: originalAmount,
         description: `${plan.name} - Sem desconto`,
       }),
@@ -364,7 +365,7 @@ serve(async (req) => {
     console.log('   • Nova fatura criada (R$', originalAmount, ')');
     console.log('   • Desconto devolvido: R$', discountApplied);
     console.log('   • ID nova fatura:', newPayment.id);
-    console.log('   • Vencimento mantido:', dueDate.toISOString().split('T')[0]);
+    console.log('   • Vencimento mantido:', originalDueDate);
     console.log('═══════════════════════════════════════');
 
     return new Response(
