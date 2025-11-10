@@ -62,6 +62,7 @@ const Financial = () => {
   const [deletingCommission, setDeletingCommission] = useState(false);
   const [hasPendingPayment, setHasPendingPayment] = useState(false);
   const [cancellingDiscount, setCancellingDiscount] = useState(false);
+  const [hasDiscountApplied, setHasDiscountApplied] = useState(false);
 
   // ID do usuário ativo (impersonado ou real)
   const activeUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
@@ -252,8 +253,11 @@ const Financial = () => {
       
       // Se houver pagamento pendente COM desconto aplicado (e NÃO cancelado), usar ele para mostrar no card
       const pendingMetadata = pendingPayment?.metadata as any;
+      const discountApplied = pendingMetadata?.discount_applied && !pendingMetadata?.discount_cancelled;
+      setHasDiscountApplied(!!discountApplied);
+      
       // Não mostrar card de desconto se o metadata indicar que o desconto foi cancelado
-      if (pendingPayment && pendingMetadata?.discount_applied && !pendingMetadata?.discount_cancelled) {
+      if (pendingPayment && discountApplied) {
         const userMetadata = userInfo?.metadata as { plan_end_date?: string } | null;
         setUserPlan({
           status: userInfo?.status || 'pending_payment',
@@ -899,9 +903,18 @@ const Financial = () => {
                   </AlertDescription>
                 </Alert>
 
+                {hasDiscountApplied && (
+                  <Alert className="border-blue-500/50 bg-blue-500/10">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription>
+                      ✅ Desconto já aplicado! Uma fatura com desconto já foi gerada. Você não precisa salvar novamente.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <Button 
                   onClick={saveRenewalPreferences} 
-                  disabled={savingPreferences}
+                  disabled={savingPreferences || hasDiscountApplied}
                   className="w-full"
                 >
                   {savingPreferences ? (
@@ -909,6 +922,8 @@ const Financial = () => {
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Salvando...
                     </>
+                  ) : hasDiscountApplied ? (
+                    "Desconto Já Aplicado"
                   ) : (
                     "Salvar Preferências"
                   )}
