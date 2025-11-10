@@ -149,52 +149,76 @@ serve(async (req) => {
 
         console.log(`💰 Cálculo: Plano R$ ${plan.price} - Desconto R$ ${discountApplied} = R$ ${finalAmount}`);
 
-        // Buscar e deletar todas as cobranças da assinatura
+        // Buscar e deletar TODAS as cobranças da assinatura (com paginação)
         const statuses = ['PENDING', 'CONFIRMED', 'OVERDUE'];
         const deletedPayments = [];
+        let totalPaymentsFound = 0;
+
+        console.log(`🔍 Buscando cobranças da assinatura ${actualSubscriptionId}...`);
 
         for (const status of statuses) {
-          const paymentsResponse = await fetch(
-            `${asaasUrl}/payments?subscription=${actualSubscriptionId}&status=${status}`,
-            {
-              method: 'GET',
-              headers: {
-                'access_token': asaasApiKey!,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-
-          if (paymentsResponse.ok) {
-            const paymentsData = await paymentsResponse.json();
-            
-            if (paymentsData.data && paymentsData.data.length > 0) {
-              for (const asaasPayment of paymentsData.data) {
-                // Deletar cobrança antiga
-                const deleteResponse = await fetch(
-                  `${asaasUrl}/payments/${asaasPayment.id}`,
-                  {
-                    method: 'DELETE',
-                    headers: {
-                      'access_token': asaasApiKey!,
-                      'Content-Type': 'application/json',
-                    },
-                  }
-                );
-
-                if (deleteResponse.ok) {
-                  console.log(`🗑️ Cobrança ${asaasPayment.id} (${status}) deletada - Valor: R$ ${asaasPayment.value}`);
-                  deletedPayments.push(asaasPayment.id);
-                } else {
-                  const errorText = await deleteResponse.text();
-                  console.error(`❌ Erro ao deletar cobrança ${asaasPayment.id}:`, errorText);
-                }
+          let offset = 0;
+          let hasMore = true;
+          
+          while (hasMore) {
+            const paymentsResponse = await fetch(
+              `${asaasUrl}/payments?subscription=${actualSubscriptionId}&status=${status}&offset=${offset}&limit=100`,
+              {
+                method: 'GET',
+                headers: {
+                  'access_token': asaasApiKey!,
+                  'Content-Type': 'application/json',
+                },
               }
+            );
+
+            if (paymentsResponse.ok) {
+              const paymentsData = await paymentsResponse.json();
+              
+              console.log(`📋 Status ${status}: ${paymentsData.data?.length || 0} cobrança(s) encontrada(s)`);
+              
+              if (paymentsData.data && paymentsData.data.length > 0) {
+                totalPaymentsFound += paymentsData.data.length;
+                
+                for (const asaasPayment of paymentsData.data) {
+                  console.log(`🔍 Encontrada: ${asaasPayment.id} - R$ ${asaasPayment.value} - Venc: ${asaasPayment.dueDate}`);
+                  
+                  // Deletar cobrança antiga
+                  const deleteResponse = await fetch(
+                    `${asaasUrl}/payments/${asaasPayment.id}`,
+                    {
+                      method: 'DELETE',
+                      headers: {
+                        'access_token': asaasApiKey!,
+                        'Content-Type': 'application/json',
+                      },
+                    }
+                  );
+
+                  if (deleteResponse.ok) {
+                    console.log(`✅ Cobrança ${asaasPayment.id} (${status}) DELETADA - R$ ${asaasPayment.value}`);
+                    deletedPayments.push(asaasPayment.id);
+                  } else {
+                    const errorText = await deleteResponse.text();
+                    console.error(`❌ ERRO ao deletar ${asaasPayment.id}:`, errorText);
+                  }
+                }
+                
+                // Verificar se tem mais páginas
+                hasMore = paymentsData.hasMore || false;
+                offset += 100;
+              } else {
+                hasMore = false;
+              }
+            } else {
+              const errorText = await paymentsResponse.text();
+              console.error(`❌ Erro ao buscar cobranças (${status}):`, errorText);
+              hasMore = false;
             }
           }
         }
 
-        console.log(`✅ Total de ${deletedPayments.length} cobrança(s) deletada(s)`);
+        console.log(`📊 RESUMO: ${totalPaymentsFound} cobrança(s) encontrada(s), ${deletedPayments.length} deletada(s)`);
 
         // Buscar customer_id da assinatura
         const subscriptionResponse = await fetch(
