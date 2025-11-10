@@ -286,12 +286,32 @@ serve(async (req) => {
     }
     console.log('✅ PASSO 6 CONCLUÍDO: Customer ID:', asaasCustomer.id);
 
-    // Criar nova cobrança com valor cheio, mantendo a mesma data
-    // Extrair apenas a data sem conversões de timezone
-    const originalDueDate = pendingPayment.expires_at.split('T')[0];
+    // Calcular data de vencimento baseada no dia do vencimento do cliente
+    const renewalDay = metadata?.renewal_day || new Date(pendingPayment.expires_at).getDate();
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Se o dia de vencimento já passou no mês atual, usar próximo mês
+    let dueMonth = currentMonth;
+    let dueYear = currentYear;
+    
+    if (today.getDate() >= renewalDay) {
+      dueMonth = currentMonth + 1;
+      if (dueMonth > 11) {
+        dueMonth = 0;
+        dueYear = currentYear + 1;
+      }
+    }
+    
+    // Criar data de vencimento
+    const dueDate = new Date(dueYear, dueMonth, renewalDay);
+    const dueDateString = dueDate.toISOString().split('T')[0];
+    
     console.log('🔄 PASSO 7: Criando nova cobrança no Asaas');
     console.log('   Valor: R$', originalAmount);
-    console.log('   Vencimento original:', originalDueDate);
+    console.log('   Dia de vencimento do cliente:', renewalDay);
+    console.log('   Data calculada:', dueDateString);
 
     const newPaymentResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments`, {
       method: 'POST',
@@ -302,7 +322,7 @@ serve(async (req) => {
       body: JSON.stringify({
         customer: asaasCustomer.id,
         billingType: 'PIX',
-        dueDate: originalDueDate,
+        dueDate: dueDateString,
         value: originalAmount,
         description: `${plan.name} - Sem desconto`,
       }),
@@ -339,7 +359,7 @@ serve(async (req) => {
         status: 'pending',
         pix_code: pixData.payload,
         pix_qr_code: pixData.encodedImage,
-        expires_at: pendingPayment.expires_at,
+        expires_at: dueDate.toISOString(),
         metadata: {
           asaas_payment_id: newAsaasPayment.id,
           asaas_invoice_url: newAsaasPayment.invoiceUrl,
@@ -365,7 +385,7 @@ serve(async (req) => {
     console.log('   • Nova fatura criada (R$', originalAmount, ')');
     console.log('   • Desconto devolvido: R$', discountApplied);
     console.log('   • ID nova fatura:', newPayment.id);
-    console.log('   • Vencimento mantido:', originalDueDate);
+    console.log('   • Vencimento calculado:', dueDateString);
     console.log('═══════════════════════════════════════');
 
     return new Response(
@@ -376,7 +396,7 @@ serve(async (req) => {
           id: newPayment.id,
           amount: originalAmount,
           discount_returned: discountApplied,
-          expires_at: pendingPayment.expires_at,
+          expires_at: dueDate.toISOString(),
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
