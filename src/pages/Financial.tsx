@@ -203,15 +203,9 @@ const Financial = () => {
     try {
       if (!activeUserId) return;
 
-      // Verificar e criar pagamento automaticamente se necessário
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session?.access_token) {
-        await supabase.functions.invoke('check-and-create-renewal-payment', {
-          headers: {
-            Authorization: `Bearer ${session.session.access_token}`,
-          },
-        });
-      }
+      // REMOVIDO: Verificação automática de fatura
+      // A criação automática de fatura será feita por um cron job diário
+      // ou quando o usuário acessar a página de pagamento
 
       // Buscar dados atualizados do usuário
       const { data: userInfo } = await supabase
