@@ -96,6 +96,4 @@ verify_jwt = true
 [functions.check-and-create-renewal-payment]
 verify_jwt = false
 
-[functions.daily-renewal-check]
-verify_jwt = false
 
