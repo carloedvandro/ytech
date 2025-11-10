@@ -29,7 +29,12 @@ serve(async (req) => {
     console.log(`🔄 Aplicando desconto de renovação para usuário ${user.id}`);
 
     // 1️⃣ Buscar payment futuro (não pago) do usuário
-    const { data: payment } = await supabase
+    console.log('🔍 Buscando fatura futura...');
+    console.log(`   - user_id: ${user.id}`);
+    console.log(`   - status diferente de: completed`);
+    console.log(`   - data futura a partir de: ${new Date().toISOString()}`);
+
+    const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select('*, plan_id')
       .eq('user_id', user.id)
@@ -38,14 +43,30 @@ serve(async (req) => {
       .gte('next_renewal_date', new Date().toISOString())
       .order('next_renewal_date', { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    if (paymentError) {
+      console.error('❌ Erro ao buscar fatura:', paymentError);
+      throw new Error(`Erro ao buscar fatura: ${paymentError.message}`);
+    }
 
     if (!payment) {
       console.log('ℹ️ Nenhuma fatura futura encontrada');
+      console.log('   Verificando se existem faturas no banco...');
+      
+      const { data: allPayments } = await supabase
+        .from('payments')
+        .select('id, status, next_renewal_date')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      console.log('   Últimas faturas encontradas:', JSON.stringify(allPayments, null, 2));
+      
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Nenhuma fatura futura para aplicar desconto' 
+          message: 'Nenhuma fatura futura para aplicar desconto. Verifique se já existe uma cobrança criada no sistema.' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
