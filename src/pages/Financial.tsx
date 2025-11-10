@@ -246,9 +246,10 @@ const Financial = () => {
 
       setHasPendingPayment(!!pendingPayment);
       
-      // Se houver pagamento pendente COM desconto, usar ele para mostrar no card
+      // Se houver pagamento pendente COM desconto aplicado (e NÃO cancelado), usar ele para mostrar no card
       const pendingMetadata = pendingPayment?.metadata as any;
-      if (pendingPayment && pendingMetadata?.discount_applied) {
+      // Não mostrar card de desconto se o metadata indicar que o desconto foi cancelado
+      if (pendingPayment && pendingMetadata?.discount_applied && !pendingMetadata?.discount_cancelled) {
         const userMetadata = userInfo?.metadata as { plan_end_date?: string } | null;
         setUserPlan({
           status: userInfo?.status || 'pending_payment',
