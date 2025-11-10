@@ -203,6 +203,9 @@ const Financial = () => {
     try {
       if (!activeUserId) return;
 
+      // Verificar e criar pagamento automaticamente se necessário
+      await supabase.functions.invoke('check-and-create-renewal-payment');
+
       // Buscar dados atualizados do usuário
       const { data: userInfo } = await supabase
         .from("profiles")
