@@ -35,7 +35,25 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Buscar pagamento pendente com desconto
+    // Buscar preferência de renovação primeiro
+    const { data: currentPref } = await supabaseClient
+      .from('user_renewal_preferences')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Se a preferência já está desabilitada, não há nada a fazer
+    if (!currentPref?.use_balance_for_renewal) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'A preferência de usar saldo já está desabilitada.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Buscar pagamento pendente
     const { data: pendingPayment, error: paymentError } = await supabaseClient
       .from('payments')
       .select('*, plans!payments_plan_id_fkey(*)')
@@ -44,110 +62,111 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .maybeSingle();
 
-    if (paymentError || !pendingPayment) {
-      throw new Error('Nenhum pagamento pendente encontrado');
-    }
-
-    const metadata = pendingPayment.metadata as any;
+    const metadata = (pendingPayment?.metadata || {}) as any;
     const discountApplied = metadata?.discount_applied ? Number(metadata.discount_applied) : 0;
 
-    if (discountApplied === 0) {
-      throw new Error('Este pagamento não possui desconto aplicado');
-    }
-
-    console.log('📋 Cancelando fatura com desconto:', {
-      payment_id: pendingPayment.id,
-      discount: discountApplied,
-      current_amount: pendingPayment.amount
+    console.log('📋 Status atual:', {
+      has_pending_payment: !!pendingPayment,
+      discount_applied: discountApplied,
+      use_balance_for_renewal: currentPref?.use_balance_for_renewal
     });
 
-    // Cancelar pagamento no Asaas se tiver ID
-    const asaasPaymentId = metadata?.asaas_payment_id;
-    if (asaasPaymentId) {
-      try {
-        const cancelResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${asaasPaymentId}`, {
-          method: 'DELETE',
-          headers: {
-            'access_token': ENV_CONFIG.asaas.apiKey,
-          },
-        });
+    // Se há pagamento pendente COM desconto, processar cancelamento completo
+    if (pendingPayment && discountApplied > 0) {
+      console.log('📋 Cancelando fatura com desconto:', {
+        payment_id: pendingPayment.id,
+        discount: discountApplied,
+        current_amount: pendingPayment.amount
+      });
 
-        if (!cancelResponse.ok) {
-          console.error('Erro ao cancelar no Asaas:', await cancelResponse.text());
-        } else {
-          console.log('✅ Pagamento cancelado no Asaas');
-        }
-      } catch (error) {
-        console.error('Erro ao cancelar no Asaas:', error);
-      }
-    }
-
-    // Atualizar status do pagamento para cancelled
-    const { error: updateError } = await supabaseClient
-      .from('payments')
-      .update({ 
-        status: 'cancelled',
-        metadata: {
-          ...metadata,
-          cancelled_reason: 'user_cancelled_discount',
-          cancelled_at: new Date().toISOString()
-        }
-      })
-      .eq('id', pendingPayment.id);
-
-    if (updateError) {
-      console.error('Erro ao cancelar pagamento:', updateError);
-      throw updateError;
-    }
-
-    // Restaurar comissões que foram marcadas como withdrawn
-    console.log('🔄 Restaurando comissões...');
-    const { data: withdrawnCommissions } = await supabaseClient
-      .from('commissions')
-      .select('id, amount')
-      .eq('user_id', user.id)
-      .eq('status', 'withdrawn')
-      .order('withdrawn_at', { ascending: false })
-      .limit(10);
-
-    if (withdrawnCommissions && withdrawnCommissions.length > 0) {
-      let remainingToRestore = discountApplied;
-      const commsToRestore = [];
-
-      for (const comm of withdrawnCommissions) {
-        if (remainingToRestore <= 0) break;
-        const amountToRestore = Math.min(Number(comm.amount), remainingToRestore);
-        commsToRestore.push(comm.id);
-        remainingToRestore -= amountToRestore;
-      }
-
-      if (commsToRestore.length > 0) {
-        await supabaseClient
-          .from('commissions')
-          .update({
-            status: 'available',
-            withdrawn_at: null
-          })
-          .in('id', commsToRestore);
-
-        console.log(`✅ ${commsToRestore.length} comissão(ões) restaurada(s)`);
-      }
-
-      // Se ainda sobrou valor, remover do ajuste negativo
-      if (remainingToRestore > 0.01) {
-        await supabaseClient
-          .from('admin_balance_adjustments')
-          .insert({
-            user_id: user.id,
-            admin_id: user.id,
-            type: 'add',
-            amount: remainingToRestore,
-            reason: 'Devolução de desconto cancelado',
-            balance_before: 0,
-            balance_after: remainingToRestore
+      // Cancelar pagamento no Asaas se tiver ID
+      const asaasPaymentId = metadata?.asaas_payment_id;
+      if (asaasPaymentId) {
+        try {
+          const cancelResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments/${asaasPaymentId}`, {
+            method: 'DELETE',
+            headers: {
+              'access_token': ENV_CONFIG.asaas.apiKey,
+            },
           });
 
-        console.log(`✅ Ajuste de +R$ ${remainingToRestore.toFixed(2)} criado`);
+          if (!cancelResponse.ok) {
+            console.error('Erro ao cancelar no Asaas:', await cancelResponse.text());
+          } else {
+            console.log('✅ Pagamento cancelado no Asaas');
+          }
+        } catch (error) {
+          console.error('Erro ao cancelar no Asaas:', error);
+        }
+      }
+
+      // Atualizar status do pagamento para cancelled
+      const { error: updateError } = await supabaseClient
+        .from('payments')
+        .update({ 
+          status: 'cancelled',
+          metadata: {
+            ...metadata,
+            cancelled_reason: 'user_cancelled_discount',
+            cancelled_at: new Date().toISOString()
+          }
+        })
+        .eq('id', pendingPayment.id);
+
+      if (updateError) {
+        console.error('Erro ao cancelar pagamento:', updateError);
+        throw updateError;
+      }
+
+      // Restaurar comissões que foram marcadas como withdrawn
+      console.log('🔄 Restaurando comissões...');
+      const { data: withdrawnCommissions } = await supabaseClient
+        .from('commissions')
+        .select('id, amount')
+        .eq('user_id', user.id)
+        .eq('status', 'withdrawn')
+        .order('withdrawn_at', { ascending: false })
+        .limit(10);
+
+      if (withdrawnCommissions && withdrawnCommissions.length > 0) {
+        let remainingToRestore = discountApplied;
+        const commsToRestore = [];
+
+        for (const comm of withdrawnCommissions) {
+          if (remainingToRestore <= 0) break;
+          const amountToRestore = Math.min(Number(comm.amount), remainingToRestore);
+          commsToRestore.push(comm.id);
+          remainingToRestore -= amountToRestore;
+        }
+
+        if (commsToRestore.length > 0) {
+          await supabaseClient
+            .from('commissions')
+            .update({
+              status: 'available',
+              withdrawn_at: null
+            })
+            .in('id', commsToRestore);
+
+          console.log(`✅ ${commsToRestore.length} comissão(ões) restaurada(s)`);
+        }
+
+        // Se ainda sobrou valor, remover do ajuste negativo
+        if (remainingToRestore > 0.01) {
+          await supabaseClient
+            .from('admin_balance_adjustments')
+            .insert({
+              user_id: user.id,
+              admin_id: user.id,
+              type: 'add',
+              amount: remainingToRestore,
+              reason: 'Devolução de desconto cancelado',
+              balance_before: 0,
+              balance_after: remainingToRestore
+            });
+
+          console.log(`✅ Ajuste de +R$ ${remainingToRestore.toFixed(2)} criado`);
+        }
       }
     }
 
@@ -166,6 +185,17 @@ serve(async (req) => {
     }
 
     console.log('✅ Preferência de renovação desabilitada');
+
+    // Se não havia fatura com desconto, apenas desabilitar e retornar
+    if (!pendingPayment || discountApplied === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Preferência de usar saldo desabilitada com sucesso.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Buscar perfil do usuário
     const { data: profile, error: profileError } = await supabaseClient
