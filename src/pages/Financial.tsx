@@ -544,6 +544,9 @@ const Financial = () => {
       // Recarregar dados e preferências
       await loadFinancialData();
       await loadRenewalPreferences();
+      
+      // Forçar reload completo da página para garantir atualização
+      window.location.reload();
     } catch (error) {
       console.error('Error cancelling discount:', error);
       toast({
@@ -551,7 +554,6 @@ const Financial = () => {
         title: "Erro",
         description: error instanceof Error ? error.message : "Erro ao cancelar desconto",
       });
-    } finally {
       setCancellingDiscount(false);
     }
   };

@@ -100,6 +100,57 @@ serve(async (req) => {
       throw updateError;
     }
 
+    // Restaurar comissões que foram marcadas como withdrawn
+    console.log('🔄 Restaurando comissões...');
+    const { data: withdrawnCommissions } = await supabaseClient
+      .from('commissions')
+      .select('id, amount')
+      .eq('user_id', user.id)
+      .eq('status', 'withdrawn')
+      .order('withdrawn_at', { ascending: false })
+      .limit(10);
+
+    if (withdrawnCommissions && withdrawnCommissions.length > 0) {
+      let remainingToRestore = discountApplied;
+      const commsToRestore = [];
+
+      for (const comm of withdrawnCommissions) {
+        if (remainingToRestore <= 0) break;
+        const amountToRestore = Math.min(Number(comm.amount), remainingToRestore);
+        commsToRestore.push(comm.id);
+        remainingToRestore -= amountToRestore;
+      }
+
+      if (commsToRestore.length > 0) {
+        await supabaseClient
+          .from('commissions')
+          .update({
+            status: 'available',
+            withdrawn_at: null
+          })
+          .in('id', commsToRestore);
+
+        console.log(`✅ ${commsToRestore.length} comissão(ões) restaurada(s)`);
+      }
+
+      // Se ainda sobrou valor, remover do ajuste negativo
+      if (remainingToRestore > 0.01) {
+        await supabaseClient
+          .from('admin_balance_adjustments')
+          .insert({
+            user_id: user.id,
+            admin_id: user.id,
+            type: 'add',
+            amount: remainingToRestore,
+            reason: 'Devolução de desconto cancelado',
+            balance_before: 0,
+            balance_after: remainingToRestore
+          });
+
+        console.log(`✅ Ajuste de +R$ ${remainingToRestore.toFixed(2)} criado`);
+      }
+    }
+
     // Desabilitar preferência de usar saldo
     const { error: prefError } = await supabaseClient
       .from('user_renewal_preferences')
