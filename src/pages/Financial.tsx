@@ -356,14 +356,18 @@ const Financial = () => {
 
       const availableForWithdrawal = Math.max(0, available - reserved);
 
+      // Saldo atual após a reserva (o que realmente está disponível)
+      const currentBalance = Math.max(0, available - reserved);
+
       console.log('💰 Cálculo de saldo detalhado:', {
         available,
         reserved,
+        currentBalance,
         availableForWithdrawal,
         useBalanceForRenewal: preferences?.use_balance_for_renewal
       });
 
-      setBalance({ total, available, pending, reserved, availableForWithdrawal });
+      setBalance({ total, available: currentBalance, pending, reserved, availableForWithdrawal });
     } catch (error: any) {
       toast({
         title: "Erro ao carregar dados",
@@ -844,11 +848,15 @@ const Financial = () => {
                   <AlertDescription>
                     <div className="mt-2 space-y-1 text-sm">
                       <p>• Mensalidade: R$ 129,99</p>
-                      <p>• Saldo disponível: R$ {balance.available.toFixed(2)}</p>
+                      <p>• Seu saldo bruto: R$ {(balance.available + balance.reserved).toFixed(2)}</p>
+                      <p>• Valor reservado: R$ {balance.reserved.toFixed(2)}</p>
+                      <p>• Saldo após reserva: R$ {balance.available.toFixed(2)}</p>
                       <p>• Saldo mínimo: R$ {parseFloat(minimumBalanceToKeep || "0").toFixed(2)}</p>
                       {(() => {
                         const minBalance = parseFloat(minimumBalanceToKeep || "0");
-                        const availableForDiscount = Math.max(0, balance.available - minBalance);
+                        // Usar o saldo bruto (antes da reserva atual) para calcular novo desconto
+                        const grossBalance = balance.available + balance.reserved;
+                        const availableForDiscount = Math.max(0, grossBalance - minBalance);
                         
                         if (availableForDiscount >= 129.99) {
                           return (
