@@ -253,7 +253,7 @@ const Financial = () => {
       
       // Se houver pagamento pendente COM desconto aplicado (e NÃO cancelado), usar ele para mostrar no card
       const pendingMetadata = pendingPayment?.metadata as any;
-      const discountApplied = pendingMetadata?.discount_applied && !pendingMetadata?.discount_cancelled;
+      const discountApplied = (pendingMetadata?.discount_applied > 0) && !pendingMetadata?.discount_cancelled;
       setHasDiscountApplied(!!discountApplied);
       
       // Não mostrar card de desconto se o metadata indicar que o desconto foi cancelado
