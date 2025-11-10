@@ -888,6 +888,15 @@ const Financial = () => {
                 </Button>
               </>
             )}
+
+            {!useBalanceForRenewal && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Seu saldo não será usado automaticamente nas renovações. Você precisará pagar o valor integral da mensalidade.
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
