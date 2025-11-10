@@ -146,10 +146,35 @@ const Financial = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Preferências salvas!",
-        description: "Suas configurações de renovação foram atualizadas.",
-      });
+      // Se ativou o uso de saldo, aplicar desconto na fatura pendente
+      if (useBalanceForRenewal) {
+        console.log('🔄 Aplicando desconto na fatura pendente...');
+        const { data: applyData, error: applyError } = await supabase.functions.invoke(
+          'apply-renewal-discount'
+        );
+
+        if (applyError) {
+          console.error('Erro ao aplicar desconto:', applyError);
+          toast({
+            title: "Preferências salvas!",
+            description: "Configurações salvas, mas não foi possível aplicar o desconto automaticamente.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Sucesso!",
+            description: applyData?.message || "Preferências salvas e desconto aplicado!",
+          });
+        }
+      } else {
+        toast({
+          title: "Preferências salvas!",
+          description: "Suas configurações de renovação foram atualizadas.",
+        });
+      }
+
+      // Recarregar dados financeiros
+      await loadFinancialData();
     } catch (error: any) {
       toast({
         title: "Erro ao salvar",
