@@ -16,50 +16,38 @@ serve(async (req) => {
     logEnvironment();
     validateConfig();
 
-    const authHeader = req.headers.get('Authorization');
-    console.log('📥 Authorization header presente:', !!authHeader);
-    console.log('📥 Headers disponíveis:', Array.from(req.headers.keys()).join(', '));
-    
-    if (!authHeader) {
-      console.log('❌ Nenhum header de autorização encontrado');
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    console.log('🔑 Token presente (comprimento):', token.length);
-
-    // Criar cliente com SERVICE_ROLE_KEY para validar o token do usuário
+    // Usar o mesmo padrão de process-sim-activation que funciona
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
     );
 
-    // Verificar usuário autenticado passando o token explicitamente
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    // Get authenticated user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser();
 
-    console.log('🔐 Resultado auth:', { 
-      hasUser: !!user, 
-      userId: user?.id,
-      hasError: !!authError,
-      errorMsg: authError?.message 
-    });
-
-    if (authError || !user) {
-      console.log('❌ Erro na autenticação:', authError?.message || 'Usuário não encontrado');
+    if (userError || !user) {
+      console.log('❌ Erro na autenticação:', userError?.message || 'Usuário não encontrado');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: authError?.message || 'User not found' }),
+        JSON.stringify({ error: 'Unauthorized', details: userError?.message || 'User not found' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     console.log('✅ Usuário autenticado:', user.id);
     
-    // Este cliente já tem SERVICE_ROLE_KEY e será usado para todas operações
-    // Renomear para supabaseAdmin para clareza
-    const supabaseAdmin = supabaseClient;
+    // Cliente com SERVICE_ROLE_KEY para operações administrativas (Asaas, etc)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
     // Buscar pagamento pendente
     const { data: pendingPayments } = await supabaseAdmin
