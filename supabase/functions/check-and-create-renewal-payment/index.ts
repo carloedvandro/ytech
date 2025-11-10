@@ -31,10 +31,10 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     console.log('🔑 Token presente (comprimento):', token.length);
 
-    // Criar cliente com ANON_KEY e usar getUser com o token explícito
+    // Criar cliente com SERVICE_ROLE_KEY para validar o token do usuário
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Verificar usuário autenticado passando o token explicitamente
@@ -57,11 +57,9 @@ serve(async (req) => {
 
     console.log('✅ Usuário autenticado:', user.id);
     
-    // Criar cliente com SERVICE_ROLE_KEY para operações administrativas
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Este cliente já tem SERVICE_ROLE_KEY e será usado para todas operações
+    // Renomear para supabaseAdmin para clareza
+    const supabaseAdmin = supabaseClient;
 
     // Buscar pagamento pendente
     const { data: pendingPayments } = await supabaseAdmin
