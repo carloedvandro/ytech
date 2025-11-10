@@ -16,30 +16,32 @@ serve(async (req) => {
     logEnvironment();
     validateConfig();
 
-    // Com verify_jwt = true, o Supabase já validou o token
-    // Criar cliente com ANON_KEY e Authorization header
+    // Com verify_jwt = true, não precisa passar Authorization no client
+    // O Supabase já tem o contexto do usuário autenticado
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Get authenticated user
+    // Pegar o token do header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+
+    // Get authenticated user passando o token explicitamente
     const {
       data: { user },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(token);
 
     console.log('🔐 getUser result:', { 
       hasUser: !!user, 
       userId: user?.id,
       hasError: !!userError,
-      errorMsg: userError?.message,
-      errorName: userError?.name
+      errorMsg: userError?.message
     });
 
     if (userError || !user) {
