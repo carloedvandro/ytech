@@ -48,6 +48,8 @@ const Financial = () => {
     total: 0,
     available: 0,
     pending: 0,
+    reserved: 0,
+    availableForWithdrawal: 0,
   });
   const [pixKey, setPixKey] = useState("");
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null);
@@ -282,7 +284,45 @@ const Financial = () => {
       
       console.log('✅ Saldo disponível calculado:', available);
 
-      setBalance({ total, available, pending });
+      // Buscar preferências de renovação para calcular saldo reservado
+      const { data: preferences } = await supabase
+        .from("user_renewal_preferences")
+        .select("*")
+        .eq("user_id", activeUserId)
+        .maybeSingle();
+
+      // Calcular saldo reservado para próxima fatura
+      let reserved = 0;
+      if (preferences?.use_balance_for_renewal) {
+        const minBalance = Number(preferences.minimum_balance_to_keep || 0);
+        const availableForDiscount = Math.max(0, available - minBalance);
+        const monthlyFee = 129.99;
+        
+        // Verificar se há desconto já aplicado
+        const metadata = lastPayment?.metadata as any;
+        const alreadyApplied = metadata?.discount_applied ? Number(metadata.discount_applied) : 0;
+        
+        if (alreadyApplied > 0) {
+          // Se já aplicou desconto, o saldo reservado é o que já foi usado
+          reserved = alreadyApplied;
+        } else {
+          // Se ainda não aplicou, calcular quanto será reservado
+          if (availableForDiscount >= 5) {
+            reserved = Math.min(availableForDiscount, 124.99); // Máximo R$ 124,99 (limitação Asaas)
+          }
+        }
+      }
+
+      const availableForWithdrawal = Math.max(0, available - reserved);
+
+      console.log('💰 Cálculo de saldo detalhado:', {
+        available,
+        reserved,
+        availableForWithdrawal,
+        useBalanceForRenewal: preferences?.use_balance_for_renewal
+      });
+
+      setBalance({ total, available, pending, reserved, availableForWithdrawal });
     } catch (error: any) {
       toast({
         title: "Erro ao carregar dados",
@@ -352,7 +392,7 @@ const Financial = () => {
       return;
     }
 
-    if (balance.available < 200) {
+    if (balance.availableForWithdrawal < 200) {
       toast({
         title: "Saldo insuficiente",
         description: "Saldo mínimo para saque é R$ 200,00",
@@ -371,9 +411,9 @@ const Financial = () => {
         .insert({
           user_id: user.id,
           type: "withdrawal",
-          amount: balance.available,
-          net_amount: balance.available * 0.97,
-          fee: balance.available * 0.03,
+          amount: balance.availableForWithdrawal,
+          net_amount: balance.availableForWithdrawal * 0.97,
+          fee: balance.availableForWithdrawal * 0.03,
           pix_key: pixKey,
           pix_key_type: "unknown",
           status: "pending",
@@ -599,11 +639,37 @@ const Financial = () => {
           <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
             <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
             <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Disponível</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
               <TrendingUp className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent className="relative z-10">
               <div className="text-2xl font-bold text-secondary">R$ {balance.available.toFixed(2)}</div>
+              <p className="text-xs text-muted-foreground">Comissões + Adições - Descontos</p>
+            </CardContent>
+          </Card>
+
+          {balance.reserved > 0 && (
+            <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-blue))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+              <AnimatedGradient colors={["#3b82f6", "#60a5fa", "#93c5fd"]} speed={0.05} blur="medium" />
+              <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Reservado</CardTitle>
+                <Wallet className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-2xl font-bold text-blue-500">R$ {balance.reserved.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Para próxima fatura</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50 border-[hsl(var(--glass-green))]/30 shadow-lg hover:shadow-xl transition-all duration-300">
+            <AnimatedGradient colors={["#10b981", "#34d399", "#6ee7b7"]} speed={0.05} blur="medium" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Disponível para Saque</CardTitle>
+              <DollarSign className="h-4 w-4 text-secondary" />
+            </CardHeader>
+            <CardContent className="relative z-10">
+              <div className="text-2xl font-bold text-secondary">R$ {balance.availableForWithdrawal.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">Pronto para saque</p>
             </CardContent>
           </Card>
@@ -781,7 +847,7 @@ const Financial = () => {
                 ⚠️ Saques só podem ser realizados às sextas-feiras
               </div>
             )}
-            {isFriday && balance.available < 200 && (
+            {isFriday && balance.availableForWithdrawal < 200 && (
               <div className="bg-muted p-3 rounded-md text-sm text-muted-foreground">
                 ⚠️ Saldo insuficiente. Mínimo: R$ 200,00
               </div>
@@ -796,6 +862,17 @@ const Financial = () => {
                 disabled={!canWithdraw}
               />
             </div>
+            {balance.reserved > 0 && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Saldo Reservado</AlertTitle>
+                <AlertDescription>
+                  R$ {balance.reserved.toFixed(2)} do seu saldo está reservado para desconto na próxima fatura.
+                  <br />
+                  Disponível para saque: R$ {balance.availableForWithdrawal.toFixed(2)}
+                </AlertDescription>
+              </Alert>
+            )}
             <Button
               onClick={handleWithdraw}
               disabled={processing || !canWithdraw}

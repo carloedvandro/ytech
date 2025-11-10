@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, TrendingUp, Share2, Loader2, QrCode, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { Users, DollarSign, TrendingUp, Share2, Loader2, QrCode, AlertTriangle, CheckCircle2, Clock, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { UsernameManager } from "@/components/UsernameManager";
@@ -31,6 +31,8 @@ const Dashboard = () => {
     discountApplied: 0,
     originalAmount: 0,
     finalAmount: 0,
+    reservedBalance: 0,
+    availableForWithdrawal: 0,
   });
   const [isOverdue, setIsOverdue] = useState(false);
   const [renewalDate, setRenewalDate] = useState<string | null>(null);
@@ -218,6 +220,37 @@ const Dashboard = () => {
       // Saldo disponível = comissões available + adições - remoções manuais
       const availableBalance = commissionsAvailable + additionsTotal - deductionsTotal;
 
+      // Buscar preferências de renovação para calcular saldo reservado
+      const { data: preferences } = await supabase
+        .from("user_renewal_preferences")
+        .select("*")
+        .eq("user_id", activeProfile.id)
+        .maybeSingle();
+
+      // Calcular saldo reservado para próxima fatura
+      let reservedBalance = 0;
+      if (preferences?.use_balance_for_renewal) {
+        const minBalance = Number(preferences.minimum_balance_to_keep || 0);
+        const availableForDiscount = Math.max(0, availableBalance - minBalance);
+        const monthlyFee = 129.99;
+        
+        // Verificar se há desconto já aplicado
+        const metadata = paymentData?.metadata as any;
+        const alreadyApplied = metadata?.discount_applied ? Number(metadata.discount_applied) : 0;
+        
+        if (alreadyApplied > 0) {
+          // Se já aplicou desconto, o saldo reservado é o que já foi usado
+          reservedBalance = alreadyApplied;
+        } else {
+          // Se ainda não aplicou, calcular quanto será reservado
+          if (availableForDiscount >= 5) {
+            reservedBalance = Math.min(availableForDiscount, 124.99); // Máximo R$ 124,99 (limitação Asaas)
+          }
+        }
+      }
+
+      const availableForWithdrawal = Math.max(0, availableBalance - reservedBalance);
+
       setStats({
         totalReferrals: networkData?.length || 0,
         totalCommissions,
@@ -225,6 +258,8 @@ const Dashboard = () => {
         discountApplied: 0,
         originalAmount: 0,
         finalAmount: 0,
+        reservedBalance,
+        availableForWithdrawal,
       });
     } catch (error: any) {
       console.error("Erro ao carregar estatísticas:", error);
@@ -413,6 +448,22 @@ const Dashboard = () => {
             <AlertDescription>
               R$ {stats.discountApplied.toFixed(2)} do seu saldo foi usado como desconto. 
               Valor a pagar: R$ {stats.finalAmount.toFixed(2)} (original: R$ {stats.originalAmount.toFixed(2)}).
+              <a href="/financial" className="ml-2 underline text-blue-600 hover:text-blue-700">
+                Ver detalhes no Financeiro →
+              </a>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Alerta de saldo reservado para próxima fatura */}
+        {stats.reservedBalance > 0 && (
+          <Alert className="border-blue-500/50 bg-blue-500/10">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertTitle>Saldo Reservado para Próxima Fatura</AlertTitle>
+            <AlertDescription>
+              R$ {stats.reservedBalance.toFixed(2)} do seu saldo está reservado para desconto na próxima fatura.
+              <br />
+              <span className="font-semibold">Disponível para saque: R$ {stats.availableForWithdrawal.toFixed(2)}</span>
               <a href="/financial" className="ml-2 underline text-blue-600 hover:text-blue-700">
                 Ver detalhes no Financeiro →
               </a>
@@ -652,10 +703,10 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent className="relative z-10">
                 <div className="text-3xl font-bold text-foreground">
-                  R$ {stats.availableBalance.toFixed(2).replace(".", ",")}
+                  R$ {stats.availableForWithdrawal.toFixed(2).replace(".", ",")}
                 </div>
                 <p className="text-xs text-foreground/70 mt-1">
-                  {stats.availableBalance === 0 ? "Sem saldo disponível" : "Pronto para saque"}
+                  {stats.availableForWithdrawal === 0 ? "Sem saldo disponível" : "Pronto para saque"}
                 </p>
               </CardContent>
             </Card>
