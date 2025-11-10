@@ -103,35 +103,12 @@ serve(async (req) => {
       try {
         console.log('🔍 Iniciando processo de recriação de cobrança...');
 
-        // 1️⃣ PRIMEIRO: REVERTER TODAS as comissões withdrawn deste usuário
-        console.log('🔄 Revertendo TODAS as comissões withdrawn do usuário...');
-        
-        const { data: withdrawnComms } = await supabase
-          .from('commissions')
-          .select('id, amount')
-          .eq('user_id', userId)
-          .eq('status', 'withdrawn');
+        // ⚠️ NÃO REVERTER comissões withdrawn
+        // Comissões withdrawn já foram usadas (sacadas ou aplicadas em descontos anteriores)
+        // e não devem ser consideradas novamente para evitar saldo negativo
+        console.log('ℹ️ Comissões withdrawn não serão revertidas (já foram utilizadas anteriormente)');
 
-        if (withdrawnComms && withdrawnComms.length > 0) {
-          for (const comm of withdrawnComms) {
-            await supabase
-              .from('commissions')
-              .update({ 
-                status: 'available',
-                withdrawn_at: null
-              })
-              .eq('id', comm.id);
-            
-            console.log(`✅ Revertida comissão ${comm.id}: R$ ${comm.amount}`);
-          }
-          
-          const totalReverted = withdrawnComms.reduce((sum, c) => sum + Number(c.amount), 0);
-          console.log(`✅ Total de ${withdrawnComms.length} comissão(ões) revertida(s): R$ ${totalReverted}`);
-        } else {
-          console.log('ℹ️ Nenhuma comissão withdrawn encontrada para reverter');
-        }
-
-        // 2️⃣ SEGUNDO: Buscar dados do usuário e plano
+        // 1️⃣ PRIMEIRO: Buscar dados do usuário e plano
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -146,7 +123,7 @@ serve(async (req) => {
 
         console.log(`📋 Plano: ${plan.name} - R$ ${plan.price}`);
 
-        // 3️⃣ TERCEIRO: Calcular saldo disponível (agora com todas as comissões revertidas)
+        // 2️⃣ SEGUNDO: Calcular saldo disponível (APENAS comissões available + ajustes)
         console.log('💰 Calculando saldo disponível...');
         const { data: commissionsData } = await supabase
           .from('commissions')
@@ -189,7 +166,7 @@ serve(async (req) => {
 
         console.log(`💰 Cálculo: Plano R$ ${plan.price} - Desconto R$ ${discountApplied} = R$ ${finalAmount}`);
 
-        // 4️⃣ QUARTO: Buscar customer ID
+        // 3️⃣ TERCEIRO: Buscar customer ID
         let customerId;
         
         if (actualSubscriptionId) {
@@ -274,7 +251,7 @@ serve(async (req) => {
           throw new Error('Não foi possível encontrar o customer ID no Asaas. O usuário pode não ter sido cadastrado ainda no Asaas.');
         }
 
-        // 5️⃣ QUINTO: Buscar TODAS as cobranças no Asaas pelo customer ID e deletar
+        // 4️⃣ QUARTO: Buscar TODAS as cobranças no Asaas pelo customer ID e deletar
         console.log('🔍 Buscando TODAS as cobranças no Asaas pelo customer ID...');
         
         const searchUrl = `${asaasUrl}/payments?customer=${customerId}`;
@@ -376,7 +353,7 @@ serve(async (req) => {
         const newPaymentData = await newPaymentResponse.json();
         console.log(`✅ Nova cobrança criada: ${newPaymentData.id} - R$ ${finalAmount} - Vencimento: ${newRenewalDate}`);
 
-        // 6️⃣ SEXTO: Se teve desconto, deduzir do saldo
+        // 6️⃣ SEXTO: Se teve desconto, deduzir do saldo marcando comissões como withdrawn
         if (discountApplied > 0) {
           // Marcar comissões como usadas
           const { data: commsToUse } = await supabase
