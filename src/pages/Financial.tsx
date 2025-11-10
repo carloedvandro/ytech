@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
-import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2, Settings, AlertCircle, Calendar, Wallet } from "lucide-react";
+import { Loader2, DollarSign, TrendingUp, Clock, CheckCircle2, Settings, AlertCircle, Calendar, Wallet, Info } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { BalanceAdjustmentsHistory } from "@/components/BalanceAdjustmentsHistory";
@@ -29,6 +29,12 @@ interface UserPlan {
   status: string;
   plan_end_date: string | null;
   next_renewal_date: string | null;
+  amount?: number;
+  metadata?: {
+    discount_applied?: number;
+    original_amount?: number;
+    asaas_payment_id?: string;
+  };
 }
 
 const Financial = () => {
@@ -200,16 +206,18 @@ const Financial = () => {
         .eq("id", activeUserId)
         .maybeSingle();
 
-      // Buscar último pagamento com assinatura ativa do usuário
-      const { data: lastPayment } = await supabase
+      // Buscar último pagamento (completed ou cancelled com metadata de desconto)
+      const { data: payments } = await supabase
         .from("payments")
-        .select("next_renewal_date, subscription_id, status")
+        .select("next_renewal_date, subscription_id, status, amount, metadata")
         .eq("user_id", activeUserId)
-        .eq("status", "completed")
-        .not("subscription_id", "is", null)
-        .order("paid_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // Priorizar payment completed com subscription, depois qualquer um com desconto aplicado
+      const lastPayment = payments?.find(p => p.status === 'completed' && p.subscription_id) || 
+                         payments?.find(p => (p.metadata as any)?.discount_applied) ||
+                         payments?.[0];
 
       if (userInfo) {
         const metadata = userInfo.metadata as { plan_end_date?: string } | null;
@@ -217,6 +225,8 @@ const Financial = () => {
           status: userInfo.status,
           plan_end_date: metadata?.plan_end_date || null,
           next_renewal_date: lastPayment?.next_renewal_date || null,
+          amount: lastPayment?.amount,
+          metadata: lastPayment?.metadata as any,
         });
       }
 
@@ -489,6 +499,62 @@ const Financial = () => {
                 Antecipe sua renovação e estenda seu plano por mais 30 dias! 
                 Sua assinatura automática continuará normalmente após a nova data.
               </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Desconto na Próxima Fatura */}
+        {userPlan && userPlan.metadata?.discount_applied && Number(userPlan.metadata.discount_applied) > 0 && (
+          <Card className="bg-gradient-to-br from-blue-500/5 to-blue-600/10 border-blue-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-blue-600" />
+                Desconto Aplicado na Próxima Fatura
+              </CardTitle>
+              <CardDescription>
+                Seu saldo foi usado como desconto
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-background/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">Valor Original</p>
+                  <p className="text-2xl font-bold">
+                    R$ {Number(userPlan.metadata.original_amount || 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                  <p className="text-sm text-muted-foreground">Desconto Aplicado</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    - R$ {Number(userPlan.metadata.discount_applied).toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <p className="text-sm text-muted-foreground">Valor a Pagar</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    R$ {Number(userPlan.amount || 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
+                <div>
+                  <p className="text-sm text-muted-foreground">Vencimento</p>
+                  <p className="text-lg font-semibold">
+                    {userPlan.next_renewal_date && new Date(userPlan.next_renewal_date).toLocaleDateString('pt-BR', { 
+                      day: '2-digit', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </p>
+                </div>
+              </div>
+              <Alert className="bg-blue-500/5 border-blue-500/20">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-sm">
+                  Este valor foi descontado automaticamente do seu saldo disponível. 
+                  Por isso você vê uma diferença entre "Total Recebido" e "Disponível".
+                </AlertDescription>
+              </Alert>
             </CardContent>
           </Card>
         )}

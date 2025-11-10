@@ -28,6 +28,9 @@ const Dashboard = () => {
     totalReferrals: 0,
     totalCommissions: 0,
     availableBalance: 0,
+    discountApplied: 0,
+    originalAmount: 0,
+    finalAmount: 0,
   });
   const [isOverdue, setIsOverdue] = useState(false);
   const [renewalDate, setRenewalDate] = useState<string | null>(null);
@@ -160,10 +163,10 @@ const Dashboard = () => {
         .select("amount, type")
         .eq("user_id", activeProfile.id);
 
-      // Buscar data de renovação
+      // Buscar data de renovação e desconto aplicado
       const { data: paymentData } = await supabase
         .from("payments")
-        .select("next_renewal_date")
+        .select("next_renewal_date, amount, metadata")
         .eq("user_id", activeProfile.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -178,6 +181,17 @@ const Dashboard = () => {
         
         setIsOverdue(renewal < now);
         setRenewalDate(paymentData.next_renewal_date);
+        
+        // Verificar se tem desconto aplicado
+        const metadata = paymentData.metadata as any;
+        if (metadata?.discount_applied && Number(metadata.discount_applied) > 0) {
+          setStats(prev => ({
+            ...prev,
+            discountApplied: Number(metadata.discount_applied),
+            originalAmount: Number(metadata.original_amount || 0),
+            finalAmount: Number(paymentData.amount || 0),
+          }));
+        }
       } else {
         setIsOverdue(false);
         setRenewalDate(null);
@@ -208,6 +222,9 @@ const Dashboard = () => {
         totalReferrals: networkData?.length || 0,
         totalCommissions,
         availableBalance,
+        discountApplied: 0,
+        originalAmount: 0,
+        finalAmount: 0,
       });
     } catch (error: any) {
       console.error("Erro ao carregar estatísticas:", error);
@@ -384,6 +401,21 @@ const Dashboard = () => {
             <AlertDescription>
               Sua assinatura está vencida desde {renewalDate ? new Date(renewalDate).toLocaleDateString('pt-BR') : ''}. 
               Você não receberá comissões de novas indicações até regularizar seu pagamento.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Alerta de desconto aplicado */}
+        {stats.discountApplied > 0 && (
+          <Alert className="border-blue-500/50 bg-blue-500/10">
+            <DollarSign className="h-4 w-4 text-blue-600" />
+            <AlertTitle>Desconto Aplicado na Próxima Fatura</AlertTitle>
+            <AlertDescription>
+              R$ {stats.discountApplied.toFixed(2)} do seu saldo foi usado como desconto. 
+              Valor a pagar: R$ {stats.finalAmount.toFixed(2)} (original: R$ {stats.originalAmount.toFixed(2)}).
+              <a href="/financial" className="ml-2 underline text-blue-600 hover:text-blue-700">
+                Ver detalhes no Financeiro →
+              </a>
             </AlertDescription>
           </Alert>
         )}
