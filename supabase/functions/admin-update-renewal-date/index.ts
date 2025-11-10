@@ -183,9 +183,8 @@ serve(async (req) => {
         
         const { data: allPaymentsInDb, error: fetchPaymentsError } = await supabase
           .from('payments')
-          .select('id, asaas_payment_id, metadata, next_renewal_date')
-          .eq('user_id', userId)
-          .not('asaas_payment_id', 'is', null);
+          .select('id, metadata, next_renewal_date')
+          .eq('user_id', userId);
 
         if (fetchPaymentsError) {
           console.error('❌ Erro ao buscar payments no banco:', fetchPaymentsError);
@@ -198,10 +197,10 @@ serve(async (req) => {
         
         if (allPaymentsInDb && allPaymentsInDb.length > 0) {
           for (const payment of allPaymentsInDb) {
-            const asaasPaymentId = payment.metadata?.asaas_payment_id || payment.asaas_payment_id;
+            const asaasPaymentId = payment.metadata?.asaas_payment_id;
             
             if (!asaasPaymentId) {
-              console.log(`⚠️ Payment ${payment.id} sem asaas_payment_id`);
+              console.log(`⚠️ Payment ${payment.id} sem asaas_payment_id no metadata`);
               continue;
             }
 
@@ -327,7 +326,6 @@ serve(async (req) => {
           .update({
             pix_code: newPaymentData.invoiceUrl,
             pix_qr_code: newPaymentData.bankSlipUrl,
-            asaas_payment_id: newPaymentData.id,
             metadata: {
               discount_applied: discountApplied,
               final_amount: finalAmount,
