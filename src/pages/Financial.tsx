@@ -61,6 +61,7 @@ const Financial = () => {
   const [commissionToDelete, setCommissionToDelete] = useState<string | null>(null);
   const [deletingCommission, setDeletingCommission] = useState(false);
   const [hasPendingPayment, setHasPendingPayment] = useState(false);
+  const [cancellingDiscount, setCancellingDiscount] = useState(false);
 
   // ID do usuário ativo (impersonado ou real)
   const activeUserId = isImpersonating && impersonatedUser ? impersonatedUser.id : user?.id;
@@ -513,6 +514,37 @@ const Financial = () => {
     }
   };
 
+  const handleCancelDiscount = async () => {
+    setCancellingDiscount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('cancel-renewal-discount', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Desconto cancelado!",
+        description: data.message || "Sua preferência foi desabilitada e uma nova fatura com valor integral foi criada.",
+      });
+
+      // Recarregar dados e preferências
+      await loadFinancialData();
+      await loadRenewalPreferences();
+    } catch (error) {
+      console.error('Error cancelling discount:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao cancelar desconto",
+      });
+    } finally {
+      setCancellingDiscount(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -623,12 +655,27 @@ const Financial = () => {
                     })}
                   </p>
                 </div>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelDiscount}
+                  disabled={cancellingDiscount}
+                  className="border-red-500/50 text-red-600 hover:bg-red-500/10"
+                >
+                  {cancellingDiscount ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Cancelando...
+                    </>
+                  ) : (
+                    "Cancelar Desconto"
+                  )}
+                </Button>
               </div>
               <Alert className="bg-blue-500/5 border-blue-500/20">
                 <Info className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-sm">
                   Este valor foi descontado automaticamente do seu saldo disponível. 
-                  Por isso você vê uma diferença entre "Total Recebido" e "Disponível".
+                  Se você cancelar, o saldo voltará a estar disponível e uma nova fatura com valor integral será criada.
                 </AlertDescription>
               </Alert>
             </CardContent>

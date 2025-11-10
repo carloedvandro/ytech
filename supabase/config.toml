@@ -75,4 +75,18 @@ verify_jwt = true
 [functions.chatbot-handler]
 verify_jwt = false
 
+[functions.create-renewal-payment]
+verify_jwt = true
+
+[functions.apply-renewal-discount]
+verify_jwt = true
+
+[functions.cancel-renewal-discount]
+verify_jwt = true
+
+[functions.cancel-asaas-payment]
+verify_jwt = true
+
+[functions.remove-duplicate-commission]
+verify_jwt = true
 
