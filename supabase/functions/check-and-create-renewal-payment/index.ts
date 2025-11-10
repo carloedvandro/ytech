@@ -16,57 +16,38 @@ serve(async (req) => {
     logEnvironment();
     validateConfig();
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.log('❌ Nenhum header de autorização encontrado');
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Criar cliente com Authorization header para validar o token do usuário
-    const supabaseAuth = createClient(
+    // Criar cliente com ANON_KEY e Authorization header
+    const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: authHeader }
-        }
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
       }
     );
 
     // Verificar usuário autenticado
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+      console.log('❌ Erro na autenticação:', authError?.message || 'Usuário não encontrado');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', details: authError?.message || 'User not found' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ Usuário autenticado:', user.id);
     
-    // Cliente com SERVICE_ROLE_KEY para operações no banco
-    const supabaseClient = createClient(
+    // Criar cliente com SERVICE_ROLE_KEY para operações administrativas
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    if (authError) {
-      console.log('❌ Erro ao verificar usuário:', authError.message);
-      return new Response(
-        JSON.stringify({ error: 'Invalid token', details: authError.message }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!user) {
-      console.log('❌ Usuário não encontrado');
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('🔍 Verificando pagamentos do usuário:', user.id);
-
     // Buscar pagamento pendente
-    const { data: pendingPayments } = await supabaseClient
+    const { data: pendingPayments } = await supabaseAdmin
       .from('payments')
       .select('*')
       .eq('user_id', user.id)
@@ -99,7 +80,7 @@ serve(async (req) => {
           } else {
             console.log('⚠️ Fatura pendente não existe mais no Asaas, marcando como cancelled');
             // Marcar como cancelled no banco
-            await supabaseClient
+            await supabaseAdmin
               .from('payments')
               .update({ status: 'cancelled' })
               .eq('id', pendingPayment.id);
@@ -112,7 +93,7 @@ serve(async (req) => {
     }
 
     // Buscar perfil do usuário
-    const { data: profile, error: profileError } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -134,7 +115,7 @@ serve(async (req) => {
     }
 
     // Buscar último pagamento completo para obter o plano
-    const { data: lastPayment, error: lastPaymentError } = await supabaseClient
+    const { data: lastPayment, error: lastPaymentError } = await supabaseAdmin
       .from('payments')
       .select('*, plans!payments_plan_id_fkey(*)')
       .eq('user_id', user.id)
@@ -234,7 +215,7 @@ serve(async (req) => {
     const pixData = await pixResponse.json();
 
     // Criar registro de pagamento no banco
-    const { data: newPayment, error: insertError } = await supabaseClient
+    const { data: newPayment, error: insertError } = await supabaseAdmin
       .from('payments')
       .insert({
         user_id: user.id,
