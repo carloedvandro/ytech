@@ -28,22 +28,24 @@ serve(async (req) => {
 
     console.log(`🔄 Aplicando desconto de renovação para usuário ${user.id}`);
 
-    // 1️⃣ Buscar o payment pendente do usuário
+    // 1️⃣ Buscar payment futuro (não pago) do usuário
     const { data: payment } = await supabase
       .from('payments')
       .select('*, plan_id')
       .eq('user_id', user.id)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
+      .neq('status', 'completed')
+      .not('next_renewal_date', 'is', null)
+      .gte('next_renewal_date', new Date().toISOString())
+      .order('next_renewal_date', { ascending: true })
       .limit(1)
       .single();
 
     if (!payment) {
-      console.log('ℹ️ Nenhuma fatura pendente encontrada');
+      console.log('ℹ️ Nenhuma fatura futura encontrada');
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Nenhuma fatura pendente para aplicar desconto' 
+          message: 'Nenhuma fatura futura para aplicar desconto' 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
