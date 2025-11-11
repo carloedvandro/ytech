@@ -969,7 +969,7 @@ const Financial = () => {
 
                 <Button 
                   onClick={saveRenewalPreferences} 
-                  disabled={savingPreferences || hasDiscountApplied}
+                  disabled={savingPreferences || hasDiscountApplied || !hasPendingPayment}
                   className="w-full"
                 >
                   {savingPreferences ? (
@@ -979,6 +979,8 @@ const Financial = () => {
                     </>
                   ) : hasDiscountApplied ? (
                     "Desconto Já Aplicado"
+                  ) : !hasPendingPayment ? (
+                    "Sem Fatura Pendente"
                   ) : (
                     "Salvar Preferências"
                   )}
