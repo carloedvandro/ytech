@@ -210,6 +210,8 @@ const Financial = () => {
             variant: "destructive",
           });
         } else {
+          // Atualizar estado imediatamente para desabilitar o botão
+          setHasDiscountApplied(true);
           toast({
             title: "Sucesso!",
             description: applyData?.message || "Preferências salvas e desconto aplicado!",
