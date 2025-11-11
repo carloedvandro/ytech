@@ -149,20 +149,20 @@ const Financial = () => {
         // Buscar fatura pendente para verificar data de vencimento
         const { data: pendingPayment } = await supabase
           .from("payments")
-          .select("expires_at")
+          .select("expires_at, next_renewal_date")
           .eq("user_id", activeUserId)
           .eq("status", "pending")
           .order("created_at", { ascending: false })
           .maybeSingle();
 
-        if (pendingPayment && pendingPayment.expires_at) {
-          const expiresAt = new Date(pendingPayment.expires_at);
+        if (pendingPayment && pendingPayment.next_renewal_date) {
+          const renewalDate = new Date(pendingPayment.next_renewal_date);
           const today = new Date();
-          const diffInMs = expiresAt.getTime() - today.getTime();
+          const diffInMs = renewalDate.getTime() - today.getTime();
           const daysUntilExpiration = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
 
-          console.log('📅 Verificando prazo:', {
-            expiresAt: expiresAt.toISOString(),
+          console.log('📅 Verificando prazo de renovação:', {
+            renewalDate: renewalDate.toISOString(),
             today: today.toISOString(),
             daysUntilExpiration
           });
