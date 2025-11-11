@@ -922,18 +922,18 @@ const Financial = () => {
                                 ✅ Pagamento será feito com seu saldo!
                               </p>
                               <p>• Você pagará: R$ 0,00</p>
-                              <p>• Saldo após renovação: R$ {(balance.available - 129.99).toFixed(2)}</p>
+                              <p>• Saldo após renovação: R$ {(grossBalance - 129.99).toFixed(2)}</p>
                             </>
                           );
                         } else if (availableForDiscount >= 5) {
-                          const discount = Math.min(availableForDiscount, 124.99);
+                          const discount = Math.min(availableForDiscount, 129.99);
                           return (
                             <>
                               <p className="font-bold text-blue-600 mt-2">
                                 💰 Desconto: R$ {discount.toFixed(2)}
                               </p>
                               <p>• Você pagará: R$ {(129.99 - discount).toFixed(2)}</p>
-                              <p>• Saldo após renovação: R$ {(balance.available - discount).toFixed(2)}</p>
+                              <p>• Saldo após renovação: R$ {(grossBalance - discount).toFixed(2)}</p>
                             </>
                           );
                         } else {
