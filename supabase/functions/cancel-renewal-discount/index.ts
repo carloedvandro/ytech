@@ -286,32 +286,15 @@ serve(async (req) => {
     }
     console.log('✅ PASSO 6 CONCLUÍDO: Customer ID:', asaasCustomer.id);
 
-    // Calcular data de vencimento baseada no dia do vencimento do cliente
-    const renewalDay = metadata?.renewal_day || new Date(pendingPayment.expires_at).getDate();
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
-    // Se o dia de vencimento já passou no mês atual, usar próximo mês
-    let dueMonth = currentMonth;
-    let dueYear = currentYear;
-    
-    if (today.getDate() >= renewalDay) {
-      dueMonth = currentMonth + 1;
-      if (dueMonth > 11) {
-        dueMonth = 0;
-        dueYear = currentYear + 1;
-      }
-    }
-    
-    // Criar data de vencimento
-    const dueDate = new Date(dueYear, dueMonth, renewalDay);
-    const dueDateString = dueDate.toISOString().split('T')[0];
-    
+    // PRESERVAR a data de vencimento original da fatura que será cancelada
+    const originalExpiresAt = pendingPayment.expires_at; // Data completa com hora
+    const dueDateString = originalExpiresAt.split('T')[0]; // Apenas data (YYYY-MM-DD) para o Asaas
+    const dueDate = new Date(originalExpiresAt); // Objeto Date para o banco
+
     console.log('🔄 PASSO 7: Criando nova cobrança no Asaas');
     console.log('   Valor: R$', originalAmount);
-    console.log('   Dia de vencimento do cliente:', renewalDay);
-    console.log('   Data calculada:', dueDateString);
+    console.log('   Data de vencimento PRESERVADA:', dueDateString);
+    console.log('   (Mesma data da fatura anterior)');
 
     const newPaymentResponse = await fetch(`${ENV_CONFIG.asaas.baseUrl}/payments`, {
       method: 'POST',
@@ -350,6 +333,11 @@ serve(async (req) => {
 
     // Criar novo registro de pagamento no banco
     console.log('🔄 PASSO 9: Inserindo novo pagamento no banco');
+    
+    // Calcular próxima renovação (30 dias após o vencimento)
+    const nextRenewalDate = new Date(dueDate);
+    nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
+    
     const { data: newPayment, error: insertError } = await supabaseClient
       .from('payments')
       .insert({
@@ -360,6 +348,7 @@ serve(async (req) => {
         pix_code: pixData.payload,
         pix_qr_code: pixData.encodedImage,
         expires_at: dueDate.toISOString(),
+        next_renewal_date: nextRenewalDate.toISOString(),
         metadata: {
           asaas_payment_id: newAsaasPayment.id,
           asaas_invoice_url: newAsaasPayment.invoiceUrl,
