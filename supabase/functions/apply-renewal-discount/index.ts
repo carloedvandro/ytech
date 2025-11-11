@@ -79,14 +79,14 @@ serve(async (req) => {
     console.log(`📄 Fatura encontrada: ${payment.id} - R$ ${payment.amount}`);
 
     // Verificar se faltam pelo menos 5 dias para o vencimento
-    if (payment.expires_at) {
-      const expiresAt = new Date(payment.expires_at);
+    if (payment.next_renewal_date) {
+      const renewalDate = new Date(payment.next_renewal_date);
       const today = new Date();
-      const diffInMs = expiresAt.getTime() - today.getTime();
+      const diffInMs = renewalDate.getTime() - today.getTime();
       const daysUntilExpiration = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
 
-      console.log('📅 Verificando prazo:', {
-        expiresAt: payment.expires_at,
+      console.log('📅 Verificando prazo de renovação:', {
+        renewalDate: payment.next_renewal_date,
         today: today.toISOString(),
         daysUntilExpiration
       });
