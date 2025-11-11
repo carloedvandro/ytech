@@ -819,8 +819,16 @@ const Financial = () => {
               <DollarSign className="h-4 w-4 text-secondary" />
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="text-2xl font-bold text-secondary">R$ {balance.availableForWithdrawal.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground">Pronto para saque</p>
+              <div className={`text-2xl font-bold ${balance.availableForWithdrawal >= 200 ? 'text-secondary' : 'text-yellow-600 dark:text-yellow-500'}`}>
+                R$ {balance.availableForWithdrawal.toFixed(2)}
+              </div>
+              {balance.availableForWithdrawal >= 200 ? (
+                <p className="text-xs text-muted-foreground">✅ Pronto para saque</p>
+              ) : (
+                <p className="text-xs text-yellow-600/80 dark:text-yellow-500/80 font-medium">
+                  ⚠️ Mínimo R$ 200,00 para saque
+                </p>
+              )}
             </CardContent>
           </Card>
 
