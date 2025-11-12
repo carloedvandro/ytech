@@ -27,6 +27,7 @@ export const Footer = () => {
             <h4 className="font-semibold mb-4 text-white">Empresa</h4>
             <ul className="space-y-2 text-sm text-white/60">
               <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Sobre Nós</a></li>
+              <li><a href="/revendedores" className="hover:text-primary transition-colors">Seja Revendedor</a></li>
               <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Cobertura</a></li>
               <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Tecnologia</a></li>
             </ul>

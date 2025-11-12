@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Wifi, Zap, Shield } from "lucide-react";
+import { Wifi, Zap, Shield, Building2 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { EtheralShadow } from "@/components/ui/etheral-shadow";
 
@@ -76,10 +76,11 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
             <Button 
               size="lg" 
               variant="outline" 
-              onClick={() => document.getElementById('como-participar')?.scrollIntoView({ behavior: 'smooth' })} 
-              className="text-lg px-8 py-6 border-2 border-primary/50 bg-black/40 text-primary hover:bg-primary/10 hover:border-primary transition-all font-semibold"
+              onClick={() => window.location.href = '/revendedores'} 
+              className="text-lg px-8 py-6 border-2 border-secondary/50 bg-black/40 text-secondary hover:bg-secondary/10 hover:border-secondary transition-all font-semibold"
             >
-              Como Funciona
+              <Building2 className="mr-2 w-5 h-5" />
+              Seja Revendedor
             </Button>
           </div>
           

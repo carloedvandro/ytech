@@ -10,6 +10,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
+import Resellers from "./pages/Resellers";
 import Dashboard from "./pages/Dashboard";
 import Checkout from "./pages/Checkout";
 import Payment from "./pages/Payment";
@@ -38,9 +39,10 @@ const App = () => (
           <AuthProvider>
             <ImpersonationProvider>
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/cadastro" element={<Signup />} />
-                <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/revendedores" element={<Resellers />} />
+          <Route path="/cadastro" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
                 <Route path="/checkout" element={<AuthGuard><Checkout /></AuthGuard>} />
                 <Route path="/payment/:paymentId" element={<AuthGuard><Payment /></AuthGuard>} />
