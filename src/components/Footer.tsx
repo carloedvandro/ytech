@@ -38,7 +38,7 @@ export const Footer = () => {
             <ul className="space-y-2 text-sm text-white/60">
               <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Central de Ajuda</a></li>
               <li><a href="https://wa.me/5511994869948" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">WhatsApp</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Status da Rede</a></li>
+              <li><a href="https://vivo.com.br/para-voce/ajuda/autoatendimento/conexao-de-internet" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Status da Rede</a></li>
             </ul>
           </div>
 
