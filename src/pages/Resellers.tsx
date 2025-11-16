@@ -76,15 +76,27 @@ const Resellers = () => {
               e fortaleça sua oferta de internet 5G da Vivo para seus clientes!
             </p>
             
-            <Button 
-              size="lg" 
-              onClick={handleWhatsAppContact}
-              className="gap-2 text-lg px-8 py-6 bg-primary text-black hover:bg-primary/90 shadow-[0_0_30px_rgba(0,255,255,0.5)] hover:shadow-[0_0_40px_rgba(0,255,255,0.7)] transition-all font-semibold"
-            >
-              <Phone className="w-5 h-5" />
-              Falar com Setor Comercial
-              <ArrowRight className="w-5 h-5" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button 
+                size="lg" 
+                onClick={handleWhatsAppContact}
+                className="gap-2 text-lg px-8 py-6 bg-primary text-black hover:bg-primary/90 shadow-[0_0_30px_rgba(0,255,255,0.5)] hover:shadow-[0_0_40px_rgba(0,255,255,0.7)] transition-all font-semibold"
+              >
+                <Phone className="w-5 h-5" />
+                Falar com Setor Comercial
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+              
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => window.open('https://partnerhub.yrwentechnology.com.br', '_blank')}
+                className="gap-2 text-lg px-8 py-6 bg-background/10 backdrop-blur-sm border-primary/50 text-primary hover:bg-primary/20 hover:text-primary shadow-[0_0_20px_rgba(0,255,255,0.3)] hover:shadow-[0_0_30px_rgba(0,255,255,0.5)] transition-all font-semibold"
+              >
+                Já sou revendedor
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </section>
