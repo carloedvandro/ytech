@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Footer } from "@/components/Footer";
+import { EtheralShadow } from "@/components/ui/etheral-shadow";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { 
   Building2, 
   TrendingUp, 
@@ -13,6 +15,8 @@ import {
 } from "lucide-react";
 
 const Resellers = () => {
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.2 });
+  
   const benefits = [
     {
       icon: TrendingUp,
@@ -41,25 +45,32 @@ const Resellers = () => {
   };
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative py-20 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
+      <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
+        {/* Animated Shadow Overlay Background */}
+        <EtheralShadow
+          color="rgba(0, 255, 255, 0.2)"
+          animation={{ scale: 50, speed: 30 }}
+          noise={{ opacity: 0.15, scale: 1.5 }}
+        />
+
         <div className="container mx-auto max-w-6xl relative z-10">
-          <div className="text-center space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+          <div className={`text-center space-y-8 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 backdrop-blur-sm border border-primary/30 shadow-[0_0_20px_rgba(0,255,255,0.3)]">
               <Building2 className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">Programa de Revendedores</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+            <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight drop-shadow-[0_0_30px_rgba(0,255,255,0.5)]">
               Y-TECH para Revendedores
-              <span className="block text-primary mt-2">
+              <br />
+              <span className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent animate-pulse">
                 Potencialize Suas Vendas de Internet 5G
               </span>
             </h1>
             
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto">
               Você que já atua no mercado de telecomunicações ou busca expandir seu negócio, 
               a Y-TECH oferece uma oportunidade exclusiva. Tenha acesso a condições especiais 
               e fortaleça sua oferta de internet 5G da Vivo para seus clientes!
@@ -68,7 +79,7 @@ const Resellers = () => {
             <Button 
               size="lg" 
               onClick={handleWhatsAppContact}
-              className="gap-2 text-lg px-8 py-6"
+              className="gap-2 text-lg px-8 py-6 bg-primary text-black hover:bg-primary/90 shadow-[0_0_30px_rgba(0,255,255,0.5)] hover:shadow-[0_0_40px_rgba(0,255,255,0.7)] transition-all font-semibold"
             >
               <Phone className="w-5 h-5" />
               Falar com Setor Comercial
@@ -79,9 +90,15 @@ const Resellers = () => {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-16 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-6xl">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+      <section className="relative py-20 px-4 overflow-hidden bg-black">
+        {/* Tech Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
+        
+        {/* Glowing accent */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-[120px]"></div>
+        
+        <div className="container mx-auto max-w-6xl relative z-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-white drop-shadow-[0_0_20px_rgba(0,255,255,0.3)]">
             Por que ser um Revendedor Y-TECH?
           </h2>
           
@@ -89,16 +106,16 @@ const Resellers = () => {
             {benefits.map((benefit, index) => (
               <Card 
                 key={index}
-                className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg"
+                className="bg-black/40 backdrop-blur-sm border-2 border-primary/30 hover:border-primary/60 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,255,255,0.3)] group"
               >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-primary/10">
+                    <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                       <benefit.icon className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold mb-2">{benefit.title}</h3>
-                      <p className="text-muted-foreground">{benefit.description}</p>
+                      <h3 className="text-xl font-semibold mb-2 text-white">{benefit.title}</h3>
+                      <p className="text-white/70">{benefit.description}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -109,24 +126,27 @@ const Resellers = () => {
       </section>
 
       {/* Important Information */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-background">
+      <section className="relative py-16 px-4 overflow-hidden bg-black">
+        {/* Tech Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
+        
+        <div className="container mx-auto max-w-4xl relative z-10">
+          <Card className="border-2 border-primary/50 bg-black/60 backdrop-blur-sm shadow-[0_0_40px_rgba(0,255,255,0.2)]">
             <CardContent className="p-8">
               <div className="flex items-start gap-4 mb-6">
-                <AlertCircle className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                <AlertCircle className="w-8 h-8 text-primary flex-shrink-0 mt-1" />
                 <div>
-                  <h3 className="text-2xl font-bold mb-4">Importante Saber</h3>
-                  <div className="space-y-4 text-muted-foreground">
+                  <h3 className="text-2xl font-bold mb-4 text-white">Importante Saber</h3>
+                  <div className="space-y-4 text-white/70">
                     <p>
-                      Como revendedor, você terá acesso a um <strong className="text-foreground">modelo de negócio 
-                      focado na venda direta</strong> dos nossos planos. Este formato <strong className="text-foreground">não 
+                      Como revendedor, você terá acesso a um <strong className="text-white">modelo de negócio 
+                      focado na venda direta</strong> dos nossos planos. Este formato <strong className="text-white">não 
                       inclui</strong> a participação no sistema de rede (MLM) nem nos ganhos de indicação.
                     </p>
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-background/80 border border-primary/20">
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/10 border border-primary/30">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                       <p>
-                        No entanto, sua atuação como revendedor <strong className="text-foreground">não impede</strong> que 
+                        No entanto, sua atuação como revendedor <strong className="text-white">não impede</strong> que 
                         você, caso deseje, participe da nossa rede de marketing de relacionamento em paralelo, 
                         seguindo as regras específicas de cada modalidade.
                       </p>
@@ -140,17 +160,23 @@ const Resellers = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-primary/10 via-background to-background">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
+      <section className="relative py-20 px-4 overflow-hidden bg-black">
+        {/* Tech Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
+        
+        {/* Glowing accent */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/5 rounded-full blur-[100px]"></div>
+        
+        <div className="container mx-auto max-w-4xl text-center relative z-10">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white drop-shadow-[0_0_20px_rgba(0,255,255,0.3)]">
             Quer saber mais e ter acesso às nossas condições exclusivas?
           </h2>
           
-          <Card className="border-2 border-primary/30">
+          <Card className="border-2 border-primary/50 bg-black/60 backdrop-blur-sm shadow-[0_0_40px_rgba(0,255,255,0.2)]">
             <CardContent className="p-8">
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold mb-4">
+                  <h3 className="text-xl font-semibold mb-4 text-white">
                     Entre em contato com nosso Setor Comercial de Revendedores:
                   </h3>
                   
@@ -160,14 +186,14 @@ const Resellers = () => {
                       <span>(11) 97049-2228</span>
                     </div>
                     
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-white/60">
                       Horário de Atendimento: Segunda a Sexta, das 8h às 18h
                     </p>
                     
                     <Button 
                       size="lg" 
                       onClick={handleWhatsAppContact}
-                      className="gap-2 mt-4"
+                      className="gap-2 mt-4 bg-primary text-black hover:bg-primary/90 shadow-[0_0_30px_rgba(0,255,255,0.5)] hover:shadow-[0_0_40px_rgba(0,255,255,0.7)] transition-all font-semibold"
                     >
                       <Phone className="w-5 h-5" />
                       Iniciar Conversa no WhatsApp
