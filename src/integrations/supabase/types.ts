@@ -392,6 +392,7 @@ export type Database = {
           activation_type: string
           barcode: string | null
           created_at: string
+          device_type: string | null
           eid: string | null
           id: string
           imei: string | null
@@ -408,6 +409,7 @@ export type Database = {
           activation_type: string
           barcode?: string | null
           created_at?: string
+          device_type?: string | null
           eid?: string | null
           id?: string
           imei?: string | null
@@ -424,6 +426,7 @@ export type Database = {
           activation_type?: string
           barcode?: string | null
           created_at?: string
+          device_type?: string | null
           eid?: string | null
           id?: string
           imei?: string | null

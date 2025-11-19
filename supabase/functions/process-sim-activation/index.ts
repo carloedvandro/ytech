@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
         imei: activationType === 'esim' ? imei : null,
         eid: activationType === 'esim' ? eid : null,
         screenshot_url: screenshotUrl || null,
+        device_type: activationType === 'esim' ? deviceType : null,
         status: 'pending',
       })
       .select()
@@ -93,6 +94,9 @@ Deno.serve(async (req) => {
     } else {
       message += `📱 *IMEI:* ${imei}\n`;
       message += `🔑 *EID:* ${eid}\n`;
+      if (deviceType) {
+        message += `📲 *Dispositivo:* ${deviceType}\n`;
+      }
       if (screenshotUrl) {
         message += `📸 *Print:* ${screenshotUrl}\n`;
       }
