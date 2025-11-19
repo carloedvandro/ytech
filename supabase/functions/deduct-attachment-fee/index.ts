@@ -16,15 +16,21 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Cliente para autenticação (com anon key e header do usuário)
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: req.headers.get('Authorization')! },
-      },
-    });
+    // Extrair token do header Authorization
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('❌ Header Authorization não encontrado');
+      throw new Error('Não autorizado');
+    }
 
-    // Verificar autenticação
-    const { data: { user }, error: authError } = await authClient.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+    console.log('🔑 Token recebido:', token.substring(0, 20) + '...');
+
+    // Cliente para autenticação
+    const authClient = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Verificar autenticação passando o token explicitamente
+    const { data: { user }, error: authError } = await authClient.auth.getUser(token);
 
     if (authError || !user) {
       console.error('❌ Erro de autenticação:', authError);
