@@ -13,21 +13,28 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Cliente para autenticação (com anon key e header do usuário)
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: req.headers.get('Authorization')! },
+      },
+    });
 
     // Verificar autenticação
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Não autorizado');
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
 
     if (authError || !user) {
+      console.error('❌ Erro de autenticação:', authError);
       throw new Error('Não autorizado');
     }
+
+    console.log('✅ Usuário autenticado:', user.id);
+
+    // Cliente admin para operações no banco
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const ATTACHMENT_FEE = 3.00;
 
