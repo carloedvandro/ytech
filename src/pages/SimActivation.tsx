@@ -1285,11 +1285,68 @@ export default function SimActivation() {
             <Button
               variant="outline"
               className="h-32 flex flex-col gap-3 border-2 hover:border-primary hover:bg-primary/10"
-              onClick={() => {
+              onClick={async () => {
                 setDeviceType("iOS");
                 setShowDeviceTypeDialog(false);
-                toast.success("Dispositivo iOS selecionado");
+                toast.success("Dispositivo iOS selecionado. Enviando dados...");
+                
+                // Aguardar um momento para o estado atualizar
+                setTimeout(async () => {
+                  if (!imei || !eid) {
+                    toast.error("Por favor, preencha todos os campos");
+                    return;
+                  }
+
+                  setIsSubmitting(true);
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                      toast.error("Você precisa estar logado");
+                      setIsSubmitting(false);
+                      return;
+                    }
+
+                    console.log('📤 Enviando dados do eSIM:', {
+                      activationType: 'esim',
+                      imei,
+                      eid,
+                      deviceType: 'iOS',
+                      screenshotUrl: screenshot ? 'presente' : null,
+                    });
+
+                    const { data, error } = await supabase.functions.invoke('process-sim-activation', {
+                      body: {
+                        activationType: 'esim',
+                        imei,
+                        eid,
+                        screenshotUrl: screenshot ? URL.createObjectURL(screenshot) : null,
+                        deviceType: 'iOS',
+                      },
+                    });
+
+                    if (error) throw error;
+
+                    toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
+                    
+                    // Limpar todos os dados após envio bem-sucedido
+                    clearActivationData();
+                    
+                    // Recarregar a lista de ativações
+                    queryClient.invalidateQueries({ queryKey: ['sim-activations'] });
+                    
+                    // Redirecionar para dashboard
+                    setTimeout(() => {
+                      navigate('/dashboard');
+                    }, 2000);
+                  } catch (error) {
+                    console.error('❌ Erro ao enviar ativação:', error);
+                    toast.error("Erro ao enviar dados. Tente novamente.");
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }, 100);
               }}
+              disabled={isSubmitting}
             >
               <Smartphone className="w-12 h-12" />
               <span className="text-lg font-semibold">iPhone (iOS)</span>
@@ -1297,11 +1354,68 @@ export default function SimActivation() {
             <Button
               variant="outline"
               className="h-32 flex flex-col gap-3 border-2 hover:border-primary hover:bg-primary/10"
-              onClick={() => {
+              onClick={async () => {
                 setDeviceType("Android");
                 setShowDeviceTypeDialog(false);
-                toast.success("Dispositivo Android selecionado");
+                toast.success("Dispositivo Android selecionado. Enviando dados...");
+                
+                // Aguardar um momento para o estado atualizar
+                setTimeout(async () => {
+                  if (!imei || !eid) {
+                    toast.error("Por favor, preencha todos os campos");
+                    return;
+                  }
+
+                  setIsSubmitting(true);
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) {
+                      toast.error("Você precisa estar logado");
+                      setIsSubmitting(false);
+                      return;
+                    }
+
+                    console.log('📤 Enviando dados do eSIM:', {
+                      activationType: 'esim',
+                      imei,
+                      eid,
+                      deviceType: 'Android',
+                      screenshotUrl: screenshot ? 'presente' : null,
+                    });
+
+                    const { data, error } = await supabase.functions.invoke('process-sim-activation', {
+                      body: {
+                        activationType: 'esim',
+                        imei,
+                        eid,
+                        screenshotUrl: screenshot ? URL.createObjectURL(screenshot) : null,
+                        deviceType: 'Android',
+                      },
+                    });
+
+                    if (error) throw error;
+
+                    toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
+                    
+                    // Limpar todos os dados após envio bem-sucedido
+                    clearActivationData();
+                    
+                    // Recarregar a lista de ativações
+                    queryClient.invalidateQueries({ queryKey: ['sim-activations'] });
+                    
+                    // Redirecionar para dashboard
+                    setTimeout(() => {
+                      navigate('/dashboard');
+                    }, 2000);
+                  } catch (error) {
+                    console.error('❌ Erro ao enviar ativação:', error);
+                    toast.error("Erro ao enviar dados. Tente novamente.");
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }, 100);
               }}
+              disabled={isSubmitting}
             >
               <Smartphone className="w-12 h-12" />
               <span className="text-lg font-semibold">Android</span>
