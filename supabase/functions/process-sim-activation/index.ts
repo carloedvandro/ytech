@@ -12,6 +12,7 @@ interface ActivationRequest {
   imei?: string;
   eid?: string;
   screenshotUrl?: string;
+  deviceType?: 'iOS' | 'Android';
 }
 
 Deno.serve(async (req) => {
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
       throw new Error('Usuário não autenticado');
     }
 
-    const { activationType, barcode, imei, eid, screenshotUrl }: ActivationRequest = await req.json();
+    const { activationType, barcode, imei, eid, screenshotUrl, deviceType }: ActivationRequest = await req.json();
 
     console.log('📱 Processando ativação:', { activationType, user: user.id });
 
