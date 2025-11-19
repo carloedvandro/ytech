@@ -657,6 +657,7 @@ export default function SimActivation() {
       setImei("");
       setEid("");
       setScreenshot(null);
+      setDeviceType(null);
       
       // Limpar localStorage específico do usuário
       if (user?.id) {
