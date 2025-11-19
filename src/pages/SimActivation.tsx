@@ -149,6 +149,22 @@ export default function SimActivation() {
     }
   };
 
+  // Função para limpar todos os dados de ativação
+  const clearActivationData = () => {
+    setBarcode("");
+    setImei("");
+    setEid("");
+    setDeviceType(null);
+    setScreenshot(null);
+    setScanning(false);
+    
+    // Limpar localStorage
+    if (user?.id) {
+      const storageKey = `sim-activation-data-${user.id}`;
+      localStorage.removeItem(storageKey);
+    }
+  };
+
   const handleChipSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcode) {
@@ -180,8 +196,12 @@ export default function SimActivation() {
 
       console.log('✅ Resposta do edge function:', data);
       toast.success("Dados do chip enviados com sucesso! Você receberá a confirmação em breve.");
-      // Manter o código visível após envio
-      setScanning(false);
+      
+      // Limpar todos os dados após envio bem-sucedido
+      clearActivationData();
+      
+      // Recarregar a lista de ativações
+      queryClient.invalidateQueries({ queryKey: ['sim-activations'] });
     } catch (error) {
       console.error('Erro ao enviar ativação:', error);
       toast.error("Erro ao enviar dados. Tente novamente.");
@@ -457,6 +477,12 @@ export default function SimActivation() {
       if (error) throw error;
 
       toast.success("Dados do eSIM enviados com sucesso! Você receberá a confirmação em breve.");
+      
+      // Limpar todos os dados após envio bem-sucedido
+      clearActivationData();
+      
+      // Recarregar a lista de ativações
+      queryClient.invalidateQueries({ queryKey: ['sim-activations'] });
       
       // Redirecionar para dashboard
       setTimeout(() => {
