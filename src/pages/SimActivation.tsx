@@ -33,6 +33,8 @@ export default function SimActivation() {
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
   const [showTypeSelectionDialog, setShowTypeSelectionDialog] = useState(false);
   const [showClearDataDialog, setShowClearDataDialog] = useState(false);
+  const [showDeviceTypeDialog, setShowDeviceTypeDialog] = useState(false);
+  const [deviceType, setDeviceType] = useState<"iOS" | "Android" | null>(null);
   const [userConfirmedActivation, setUserConfirmedActivation] = useState(false);
 
   // Verificar se o usuário tem fatura em dia (status = active)
@@ -51,6 +53,7 @@ export default function SimActivation() {
         if (data.imei) setImei(data.imei);
         if (data.eid) setEid(data.eid);
         if (data.activeTab) setActiveTab(data.activeTab);
+        if (data.deviceType) setDeviceType(data.deviceType);
       } catch (error) {
         console.error('Erro ao recuperar dados salvos:', error);
       }
@@ -67,9 +70,17 @@ export default function SimActivation() {
       imei,
       eid,
       activeTab,
+      deviceType,
     };
     localStorage.setItem(storageKey, JSON.stringify(dataToSave));
-  }, [barcode, imei, eid, activeTab, user?.id]);
+  }, [barcode, imei, eid, activeTab, deviceType, user?.id]);
+
+  // Mostrar modal de seleção de tipo de dispositivo quando IMEI e EID forem preenchidos
+  useEffect(() => {
+    if (activeTab === "esim" && imei && eid && !deviceType && !showDeviceTypeDialog) {
+      setShowDeviceTypeDialog(true);
+    }
+  }, [imei, eid, activeTab, deviceType, showDeviceTypeDialog]);
 
   // Buscar ativações do usuário (excluindo canceladas)
   const { data: activations, refetch } = useQuery({
@@ -383,6 +394,12 @@ export default function SimActivation() {
       return;
     }
 
+    if (!deviceType) {
+      toast.error("Por favor, selecione o tipo de dispositivo (iOS ou Android)");
+      setShowDeviceTypeDialog(true);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -419,6 +436,7 @@ export default function SimActivation() {
           imei: imei,
           eid: eid,
           screenshotUrl: screenshotUrl,
+          deviceType: deviceType,
         },
       });
 
@@ -1212,6 +1230,44 @@ export default function SimActivation() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog de seleção de tipo de dispositivo */}
+      <Dialog open={showDeviceTypeDialog} onOpenChange={setShowDeviceTypeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Selecione o tipo de dispositivo</DialogTitle>
+            <DialogDescription>
+              Para prosseguir com a ativação do eSIM, precisamos saber qual é o sistema operacional do seu dispositivo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <Button
+              variant="outline"
+              className="h-32 flex flex-col gap-3 border-2 hover:border-primary hover:bg-primary/10"
+              onClick={() => {
+                setDeviceType("iOS");
+                setShowDeviceTypeDialog(false);
+                toast.success("Dispositivo iOS selecionado");
+              }}
+            >
+              <Smartphone className="w-12 h-12" />
+              <span className="text-lg font-semibold">iPhone (iOS)</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-32 flex flex-col gap-3 border-2 hover:border-primary hover:bg-primary/10"
+              onClick={() => {
+                setDeviceType("Android");
+                setShowDeviceTypeDialog(false);
+                toast.success("Dispositivo Android selecionado");
+              }}
+            >
+              <Smartphone className="w-12 h-12" />
+              <span className="text-lg font-semibold">Android</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
