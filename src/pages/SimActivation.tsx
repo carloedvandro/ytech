@@ -1314,12 +1314,35 @@ export default function SimActivation() {
                       screenshotUrl: screenshot ? 'presente' : null,
                     });
 
+                    let screenshotUrl = null;
+
+                    // Upload screenshot if provided
+                    if (screenshot) {
+                      const fileExt = screenshot.name.split('.').pop();
+                      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
+                      
+                      const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('sim-activation-screenshots')
+                        .upload(fileName, screenshot);
+
+                      if (uploadError) {
+                        console.error('Erro ao fazer upload do arquivo:', uploadError);
+                        toast.error("Erro ao fazer upload do arquivo. Continuando sem ele...");
+                      } else {
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('sim-activation-screenshots')
+                          .getPublicUrl(fileName);
+                        screenshotUrl = publicUrl;
+                        console.log('✅ Screenshot enviada:', screenshotUrl);
+                      }
+                    }
+
                     const { data, error } = await supabase.functions.invoke('process-sim-activation', {
                       body: {
                         activationType: 'esim',
                         imei,
                         eid,
-                        screenshotUrl: screenshot ? URL.createObjectURL(screenshot) : null,
+                        screenshotUrl: screenshotUrl,
                         deviceType: 'iOS',
                       },
                     });
@@ -1383,12 +1406,35 @@ export default function SimActivation() {
                       screenshotUrl: screenshot ? 'presente' : null,
                     });
 
+                    let screenshotUrl = null;
+
+                    // Upload screenshot if provided
+                    if (screenshot) {
+                      const fileExt = screenshot.name.split('.').pop();
+                      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
+                      
+                      const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('sim-activation-screenshots')
+                        .upload(fileName, screenshot);
+
+                      if (uploadError) {
+                        console.error('Erro ao fazer upload do arquivo:', uploadError);
+                        toast.error("Erro ao fazer upload do arquivo. Continuando sem ele...");
+                      } else {
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('sim-activation-screenshots')
+                          .getPublicUrl(fileName);
+                        screenshotUrl = publicUrl;
+                        console.log('✅ Screenshot enviada:', screenshotUrl);
+                      }
+                    }
+
                     const { data, error } = await supabase.functions.invoke('process-sim-activation', {
                       body: {
                         activationType: 'esim',
                         imei,
                         eid,
-                        screenshotUrl: screenshot ? URL.createObjectURL(screenshot) : null,
+                        screenshotUrl: screenshotUrl,
                         deviceType: 'Android',
                       },
                     });
