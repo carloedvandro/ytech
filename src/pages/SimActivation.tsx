@@ -77,10 +77,17 @@ export default function SimActivation() {
 
   // Mostrar modal de seleção de tipo de dispositivo quando IMEI e EID forem preenchidos
   useEffect(() => {
-    if (activeTab === "esim" && imei && eid && !deviceType && !showDeviceTypeDialog) {
+    if (activeTab === "esim" && imei && eid && !deviceType) {
       setShowDeviceTypeDialog(true);
     }
-  }, [imei, eid, activeTab, deviceType, showDeviceTypeDialog]);
+  }, [imei, eid, activeTab, deviceType]);
+
+  // Reset showDeviceTypeDialog quando deviceType for resetado ou valores mudarem
+  useEffect(() => {
+    if (!deviceType || !imei || !eid) {
+      setShowDeviceTypeDialog(false);
+    }
+  }, [deviceType, imei, eid]);
 
   // Buscar ativações do usuário (excluindo canceladas)
   const { data: activations, refetch } = useQuery({

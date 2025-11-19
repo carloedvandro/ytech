@@ -21,6 +21,7 @@ interface SimActivation {
   barcode: string | null;
   imei: string | null;
   eid: string | null;
+  device_type: string | null;
   screenshot_url: string | null;
   status: string;
   qr_code_url: string | null;
@@ -400,6 +401,12 @@ _Y-TECH Internet 5G_`;
                           <p className="font-mono text-xs break-all">{activation.eid}</p>
                         </div>
                       )}
+                      {activation.device_type && (
+                        <div>
+                          <p className="text-muted-foreground">Dispositivo:</p>
+                          <Badge variant="outline">{activation.device_type}</Badge>
+                        </div>
+                      )}
                       {activation.screenshot_url && (
                         <div className="col-span-2">
                           <p className="text-muted-foreground mb-1">Print *#06#:</p>
@@ -500,6 +507,15 @@ _Y-TECH Internet 5G_`;
                 Informe o número da linha atrelada ao {selectedActivation?.activation_type === "chip" ? "chip" : "eSIM"}
               </p>
             </div>
+
+            {selectedActivation?.device_type && (
+              <div className="space-y-2">
+                <Label>Tipo de Dispositivo</Label>
+                <Badge variant="outline" className="text-sm">
+                  {selectedActivation.device_type}
+                </Badge>
+              </div>
+            )}
 
             {selectedActivation?.activation_type === "esim" && (
               <>
