@@ -40,7 +40,19 @@ export function TwoFactorModal({ open, whatsapp, onVerified, onCancel }: TwoFact
         body: { whatsapp, code },
       });
 
-      if (error) throw error;
+      // Quando há erro HTTP (400), mas com resposta JSON válida
+      if (error) {
+        // Tentar extrair mensagem de erro do data
+        const errorMessage = data?.error || error.message || "Erro ao verificar código";
+        toast({
+          title: "Código inválido",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setCode("");
+        setVerifying(false);
+        return;
+      }
 
       if (data.verified) {
         toast({
@@ -60,7 +72,7 @@ export function TwoFactorModal({ open, whatsapp, onVerified, onCancel }: TwoFact
       console.error("Erro ao verificar código:", error);
       toast({
         title: "Erro na verificação",
-        description: error.message || "Tente novamente",
+        description: "Erro ao conectar com servidor. Tente novamente.",
         variant: "destructive",
       });
       setCode("");
