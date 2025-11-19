@@ -310,25 +310,45 @@ export default function SimActivation() {
         // Tem saldo suficiente - descontar R$ 3,00
         console.log('✅ Saldo suficiente. Descontando R$ 3,00...');
         
+        toast.info('Processando desconto de R$ 3,00 do anexo extra...', { duration: 2000 });
+        
         const { data: deductionData, error: deductionError } = await supabase.functions.invoke(
           'deduct-attachment-fee',
           { body: {} }
         );
 
-        if (deductionError || !deductionData?.success) {
-          console.error('❌ Erro ao descontar taxa:', deductionError || deductionData);
+        if (deductionError) {
+          console.error('❌ Erro ao descontar taxa:', deductionError);
           toast.error(
-            "Erro ao processar o desconto da taxa de anexo extra. Tente novamente.",
-            { duration: 5000 }
+            "❌ Erro ao processar o desconto da taxa de anexo extra. Por favor, tente novamente ou contate o suporte.",
+            { duration: 7000 }
           );
+          setIsProcessingImage(false);
+          return;
+        }
+
+        if (!deductionData?.success) {
+          console.error('❌ Desconto não foi bem-sucedido:', deductionData);
+          
+          if (deductionData?.error === 'insufficient_balance') {
+            toast.error(
+              `Saldo insuficiente! Necessário: R$ ${deductionData.required?.toFixed(2)} | Seu saldo: R$ ${deductionData.current_balance?.toFixed(2)}`,
+              { duration: 8000 }
+            );
+          } else {
+            toast.error(
+              `Erro ao descontar taxa: ${deductionData?.error || 'Erro desconhecido'}`,
+              { duration: 7000 }
+            );
+          }
           setIsProcessingImage(false);
           return;
         }
 
         console.log('✅ Taxa descontada com sucesso:', deductionData);
         toast.success(
-          `Taxa de R$ 3,00 descontada do seu saldo. Saldo restante: R$ ${deductionData.balance_after.toFixed(2)}`,
-          { duration: 5000 }
+          `✅ Taxa de R$ 3,00 descontada! Saldo restante: R$ ${deductionData.balance_after.toFixed(2)}`,
+          { duration: 6000 }
         );
       }
 
