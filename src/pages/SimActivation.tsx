@@ -65,6 +65,13 @@ export default function SimActivation() {
     if (!user?.id) return;
     
     const storageKey = `sim-activation-data-${user.id}`;
+    
+    // Se todos os valores estão vazios, remover do localStorage ao invés de salvar
+    if (!barcode && !imei && !eid && !deviceType) {
+      localStorage.removeItem(storageKey);
+      return;
+    }
+    
     const dataToSave = {
       barcode,
       imei,
