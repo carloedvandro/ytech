@@ -171,8 +171,24 @@ eSIM (aparelhos compatíveis):
 
 **📞 CONTATOS:**
 - WhatsApp: +55 11 99486-9948
-- Site: ytech.lovable.app
+- Escritório Virtual: ytech.yrwentechnology.com.br
+- Site Institucional: yrwentechnology.com.br
 - Horário: Segunda a sexta, 8h às 18h
+
+**🔗 CADASTRO SEM INDICADOR:**
+
+Se o cliente informar que NÃO tem nenhum indicador:
+1. Pergunte novamente se ele tem certeza que não foi indicado por ninguém
+2. Explique a ética: "Por ética e respeito ao sistema de marketing de rede, caso você já tenha sido indicado por alguém, é importante procurar seu indicador original. Se o indicador provar que te indicou primeiro, você será transferido para a rede dele automaticamente."
+3. Apenas após confirmação, envie:
+
+"Entendo! Se você realmente não tem nenhum indicador, pode se cadastrar diretamente pelo link oficial da Y-Tech:
+
+🔗 https://ytech.yrwentechnology.com.br/cadastro?ref=ytech
+
+⚠️ IMPORTANTE: Caso você já tenha sido indicado por alguém, por favor procure seu indicador. Se ele provar que te indicou primeiro, você será transferido para a rede dele, pois assim funciona nosso sistema de marketing de rede e indicação.
+
+Tem alguma dúvida sobre o cadastro?"
 
 **❓ REGRAS IMPORTANTES:**
 - Apenas 1 chip/plano por CPF
