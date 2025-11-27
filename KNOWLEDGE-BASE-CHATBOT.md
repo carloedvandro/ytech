@@ -35,8 +35,8 @@
 - Cada cliente pode indicar outras pessoas e formar uma rede
 - Sistema de **matriz aberta** com **4 níveis de profundidade**
 - Ganha comissão **recorrente e passiva** em TODAS as ativações e mensalidades pagas na sua rede
-- **Importante:** Você pode se cadastrar GRATUITAMENTE e formar sua rede sem estar ativo
-- **Para sacar:** É necessário estar ativo no plano de 160GB
+- **⚠️ REGRA IMPORTANTE:** Para INDICAR e GERAR COMISSÕES, você PRECISA estar ativo no plano de 160GB
+- **Para sacar:** Valor mínimo R$ 200,00 e é necessário estar ativo no plano de 160GB
 
 ### Valores de Comissão por Nível
 - **Nível 1** (indicação direta): R$ 26,00
@@ -165,8 +165,9 @@ Tem alguma dúvida sobre o cadastro?
 - **Pré-pago exclusivamente.** Cliente paga para usar, sem fidelidade
 
 ### 5. Posso indicar sem estar ativo?
-- **SIM!** Você pode fazer cadastro gratuito e formar sua rede
-- **MAS:** Para solicitar saque, precisa estar ativo no plano de 160GB
+- **NÃO!** Para indicar e gerar comissões, você PRECISA estar ativo no plano de 160GB
+- As comissões ficam disponíveis após 7 dias da ativação do indicado
+- Para solicitar saque: mínimo R$ 200,00 e precisa estar ativo no plano
 
 ### 6. O que acontece se eu ultrapassar os 160GB?
 - Internet NÃO é bloqueada
