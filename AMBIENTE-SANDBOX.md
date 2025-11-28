@@ -69,7 +69,7 @@ As edge functions são deployadas automaticamente quando você salva as mudança
 5. ✅ Ativar usuário
 6. ✅ Criar comissões
 
-### Rede MLM
+### Rede MMN
 1. ✅ Cadastro de usuários com referral
 2. ✅ Cálculo de path na rede
 3. ✅ Distribuição de comissões 4 níveis

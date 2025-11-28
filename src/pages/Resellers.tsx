@@ -153,7 +153,7 @@ const Resellers = () => {
                     <p>
                       Como revendedor, você terá acesso a um <strong className="text-white">modelo de negócio 
                       focado na venda direta</strong> dos nossos planos. Este formato <strong className="text-white">não 
-                      inclui</strong> a participação no sistema de rede (MLM) nem nos ganhos de indicação.
+                      inclui</strong> a participação no sistema de rede (MMN) nem nos ganhos de indicação.
                     </p>
                     <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/10 border border-primary/30">
                       <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />

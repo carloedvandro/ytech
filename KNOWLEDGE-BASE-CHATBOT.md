@@ -29,7 +29,7 @@
 - **Características:** Voltado para áreas rurais
 - (Outros detalhes similares ao plano de 160GB)
 
-## 🎯 Sistema de Indicações (MLM) - Renda Passiva Recorrente
+## 🎯 Sistema de Indicações (MMN) - Renda Passiva Recorrente
 
 ### Como Funciona
 - Cada cliente pode indicar outras pessoas e formar uma rede
@@ -146,7 +146,7 @@ Se o cliente informar que **NÃO tem nenhum indicador**, siga este protocolo:
 
 1. **Pergunte novamente** se ele tem certeza que não foi indicado por ninguém
 2. **Explique a importância da ética no MMN:**
-   - "Por ética e respeito ao sistema de marketing de rede, caso você já tenha sido indicado por alguém, é importante procurar seu indicador original."
+   - "Por ética e respeito ao sistema de marketing multinível (MMN), caso você já tenha sido indicado por alguém, é importante procurar seu indicador original."
    - "Se o indicador provar que te indicou primeiro, você será transferido para a rede dele automaticamente."
 3. **Apenas após confirmação**, envie o link oficial:
    - **Link de Cadastro Direto:** https://ytech.yrwentechnology.com.br/cadastro?ref=ytech
@@ -157,7 +157,7 @@ Entendo! Se você realmente não tem nenhum indicador, pode se cadastrar diretam
 
 🔗 https://ytech.yrwentechnology.com.br/cadastro?ref=ytech
 
-⚠️ IMPORTANTE: Caso você já tenha sido indicado por alguém, por favor procure seu indicador. Se ele provar que te indicou primeiro, você será transferido para a rede dele, pois assim funciona nosso sistema de marketing de rede e indicação.
+⚠️ IMPORTANTE: Caso você já tenha sido indicado por alguém, por favor procure seu indicador. Se ele provar que te indicou primeiro, você será transferido para a rede dele, pois assim funciona nosso sistema de marketing multinível (MMN) e indicação.
 
 Tem alguma dúvida sobre o cadastro?
 ```
