@@ -348,20 +348,59 @@ Deno.serve(async (req) => {
         });
     }
 
-    // Enviar resposta via WhatsApp
+    // Enviar resposta via WhatsApp com delay humanizado
     console.log('📤 Enviando resposta via WhatsApp...');
 
-    const { error: sendError } = await supabase.functions.invoke('send-whatsapp-notification', {
-      body: {
-        to: whatsapp,
-        message: assistantMessage,
-        userId: profile?.id
-      }
-    });
+    // Função para adicionar delay (simula digitação humana)
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    if (sendError) {
-      console.error('❌ Erro ao enviar WhatsApp:', sendError);
-      throw sendError;
+    // Quebrar mensagem em parágrafos (separados por linha em branco)
+    const paragraphs = assistantMessage.split('\n\n').filter((p: string) => p.trim());
+
+    // Se a mensagem é muito curta, enviar tudo de uma vez com delay inicial
+    if (paragraphs.length <= 1 || assistantMessage.length < 100) {
+      await sleep(1500); // 1.5 segundos antes de enviar
+      
+      const { error: sendError } = await supabase.functions.invoke('send-whatsapp-notification', {
+        body: {
+          to: whatsapp,
+          message: assistantMessage,
+          userId: profile?.id
+        }
+      });
+
+      if (sendError) {
+        console.error('❌ Erro ao enviar WhatsApp:', sendError);
+        throw sendError;
+      }
+    } else {
+      // Mensagem longa: quebrar e enviar com delays
+      await sleep(2000); // 2 segundos antes de começar
+      
+      for (let i = 0; i < paragraphs.length; i++) {
+        const paragraph = paragraphs[i].trim();
+        
+        // Enviar parágrafo
+        const { error: sendError } = await supabase.functions.invoke('send-whatsapp-notification', {
+          body: {
+            to: whatsapp,
+            message: paragraph,
+            userId: profile?.id
+          }
+        });
+
+        if (sendError) {
+          console.error('❌ Erro ao enviar WhatsApp:', sendError);
+          // Continua enviando os próximos parágrafos mesmo se um falhar
+        }
+
+        // Delay entre mensagens (2-4 segundos, variável para parecer mais humano)
+        if (i < paragraphs.length - 1) {
+          const randomDelay = 2000 + Math.random() * 2000; // Entre 2 e 4 segundos
+          console.log(`⏱️ Aguardando ${Math.round(randomDelay)}ms antes da próxima mensagem...`);
+          await sleep(randomDelay);
+        }
+      }
     }
 
     console.log('✅ Resposta enviada com sucesso!');
