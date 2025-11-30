@@ -790,45 +790,45 @@ const Signup = () => {
               </>
             )}
           </form>
-
-          {/* Dialog de Verificação do Código */}
-          <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Código de Verificação</DialogTitle>
-                <DialogDescription>
-                  Digite o código de 6 dígitos que enviamos para seu WhatsApp
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="verificationCode">Código</Label>
-                  <Input
-                    id="verificationCode"
-                    placeholder="000000"
-                    maxLength={6}
-                    {...register("verificationCode")}
-                    autoFocus
-                  />
-                  {errors.verificationCode && (
-                    <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
-                  )}
-                </div>
-
-                <Button
-                  type="button"
-                  className="w-full"
-                  onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
-                  disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
-                >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Verificar Código
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </CardContent>
       </Card>
+
+      {/* Dialog de Verificação - SEMPRE no DOM, fora do Card para evitar re-render */}
+      <Dialog key="whatsapp-verification-dialog" open={showCodeDialog} onOpenChange={setShowCodeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Código de Verificação</DialogTitle>
+            <DialogDescription>
+              Digite o código de 6 dígitos que enviamos para seu WhatsApp
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="verificationCode">Código</Label>
+              <Input
+                id="verificationCode"
+                placeholder="000000"
+                maxLength={6}
+                {...register("verificationCode")}
+                autoFocus
+              />
+              {errors.verificationCode && (
+                <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
+              )}
+            </div>
+
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
+              disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Verificar Código
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
