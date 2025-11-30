@@ -137,9 +137,37 @@ const Signup = () => {
 
       if (error) {
         console.error('❌ Erro ao enviar código:', error);
-        // Supabase retorna FunctionsHttpError com context
-        const errorMessage = error.context?.error || error.message || "Erro ao enviar código de verificação";
-        throw new Error(errorMessage);
+        
+        // Capturar mensagem de erro do servidor
+        const errorMessage = error.context?.error || error.message || "";
+        
+        // Identificar tipos específicos de erro e dar feedback amigável
+        let title = "Não foi possível enviar o código";
+        let description = "Tente novamente em alguns instantes";
+        
+        if (errorMessage.toLowerCase().includes("já cadastrado") || 
+            errorMessage.toLowerCase().includes("já existe") ||
+            errorMessage.toLowerCase().includes("already")) {
+          title = "WhatsApp já cadastrado";
+          description = `Este número (${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}) já está registrado no sistema. Se você já tem uma conta, faça login. Caso contrário, use outro número.`;
+        } else if (errorMessage.toLowerCase().includes("bloqueado") || 
+                   errorMessage.toLowerCase().includes("blocked")) {
+          title = "Número temporariamente bloqueado";
+          description = "Muitas tentativas foram realizadas. Aguarde 24 horas ou entre em contato com o suporte.";
+        } else if (errorMessage.toLowerCase().includes("expirado") || 
+                   errorMessage.toLowerCase().includes("expired")) {
+          title = "Código expirado";
+          description = "O código anterior expirou. Clique novamente para receber um novo código.";
+        } else if (errorMessage) {
+          description = errorMessage;
+        }
+        
+        toast({
+          title,
+          description,
+          variant: "destructive",
+        });
+        return;
       }
 
       console.log('✅ Código enviado com sucesso!');
@@ -147,8 +175,8 @@ const Signup = () => {
       console.log('🔍 Estado ANTES:', { codeSent, whatsappVerified, step });
       
       toast({
-        title: "Código enviado!",
-        description: "Verifique seu WhatsApp",
+        title: "Código enviado! ✅",
+        description: `Enviamos um código de 6 dígitos para o WhatsApp ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
       });
 
       // Forçar atualização síncrona para Chrome Android
@@ -167,10 +195,10 @@ const Signup = () => {
       
       console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {
-      console.error('❌ Erro ao enviar código:', error);
+      console.error('❌ Erro inesperado:', error);
       toast({
-        title: "Erro ao enviar código",
-        description: error.message || "Erro desconhecido ao processar solicitação",
+        title: "Erro inesperado",
+        description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente.",
         variant: "destructive",
       });
     } finally {
