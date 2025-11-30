@@ -149,26 +149,35 @@ const Login = () => {
     }
 
     setVerifying(true);
+    
     try {
       console.log('🔐 Verificando código 2FA...');
+      console.log('📊 Estado atual - show2FA:', show2FA, 'pendingAuth:', !!pendingAuth);
       
       const { data, error } = await supabase.functions.invoke("verify-whatsapp-code", {
         body: { whatsapp: pendingAuth.whatsapp, code: verificationCode },
       });
 
-      if (error) {
-        const errorMessage = data?.error || error.message || "Erro ao verificar código";
+      console.log('📥 Resposta da verificação:', { data, error });
+
+      // Tratar erro de rede ou resposta
+      if (error && !data) {
+        console.error('❌ Erro de rede:', error);
         toast({
-          title: "Código inválido",
-          description: errorMessage,
+          title: "Erro de conexão",
+          description: "Não foi possível verificar o código. Tente novamente.",
           variant: "destructive",
         });
         setVerificationCode("");
         setVerifying(false);
+        // MANTER show2FA true para não perder a tela
+        console.log('🔄 Mantendo tela 2FA após erro de rede');
         return;
       }
 
-      if (!data.verified) {
+      // Se data existe mas verified é false
+      if (data && !data.verified) {
+        console.log('❌ Código incorreto:', data.error);
         toast({
           title: "Código inválido",
           description: data.error || "Tente novamente",
@@ -176,6 +185,8 @@ const Login = () => {
         });
         setVerificationCode("");
         setVerifying(false);
+        // MANTER show2FA true para não perder a tela
+        console.log('🔄 Mantendo tela 2FA após código incorreto');
         return;
       }
 
@@ -187,7 +198,10 @@ const Login = () => {
         password: pendingAuth.password,
       });
 
-      if (loginError) throw loginError;
+      if (loginError) {
+        console.error('❌ Erro no login final:', loginError);
+        throw loginError;
+      }
 
       console.log('✅ Login 2FA completo!');
 
@@ -207,7 +221,7 @@ const Login = () => {
       window.location.href = '/dashboard';
 
     } catch (error: any) {
-      console.error('❌ Erro ao verificar/login:', error);
+      console.error('❌ Erro inesperado ao verificar/login:', error);
       toast({
         title: "Erro ao fazer login",
         description: error.message || "Erro inesperado. Tente novamente.",
@@ -215,6 +229,9 @@ const Login = () => {
       });
       setVerifying(false);
       setVerificationCode("");
+      // IMPORTANTE: MANTER show2FA true para não perder a tela
+      console.log('🔄 Mantendo tela 2FA após erro inesperado');
+      // NÃO resetar show2FA aqui!
     }
   };
 
