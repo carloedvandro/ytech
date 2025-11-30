@@ -49,113 +49,124 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginForm) => {
-    console.log('🚀 [LOGIN] Início do submit');
-    setLoading(true);
-    isVerifying2FA.current = true;
+    // CRÍTICO: Prevenir qualquer comportamento padrão
+    console.log('🚀 [LOGIN] onSubmit iniciado');
     
-    try {
-      console.log('🔑 [LOGIN] Buscando usuário pelo email...');
+    // Criar uma Promise para controlar o fluxo
+    return new Promise<void>(async (resolve) => {
+      setLoading(true);
+      isVerifying2FA.current = true;
       
-      const { data: profiles, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, whatsapp")
-        .eq("email", data.email)
-        .limit(1);
+      try {
+        console.log('🔑 [LOGIN] Buscando usuário...');
+        
+        const { data: profiles, error: profileError } = await supabase
+          .from("profiles")
+          .select("id, whatsapp")
+          .eq("email", data.email)
+          .limit(1);
 
-      console.log('📊 [LOGIN] Resposta profiles:', { profiles, profileError });
+        if (profileError || !profiles || profiles.length === 0) {
+          toast({
+            title: "Erro ao fazer login",
+            description: "Email ou senha incorretos",
+            variant: "destructive",
+          });
+          setLoading(false);
+          isVerifying2FA.current = false;
+          resolve();
+          return;
+        }
 
-      if (profileError || !profiles || profiles.length === 0) {
-        console.error('❌ [LOGIN] Usuário não encontrado');
+        const profile = profiles[0];
+
+        if (!profile.whatsapp) {
+          toast({
+            title: "Erro",
+            description: "WhatsApp não cadastrado",
+            variant: "destructive",
+          });
+          setLoading(false);
+          isVerifying2FA.current = false;
+          resolve();
+          return;
+        }
+
+        console.log('📱 [LOGIN] Enviando código...');
+
+        const { error: sendError } = await supabase.functions.invoke("send-whatsapp-verification", {
+          body: { whatsapp: profile.whatsapp },
+        });
+
+        if (sendError) {
+          toast({
+            title: "Erro ao enviar código",
+            description: "Não foi possível enviar o código",
+            variant: "destructive",
+          });
+          setLoading(false);
+          isVerifying2FA.current = false;
+          resolve();
+          return;
+        }
+
+        console.log('✅ [LOGIN] Código enviado');
+
+        // Usar setState de forma segura
+        setPendingAuth({
+          email: data.email,
+          password: data.password,
+          whatsapp: profile.whatsapp,
+        });
+        
+        // Esperar um pouco antes de mudar UI
+        setTimeout(() => {
+          console.log('🔓 [LOGIN] Ativando 2FA');
+          setShow2FA(true);
+          setLoading(false);
+          
+          toast({
+            title: "Código enviado!",
+            description: "Verifique seu WhatsApp",
+          });
+          
+          resolve();
+        }, 200);
+
+      } catch (error: any) {
+        console.error('❌ [LOGIN] Erro:', error);
         toast({
           title: "Erro ao fazer login",
-          description: "Email ou senha incorretos",
+          description: "Tente novamente",
           variant: "destructive",
         });
         setLoading(false);
         isVerifying2FA.current = false;
-        return;
+        resolve();
       }
-
-      const profile = profiles[0];
-      console.log('👤 [LOGIN] Profile encontrado:', profile);
-
-      if (!profile.whatsapp) {
-        console.error('❌ [LOGIN] WhatsApp não cadastrado');
-        toast({
-          title: "Erro",
-          description: "WhatsApp não cadastrado. Entre em contato com o suporte.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        isVerifying2FA.current = false;
-        return;
-      }
-
-      console.log('📱 [LOGIN] Enviando código 2FA para:', profile.whatsapp);
-
-      const { error: sendError } = await supabase.functions.invoke("send-whatsapp-verification", {
-        body: { whatsapp: profile.whatsapp },
-      });
-
-      console.log('📨 [LOGIN] Resposta envio código:', { sendError });
-
-      if (sendError) {
-        console.error('❌ [LOGIN] Erro ao enviar código:', sendError);
-        toast({
-          title: "Erro ao enviar código",
-          description: "Não foi possível enviar o código. Tente novamente.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        isVerifying2FA.current = false;
-        return;
-      }
-
-      console.log('✅ [LOGIN] Código enviado com sucesso');
-      console.log('💾 [LOGIN] Salvando dados pendentes...');
-
-      // Salvar dados de autenticação pendente
-      const authInfo = {
-        email: data.email,
-        password: data.password,
-        whatsapp: profile.whatsapp,
-      };
-      
-      console.log('📝 [LOGIN] setPendingAuth chamado');
-      setPendingAuth(authInfo);
-      
-      console.log('⏳ [LOGIN] Aguardando processamento...');
-      // Dar tempo para o estado ser atualizado antes de mudar a tela
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      console.log('🔓 [LOGIN] setShow2FA(true) chamado');
-      setShow2FA(true);
-      
-      console.log('⏳ [LOGIN] Aguardando mais um ciclo...');
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      console.log('✅ [LOGIN] setLoading(false) chamado');
-      setLoading(false);
-
-      console.log('🎉 [LOGIN] Mostrando toast de sucesso');
+    });
+  };
+  
+  // Handler seguro que previne submit
+  const handleLoginClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🖱️ [LOGIN] Botão clicado');
+    
+    // Validar manualmente
+    const emailValue = (document.getElementById('email') as HTMLInputElement)?.value;
+    const passwordValue = (document.getElementById('password') as HTMLInputElement)?.value;
+    
+    if (!emailValue || !passwordValue) {
       toast({
-        title: "Código enviado!",
-        description: "Verifique seu WhatsApp",
-      });
-      
-      console.log('✅ [LOGIN] onSubmit concluído com sucesso');
-
-    } catch (error: any) {
-      console.error('❌ [LOGIN] Erro inesperado no login:', error);
-      console.error('Stack trace:', error.stack);
-      toast({
-        title: "Erro ao fazer login",
-        description: error.message || "Erro inesperado. Tente novamente.",
+        title: "Campos obrigatórios",
+        description: "Preencha email e senha",
         variant: "destructive",
       });
-      setLoading(false);
-      isVerifying2FA.current = false;
+      return;
     }
+    
+    await onSubmit({ email: emailValue, password: passwordValue });
   };
 
   const handleVerifyCode = async () => {
@@ -279,7 +290,11 @@ const Login = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }} className="space-y-4">
               {/* Campos de login - sempre no DOM */}
               <div style={{ display: !show2FA ? 'block' : 'none' }}>
                 <div className="space-y-4">
@@ -310,7 +325,8 @@ const Login = () => {
                   </div>
 
                   <Button 
-                    type="submit" 
+                    type="button"
+                    onClick={handleLoginClick}
                     className="w-full bg-primary text-black hover:bg-primary/90 shadow-[0_0_30px_rgba(0,255,255,0.5)] hover:shadow-[0_0_40px_rgba(0,255,255,0.7)] transition-all font-semibold" 
                     disabled={loading}
                   >
