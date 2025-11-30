@@ -490,7 +490,11 @@ const Signup = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }} className="space-y-4">
             {/* Etapa 1: Dados Pessoais */}
             {step === 1 && (
               <>
@@ -795,7 +799,29 @@ const Signup = () => {
                   <Button type="button" variant="outline" className="w-full" onClick={() => setStep(4)}>
                     Voltar
                   </Button>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button 
+                    type="button" 
+                    className="w-full" 
+                    disabled={loading}
+                    onClick={async () => {
+                      const formData = {
+                        fullName: watch("fullName"),
+                        email: watch("email"),
+                        password: watch("password"),
+                        whatsapp: watch("whatsapp"),
+                        cpf: watch("cpf"),
+                        verificationCode: watch("verificationCode"),
+                        cep: watch("cep"),
+                        rua: watch("rua"),
+                        numero: watch("numero"),
+                        complemento: watch("complemento"),
+                        bairro: watch("bairro"),
+                        cidade: watch("cidade"),
+                        estado: watch("estado"),
+                      };
+                      await onSubmit(formData);
+                    }}
+                  >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Finalizar Cadastro
                   </Button>
