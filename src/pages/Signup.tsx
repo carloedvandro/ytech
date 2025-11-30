@@ -137,13 +137,26 @@ const Signup = () => {
 
       if (error) {
         console.error('❌ Erro ao enviar código:', error);
+        console.error('❌ Estrutura completa do erro:', JSON.stringify(error, null, 2));
         
-        // Capturar mensagem de erro do servidor
-        const errorMessage = error.context?.error || error.message || "";
+        // Tentar múltiplas formas de extrair a mensagem de erro
+        let errorMessage = "";
+        
+        if (error.context?.error) {
+          errorMessage = error.context.error;
+        } else if (error.context?.message) {
+          errorMessage = error.context.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        console.log('📝 Mensagem de erro extraída:', errorMessage);
         
         // Identificar tipos específicos de erro e dar feedback amigável
         let title = "Não foi possível enviar o código";
-        let description = "Tente novamente em alguns instantes";
+        let description = errorMessage || "Tente novamente em alguns instantes";
         
         if (errorMessage.toLowerCase().includes("já cadastrado") || 
             errorMessage.toLowerCase().includes("já existe") ||
