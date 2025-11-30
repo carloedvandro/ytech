@@ -31,14 +31,15 @@ const Login = () => {
   const hasRedirected = useRef(false);
   const isVerifying2FA = useRef(false);
 
-  // Redirect to dashboard if already logged in - with protection against loops
+  // Redirect to dashboard if already logged in - DESABILITADO durante verificação 2FA
   useEffect(() => {
-    if (!authLoading && user && !hasRedirected.current && !isVerifying2FA.current) {
+    // NÃO redirecionar se estamos no processo de 2FA ou se o modal 2FA está aberto
+    if (!authLoading && user && !hasRedirected.current && !isVerifying2FA.current && !show2FA) {
       hasRedirected.current = true;
       console.log('User already logged in, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, show2FA]);
 
   const {
     register,
@@ -51,6 +52,21 @@ const Login = () => {
   const onSubmit = async (data: LoginForm) => {
     // CRÍTICO: Prevenir qualquer comportamento padrão
     console.log('🚀 [LOGIN] onSubmit iniciado');
+    
+    // Limpar qualquer localStorage problemático que possa interferir
+    try {
+      console.log('🧹 [LOGIN] Limpando possíveis dados corrompidos');
+      // Não limpar a sessão do Supabase, apenas dados temporários problemáticos
+      const keysToCheck = Object.keys(localStorage);
+      keysToCheck.forEach(key => {
+        if (key.includes('temp-') || key.includes('pending-')) {
+          localStorage.removeItem(key);
+          console.log('🗑️ [LOGIN] Removido:', key);
+        }
+      });
+    } catch (e) {
+      console.log('⚠️ [LOGIN] Erro ao limpar localStorage:', e);
+    }
     
     // Criar uma Promise para controlar o fluxo
     return new Promise<void>(async (resolve) => {
@@ -113,11 +129,14 @@ const Login = () => {
         console.log('✅ [LOGIN] Código enviado');
 
         // Usar setState de forma segura
-        setPendingAuth({
+        const authInfo = {
           email: data.email,
           password: data.password,
           whatsapp: profile.whatsapp,
-        });
+        };
+        
+        console.log('💾 [LOGIN] Salvando pendingAuth');
+        setPendingAuth(authInfo);
         
         // Esperar um pouco antes de mudar UI
         setTimeout(() => {
@@ -130,8 +149,9 @@ const Login = () => {
             description: "Verifique seu WhatsApp",
           });
           
+          console.log('✅ [LOGIN] UI 2FA ativada com sucesso');
           resolve();
-        }, 200);
+        }, 250);
 
       } catch (error: any) {
         console.error('❌ [LOGIN] Erro:', error);
