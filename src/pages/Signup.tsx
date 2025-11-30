@@ -547,7 +547,7 @@ const Signup = () => {
 
             {/* Etapa 2: WhatsApp */}
             {step === 2 && (
-              <div key="step-2-whatsapp">
+              <div key="step-2-whatsapp" style={{ minHeight: '400px' }}>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp">WhatsApp</Label>
@@ -581,7 +581,10 @@ const Signup = () => {
                   </div>
 
                   {/* Seção de verificação - sempre no DOM, controla apenas visibilidade */}
-                  <div style={{ display: (codeSent && !whatsappVerified) ? 'block' : 'none' }}>
+                  <div style={{ 
+                    display: (codeSent && !whatsappVerified) ? 'block' : 'none',
+                    minHeight: '180px' 
+                  }}>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="verificationCode">Código de Verificação</Label>

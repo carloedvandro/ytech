@@ -140,6 +140,11 @@ const Login = () => {
       console.log('💾 Salvando pendingAuth:', authInfo);
       setPendingAuth(authInfo);
       
+      // Aguardar frames de animação para Chrome Android processar
+      await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      }));
+      
       console.log('🔓 Ativando modal 2FA');
       setShow2FA(true);
       

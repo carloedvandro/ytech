@@ -24,6 +24,9 @@ export function TwoFactorModal({ open, whatsapp, onVerified, onCancel }: TwoFact
   const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
 
+  // Debug para Chrome Android
+  console.log('🔐 TwoFactorModal render:', { open, whatsapp, codeLength: code.length });
+
   const handleVerify = async () => {
     if (code.length !== 6) {
       toast({
@@ -83,7 +86,10 @@ export function TwoFactorModal({ open, whatsapp, onVerified, onCancel }: TwoFact
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent 
+        className="sm:max-w-md"
+        style={{ minHeight: '300px' }}
+      >
         <DialogHeader>
           <DialogTitle>Verificação em 2 etapas</DialogTitle>
           <DialogDescription>
@@ -91,7 +97,10 @@ export function TwoFactorModal({ open, whatsapp, onVerified, onCancel }: TwoFact
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col items-center gap-6 py-4">
+        <div 
+          className="flex flex-col items-center gap-6 py-4"
+          style={{ minHeight: '200px' }}
+        >
           <InputOTP
             maxLength={6}
             value={code}
