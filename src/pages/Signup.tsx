@@ -129,6 +129,8 @@ const Signup = () => {
 
     setLoading(true);
     console.log('📤 Enviando código de verificação para:', whatsapp);
+    console.log('🌐 User-Agent:', navigator.userAgent);
+    console.log('📱 Chrome Android detected:', /Chrome.*Mobile|Android.*Chrome/.test(navigator.userAgent));
     
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp-verification", {
@@ -179,8 +181,22 @@ const Signup = () => {
         description: `Enviamos um código de 6 dígitos para o WhatsApp ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
       });
 
-      // Forçar atualização síncrona para Chrome Android
+      // CRÍTICO: Para Chrome Android - garantir que setState seja processado
+      // antes de mostrar a UI de verificação
       setCodeExpiry(data.expiresAt);
+      
+      // Forçar um flush de todas as atualizações de estado antes de continuar
+      await new Promise(resolve => {
+        // Usar setTimeout(0) para garantir que React processe os estados
+        setTimeout(() => {
+          // Usar requestAnimationFrame duplo para garantir re-paint no Chrome Android
+          requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+          });
+        }, 0);
+      });
+      
+      console.log('🔓 Ativando UI de verificação de código');
       
       // Usar callback para garantir atualização correta
       setCodeSent((prev) => {
@@ -188,10 +204,12 @@ const Signup = () => {
         return true;
       });
       
-      // Aguardar um frame de animação para Chrome processar
-      await new Promise(resolve => requestAnimationFrame(() => {
-        requestAnimationFrame(resolve);
-      }));
+      // Aguardar mais um ciclo para o Chrome Android renderizar
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
       
       console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {

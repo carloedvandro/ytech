@@ -56,6 +56,8 @@ const Login = () => {
     
     try {
       console.log('🔑 Buscando usuário pelo email...');
+      console.log('🌐 User-Agent:', navigator.userAgent);
+      console.log('📱 Chrome Android detected:', /Chrome.*Mobile|Android.*Chrome/.test(navigator.userAgent));
       
       // Buscar perfil pelo email primeiro
       const { data: profiles, error: profileError } = await supabase
@@ -112,13 +114,40 @@ const Login = () => {
       console.log('✅ Código enviado com sucesso');
 
       // Guardar dados para login após verificação
-      setPendingAuth({
+      const authInfo = {
         email: data.email,
         password: data.password,
         whatsapp: profile.whatsapp,
+      };
+      
+      console.log('💾 Salvando pendingAuth');
+      
+      // CRÍTICO: Para Chrome Android - garantir que setState seja processado
+      // antes de mostrar a UI 2FA
+      setPendingAuth(authInfo);
+      
+      // Forçar um flush de todas as atualizações de estado antes de continuar
+      await new Promise(resolve => {
+        // Usar setTimeout(0) para garantir que React processe o setState
+        setTimeout(() => {
+          // Usar requestAnimationFrame duplo para garantir re-paint no Chrome Android
+          requestAnimationFrame(() => {
+            requestAnimationFrame(resolve);
+          });
+        }, 0);
       });
       
+      console.log('🔓 Ativando tela 2FA');
       setShow2FA(true);
+      
+      // Aguardar mais um ciclo para o Chrome Android renderizar
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+      
+      console.log('✅ Estado show2FA ativado');
       setLoading(false);
 
       toast({
