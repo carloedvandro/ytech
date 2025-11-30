@@ -52,62 +52,41 @@ const Login = () => {
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
-    isVerifying2FA.current = true; // Ativar flag de verificação 2FA
+    isVerifying2FA.current = true;
     
     try {
-      console.log('🔑 Validando credenciais...');
+      console.log('🔑 Buscando usuário pelo email...');
       
-      // Validar credenciais SEM fazer login ainda
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (error) {
-        console.error('❌ Erro de autenticação:', error);
-        toast({
-          title: "Erro ao fazer login",
-          description: error.message === 'Invalid login credentials' 
-            ? 'Email ou senha incorretos'
-            : error.message,
-          variant: "destructive",
-        });
-        setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
-        return;
-      }
-
-      if (!authData.user) {
-        console.error('❌ Dados de autenticação incompletos');
-        toast({
-          title: "Erro ao fazer login",
-          description: "Erro inesperado. Tente novamente.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
-        return;
-      }
-
-      // Fazer logout imediato para não completar o login ainda
-      await supabase.auth.signOut();
-
-      // Buscar WhatsApp do usuário
-      const { data: profile, error: profileError } = await supabase
+      // Buscar perfil pelo email primeiro
+      const { data: profiles, error: profileError } = await supabase
         .from("profiles")
-        .select("whatsapp")
-        .eq("id", authData.user.id)
-        .single();
+        .select("id, whatsapp")
+        .eq("email", data.email)
+        .limit(1);
 
-      if (profileError || !profile?.whatsapp) {
-        console.error('❌ WhatsApp não encontrado:', profileError);
+      if (profileError || !profiles || profiles.length === 0) {
+        console.error('❌ Usuário não encontrado');
+        toast({
+          title: "Erro ao fazer login",
+          description: "Email ou senha incorretos",
+          variant: "destructive",
+        });
+        setLoading(false);
+        isVerifying2FA.current = false;
+        return;
+      }
+
+      const profile = profiles[0];
+
+      if (!profile.whatsapp) {
+        console.error('❌ WhatsApp não cadastrado');
         toast({
           title: "Erro",
           description: "WhatsApp não cadastrado. Entre em contato com o suporte.",
           variant: "destructive",
         });
         setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
+        isVerifying2FA.current = false;
         return;
       }
 
@@ -126,31 +105,20 @@ const Login = () => {
           variant: "destructive",
         });
         setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
+        isVerifying2FA.current = false;
         return;
       }
 
       console.log('✅ Código enviado com sucesso');
 
-      // Guardar dados para login após verificação ANTES de mostrar o modal
-      const authInfo = {
+      // Guardar dados para login após verificação
+      setPendingAuth({
         email: data.email,
         password: data.password,
         whatsapp: profile.whatsapp,
-      };
+      });
       
-      console.log('💾 Salvando pendingAuth:', authInfo);
-      setPendingAuth(authInfo);
-      
-      // Aguardar frames de animação para Chrome Android processar
-      await new Promise(resolve => requestAnimationFrame(() => {
-        requestAnimationFrame(resolve);
-      }));
-      
-      console.log('🔓 Ativando modal 2FA');
       setShow2FA(true);
-      
-      console.log('📊 Estados atualizados - show2FA: true, pendingAuth:', authInfo);
       setLoading(false);
 
       toast({
@@ -166,7 +134,7 @@ const Login = () => {
         variant: "destructive",
       });
       setLoading(false);
-      isVerifying2FA.current = false; // Desativar flag em caso de erro
+      isVerifying2FA.current = false;
     }
   };
 
