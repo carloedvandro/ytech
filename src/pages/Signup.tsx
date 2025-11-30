@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -45,7 +44,6 @@ const Signup = () => {
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
-  const [showCodeDialog, setShowCodeDialog] = useState(false);
 
   const {
     register,
@@ -139,26 +137,13 @@ const Signup = () => {
 
       if (error) {
         console.error('❌ Erro ao enviar código:', error);
-        console.error('❌ Estrutura completa do erro:', JSON.stringify(error, null, 2));
         
-        // Tentar múltiplas formas de extrair a mensagem de erro
-        let errorMessage = "";
-        
-        if (error.context?.error) {
-          errorMessage = error.context.error;
-        } else if (error.context?.message) {
-          errorMessage = error.context.message;
-        } else if (error.message) {
-          errorMessage = error.message;
-        } else if (typeof error === 'string') {
-          errorMessage = error;
-        }
-        
-        console.log('📝 Mensagem de erro extraída:', errorMessage);
+        // Capturar mensagem de erro do servidor
+        const errorMessage = error.context?.error || error.message || "";
         
         // Identificar tipos específicos de erro e dar feedback amigável
         let title = "Não foi possível enviar o código";
-        let description = errorMessage || "Tente novamente em alguns instantes";
+        let description = "Tente novamente em alguns instantes";
         
         if (errorMessage.toLowerCase().includes("já cadastrado") || 
             errorMessage.toLowerCase().includes("já existe") ||
@@ -181,31 +166,40 @@ const Signup = () => {
           title,
           description,
           variant: "destructive",
-          duration: 8000, // 8 segundos para dar tempo de ler
         });
-        
-        setLoading(false);
-        return; // Manter UI visível mas parar aqui
+        return;
       }
 
-      // Sucesso - abrir dialog
       console.log('✅ Código enviado com sucesso!');
+      console.log('🔍 User Agent:', navigator.userAgent);
+      console.log('🔍 Estado ANTES:', { codeSent, whatsappVerified, step });
       
       toast({
         title: "Código enviado! ✅",
         description: `Enviamos um código de 6 dígitos para o WhatsApp ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
       });
 
+      // Forçar atualização síncrona para Chrome Android
       setCodeExpiry(data.expiresAt);
-      setCodeSent(true);
-      setShowCodeDialog(true); // Abrir dialog
+      
+      // Usar callback para garantir atualização correta
+      setCodeSent((prev) => {
+        console.log('🔍 Atualizando codeSent de', prev, 'para true');
+        return true;
+      });
+      
+      // Aguardar um frame de animação para Chrome processar
+      await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      }));
+      
+      console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {
       console.error('❌ Erro inesperado:', error);
       toast({
         title: "Erro inesperado",
         description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente.",
         variant: "destructive",
-        duration: 8000,
       });
     } finally {
       setLoading(false);
@@ -224,11 +218,11 @@ const Signup = () => {
 
       if (data.verified) {
         setWhatsappVerified(true);
-        setShowCodeDialog(false); // Fechar dialog
         toast({
           title: "WhatsApp verificado!",
           description: "Número confirmado com sucesso",
         });
+        setStep(3);
       } else {
         toast({
           title: "Código incorreto",
@@ -502,8 +496,7 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center p-4">
-      {/* Card principal - esconde quando dialog está aberto */}
-      <Card className="max-w-md w-full" style={{ display: showCodeDialog ? 'none' : 'block' }}>
+      <Card className="max-w-md w-full">
         <CardHeader>
           <CardTitle>Criar Conta</CardTitle>
           <CardDescription>
@@ -563,17 +556,18 @@ const Signup = () => {
                       placeholder="11999999999"
                       maxLength={11}
                       {...register("whatsapp")}
-                      disabled={whatsappVerified}
+                      disabled={whatsappVerified || codeSent}
                     />
                     {errors.whatsapp && (
                       <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Digite seu WhatsApp com DDD (apenas números)
+                      {codeSent ? '✅ Código enviado' : 'Digite seu WhatsApp com DDD'}
                     </p>
                   </div>
 
-                  {!whatsappVerified && (
+                  {/* Botão de enviar código - sempre no DOM, controla apenas visibilidade */}
+                  <div style={{ display: (!codeSent && !whatsappVerified) ? 'block' : 'none' }}>
                     <Button
                       type="button"
                       variant="secondary"
@@ -582,26 +576,56 @@ const Signup = () => {
                       disabled={loading || !whatsapp || whatsapp.length !== 11}
                     >
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {codeSent ? 'Reenviar Código' : 'Enviar Código de Verificação'}
+                      Enviar Código de Verificação
                     </Button>
-                  )}
+                  </div>
 
-                  {whatsappVerified && (
+                  {/* Seção de verificação - sempre no DOM, controla apenas visibilidade */}
+                  <div style={{ display: (codeSent && !whatsappVerified) ? 'block' : 'none' }}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="verificationCode">Código de Verificação</Label>
+                        <Input
+                          id="verificationCode"
+                          placeholder="000000"
+                          maxLength={6}
+                          {...register("verificationCode")}
+                        />
+                        {errors.verificationCode && (
+                          <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
+                        )}
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
+                        disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
+                      >
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Verificar Código
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Alert de sucesso - sempre no DOM, controla apenas visibilidade */}
+                  <div style={{ display: whatsappVerified ? 'block' : 'none' }}>
                     <Alert>
                       <CheckCircle2 className="h-4 w-4" />
                       <AlertDescription>WhatsApp verificado com sucesso!</AlertDescription>
                     </Alert>
-                  )}
+                  </div>
 
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
                       Voltar
                     </Button>
-                    {whatsappVerified && (
+                    <div style={{ display: whatsappVerified ? 'block' : 'none', flex: 1 }}>
                       <Button type="button" className="w-full" onClick={nextStep}>
                         Continuar
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -791,55 +815,6 @@ const Signup = () => {
               </>
             )}
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Card de verificação de código - sempre no DOM, apenas escondido com CSS */}
-      <Card className="max-w-md w-full" style={{ display: showCodeDialog ? 'block' : 'none' }}>
-        <CardHeader>
-          <CardTitle className="text-white">Código de Verificação</CardTitle>
-          <CardDescription className="text-white/70">
-            Digite o código de 6 dígitos que enviamos para seu WhatsApp
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="verificationCode" className="text-white">Código</Label>
-            <Input
-              id="verificationCode"
-              placeholder="000000"
-              maxLength={6}
-              {...register("verificationCode")}
-              autoFocus
-              className="bg-black/60 border-primary/30 text-white"
-            />
-            {errors.verificationCode && (
-              <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowCodeDialog(false);
-                setValue("verificationCode", "");
-              }}
-              className="flex-1 border-primary/50 text-primary hover:bg-primary/10"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
-              disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
-              className="flex-1 bg-primary text-black hover:bg-primary/90"
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Verificar Código
-            </Button>
-          </div>
         </CardContent>
       </Card>
     </div>
