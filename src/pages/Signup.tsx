@@ -519,81 +519,86 @@ const Signup = () => {
 
             {/* Etapa 2: WhatsApp */}
             {step === 2 && (
-              <div key="step-2-whatsapp" style={{ minHeight: '200px' }}>
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp">WhatsApp</Label>
-                  <Input
-                    id="whatsapp"
-                    placeholder="11999999999"
-                    maxLength={11}
-                    {...register("whatsapp")}
-                    disabled={whatsappVerified || codeSent}
-                  />
-                  {errors.whatsapp && (
-                    <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    {codeSent ? '✅ Código enviado' : 'Digite seu WhatsApp com DDD'}
-                  </p>
-                </div>
+              <div key="step-2-whatsapp">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp">WhatsApp</Label>
+                    <Input
+                      id="whatsapp"
+                      placeholder="11999999999"
+                      maxLength={11}
+                      {...register("whatsapp")}
+                      disabled={whatsappVerified || codeSent}
+                    />
+                    {errors.whatsapp && (
+                      <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {codeSent ? '✅ Código enviado' : 'Digite seu WhatsApp com DDD'}
+                    </p>
+                  </div>
 
-                {!codeSent && !whatsappVerified && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full"
-                    onClick={sendWhatsAppCode}
-                    disabled={loading || !whatsapp || whatsapp.length !== 11}
-                  >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Enviar Código de Verificação
-                  </Button>
-                )}
-
-                {codeSent && !whatsappVerified && (
-                  <div key="verification-code-section" style={{ minHeight: '150px' }}>
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationCode">Código de Verificação</Label>
-                      <Input
-                        id="verificationCode"
-                        placeholder="000000"
-                        maxLength={6}
-                        {...register("verificationCode")}
-                      />
-                      {errors.verificationCode && (
-                        <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
-                      )}
-                    </div>
-
+                  {/* Botão de enviar código - sempre no DOM, controla apenas visibilidade */}
+                  <div style={{ display: (!codeSent && !whatsappVerified) ? 'block' : 'none' }}>
                     <Button
                       type="button"
                       variant="secondary"
                       className="w-full"
-                      onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
-                      disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
+                      onClick={sendWhatsAppCode}
+                      disabled={loading || !whatsapp || whatsapp.length !== 11}
                     >
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Verificar Código
+                      Enviar Código de Verificação
                     </Button>
                   </div>
-                )}
 
-                {whatsappVerified && (
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertDescription>WhatsApp verificado com sucesso!</AlertDescription>
-                  </Alert>
-                )}
+                  {/* Seção de verificação - sempre no DOM, controla apenas visibilidade */}
+                  <div style={{ display: (codeSent && !whatsappVerified) ? 'block' : 'none' }}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="verificationCode">Código de Verificação</Label>
+                        <Input
+                          id="verificationCode"
+                          placeholder="000000"
+                          maxLength={6}
+                          {...register("verificationCode")}
+                        />
+                        {errors.verificationCode && (
+                          <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
+                        )}
+                      </div>
 
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
-                    Voltar
-                  </Button>
-                  {whatsappVerified && (
-                    <Button type="button" className="w-full" onClick={nextStep}>
-                      Continuar
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
+                        disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
+                      >
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Verificar Código
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Alert de sucesso - sempre no DOM, controla apenas visibilidade */}
+                  <div style={{ display: whatsappVerified ? 'block' : 'none' }}>
+                    <Alert>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <AlertDescription>WhatsApp verificado com sucesso!</AlertDescription>
+                    </Alert>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
+                      Voltar
                     </Button>
-                  )}
+                    <div style={{ display: whatsappVerified ? 'block' : 'none', flex: 1 }}>
+                      <Button type="button" className="w-full" onClick={nextStep}>
+                        Continuar
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
