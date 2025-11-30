@@ -239,11 +239,20 @@ const Signup = () => {
     addDebugLog(`🔄 Step mudou para: ${step}`);
     addDebugLog(`📱 WhatsApp verificado: ${whatsappVerified}`);
     addDebugLog(`🆔 CPF validado: ${cpfValidated}`);
+    addDebugLog(`📨 Código enviado: ${codeSent}`);
+    addDebugLog(`⏰ Código expira: ${codeExpiry || 'N/A'}`);
     
     if (step === 2) {
-      addDebugLog(`📍 RENDERIZANDO STEP 2 - Código enviado: ${codeSent}`);
+      addDebugLog(`📍 RENDERIZANDO STEP 2`);
+      addDebugLog(`  - codeSent: ${codeSent}`);
+      addDebugLog(`  - whatsappVerified: ${whatsappVerified}`);
+      addDebugLog(`  - whatsapp value: ${whatsapp || 'vazio'}`);
+      addDebugLog(`  - loading: ${loading}`);
     }
-  }, [step, whatsappVerified, cpfValidated]);
+
+    // Log para confirmar que o useEffect executou completamente
+    addDebugLog(`✓ useEffect de step concluído`);
+  }, [step, whatsappVerified, cpfValidated, codeSent, codeExpiry, whatsapp, loading]);
 
   // Validar CPF
   const validateCPF = async () => {
@@ -623,6 +632,11 @@ const Signup = () => {
   const nextStep = async () => {
     try {
       addDebugLog(`🚀 nextStep chamado - step atual: ${step}`);
+      addDebugLog(`📊 Estados atuais:`);
+      addDebugLog(`  - whatsappVerified: ${whatsappVerified}`);
+      addDebugLog(`  - cpfValidated: ${cpfValidated}`);
+      addDebugLog(`  - codeSent: ${codeSent}`);
+      addDebugLog(`  - loading: ${loading}`);
       
       const fieldsToValidate = (
         step === 1 ? ["fullName", "email", "password"] : 
@@ -647,8 +661,9 @@ const Signup = () => {
         
         const nextStepNum = step + 1;
         addDebugLog(`➡️ Mudando step de ${step} para ${nextStepNum}`);
+        addDebugLog(`🔧 Chamando setStep(${nextStepNum})...`);
         setStep(nextStepNum);
-        addDebugLog(`✓ Step atualizado!`);
+        addDebugLog(`✓ setStep chamado! Aguardando re-render...`);
       } else {
         addDebugLog(`❌ Validação falhou`);
         Object.keys(errors).forEach(key => {
@@ -658,6 +673,7 @@ const Signup = () => {
     } catch (error: any) {
       const errorMsg = error?.message || String(error);
       addDebugLog(`💥 ERRO em nextStep: ${errorMsg}`);
+      addDebugLog(`Stack: ${error?.stack?.substring(0, 200) || 'N/A'}`);
       setHasError(true);
       toast({
         title: "Erro",

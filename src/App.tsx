@@ -8,6 +8,7 @@ import { EnvironmentProvider } from "@/contexts/EnvironmentContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { AuthGuard } from "@/components/AuthGuard";
 import { GlobalDebugPanel } from "@/components/GlobalDebugPanel";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -31,16 +32,17 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <GlobalDebugPanel />
-      <BrowserRouter>
-        <EnvironmentProvider>
-          <AuthProvider>
-            <ImpersonationProvider>
-              <Routes>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <GlobalDebugPanel />
+        <BrowserRouter>
+          <EnvironmentProvider>
+            <AuthProvider>
+              <ImpersonationProvider>
+                <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/revendedores" element={<Resellers />} />
           <Route path="/cadastro" element={<Signup />} />
@@ -61,13 +63,14 @@ const App = () => (
                 <Route path="/site/:username" element={<MiniSite />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </ImpersonationProvider>
-          </AuthProvider>
-        </EnvironmentProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+                </Routes>
+              </ImpersonationProvider>
+            </AuthProvider>
+          </EnvironmentProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
