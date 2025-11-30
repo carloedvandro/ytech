@@ -143,13 +143,19 @@ const Signup = () => {
       }
 
       console.log('✅ Código enviado com sucesso!');
-      setCodeSent(true);
-      setCodeExpiry(data.expiresAt);
       
       toast({
         title: "Código enviado!",
         description: "Verifique seu WhatsApp",
       });
+
+      // Pequeno delay para Android processar antes de atualizar UI
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      setCodeSent(true);
+      setCodeExpiry(data.expiresAt);
+      
+      console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {
       console.error('❌ Erro ao enviar código:', error);
       toast({
@@ -503,7 +509,7 @@ const Signup = () => {
 
             {/* Etapa 2: WhatsApp */}
             {step === 2 && (
-              <>
+              <div key="step-2-whatsapp">
                 <div className="space-y-2">
                   <Label htmlFor="whatsapp">WhatsApp</Label>
                   <Input
@@ -511,7 +517,7 @@ const Signup = () => {
                     placeholder="11999999999"
                     maxLength={11}
                     {...register("whatsapp")}
-                    disabled={whatsappVerified}
+                    disabled={whatsappVerified || codeSent}
                   />
                   {errors.whatsapp && (
                     <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
@@ -532,7 +538,7 @@ const Signup = () => {
                 )}
 
                 {codeSent && !whatsappVerified && (
-                  <>
+                  <div key="verification-code-section">
                     <div className="space-y-2">
                       <Label htmlFor="verificationCode">Código de Verificação</Label>
                       <Input
@@ -556,7 +562,7 @@ const Signup = () => {
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Verificar Código
                     </Button>
-                  </>
+                  </div>
                 )}
 
                 {whatsappVerified && (
@@ -576,7 +582,7 @@ const Signup = () => {
                     </Button>
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* Etapa 3: CPF */}
