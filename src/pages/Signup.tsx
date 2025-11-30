@@ -44,7 +44,6 @@ const Signup = () => {
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
-  const [sendError, setSendError] = useState<{ title: string; description: string } | null>(null);
 
   const {
     register,
@@ -129,7 +128,6 @@ const Signup = () => {
     }
 
     setLoading(true);
-    setSendError(null); // Limpar erro anterior
     console.log('📤 Enviando código de verificação para:', whatsapp);
     
     try {
@@ -164,25 +162,20 @@ const Signup = () => {
           description = errorMessage;
         }
         
-        // Guardar erro no estado para mostrar na UI (importante para Chrome Android)
-        setSendError({ title, description });
-        
         toast({
           title,
           description,
           variant: "destructive",
+          duration: 8000, // 8 segundos para dar tempo de ler
         });
         
-        // NÃO fazer return - manter a UI renderizada
         setLoading(false);
-        return;
+        return; // Manter UI visível mas parar aqui
       }
 
-      // Sucesso - limpar erro e continuar
-      setSendError(null);
+      // Sucesso - continuar
       console.log('✅ Código enviado com sucesso!');
       console.log('🔍 User Agent:', navigator.userAgent);
-      console.log('🔍 Estado ANTES:', { codeSent, whatsappVerified, step });
       
       toast({
         title: "Código enviado! ✅",
@@ -193,27 +186,19 @@ const Signup = () => {
       setCodeExpiry(data.expiresAt);
       
       // Usar callback para garantir atualização correta
-      setCodeSent((prev) => {
-        console.log('🔍 Atualizando codeSent de', prev, 'para true');
-        return true;
-      });
+      setCodeSent(true);
       
       // Aguardar um frame de animação para Chrome processar
       await new Promise(resolve => requestAnimationFrame(() => {
         requestAnimationFrame(resolve);
       }));
-      
-      console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {
       console.error('❌ Erro inesperado:', error);
-      const errorData = {
-        title: "Erro inesperado",
-        description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente."
-      };
-      setSendError(errorData);
       toast({
-        ...errorData,
+        title: "Erro inesperado",
+        description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente.",
         variant: "destructive",
+        duration: 8000,
       });
     } finally {
       setLoading(false);
@@ -578,17 +563,6 @@ const Signup = () => {
                     <p className="text-xs text-muted-foreground">
                       {codeSent ? '✅ Código enviado' : 'Digite seu WhatsApp com DDD'}
                     </p>
-                  </div>
-
-                  {/* Alert de erro - sempre no DOM */}
-                  <div style={{ display: sendError ? 'block' : 'none' }}>
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <div className="font-semibold">{sendError?.title}</div>
-                        <div className="text-sm mt-1">{sendError?.description}</div>
-                      </AlertDescription>
-                    </Alert>
                   </div>
 
                   {/* Botão de enviar código - sempre no DOM, controla apenas visibilidade */}
