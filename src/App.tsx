@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { EnvironmentProvider } from "@/contexts/EnvironmentContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { AuthGuard } from "@/components/AuthGuard";
+import { GlobalDebugPanel } from "@/components/GlobalDebugPanel";
 import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
@@ -34,6 +35,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <GlobalDebugPanel />
       <BrowserRouter>
         <EnvironmentProvider>
           <AuthProvider>
