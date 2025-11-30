@@ -44,6 +44,16 @@ const Signup = () => {
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+
+  // Sistema de logging visual
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}`;
+    console.log(logMessage);
+    setDebugLogs(prev => [...prev.slice(-20), logMessage]); // Mantém últimos 20 logs
+  };
 
   const {
     register,
@@ -65,13 +75,33 @@ const Signup = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && codeSent && !whatsappVerified) {
-        console.log('👁️ Voltou do WhatsApp - mantendo estado do código');
+        addDebugLog('👁️ Voltou do WhatsApp - mantendo estado do código');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [codeSent, whatsappVerified]);
+
+  // Capturar erros globais
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      addDebugLog(`💥 ERRO: ${event.message}`);
+      event.preventDefault();
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      addDebugLog(`💥 PROMISE REJECTION: ${event.reason}`);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   // Validar CPF
   const validateCPF = async () => {
@@ -119,6 +149,7 @@ const Signup = () => {
   // Enviar código WhatsApp
   const sendWhatsAppCode = async () => {
     if (!whatsapp || whatsapp.length !== 11) {
+      addDebugLog('❌ WhatsApp inválido');
       toast({
         title: "WhatsApp inválido",
         description: "Digite os 11 dígitos (DDD + número)",
@@ -128,7 +159,7 @@ const Signup = () => {
     }
 
     setLoading(true);
-    console.log('📤 Enviando código de verificação para:', whatsapp);
+    addDebugLog(`📤 Enviando código para: ${whatsapp}`);
     
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp-verification", {
@@ -136,13 +167,12 @@ const Signup = () => {
       });
 
       if (error) {
-        console.error('❌ Erro ao enviar código:', error);
-        // Supabase retorna FunctionsHttpError com context
+        addDebugLog(`❌ Erro ao enviar: ${error.message}`);
         const errorMessage = error.context?.error || error.message || "Erro ao enviar código de verificação";
         throw new Error(errorMessage);
       }
 
-      console.log('✅ Código enviado com sucesso!');
+      addDebugLog('✅ Código enviado com sucesso!');
       setCodeSent(true);
       setCodeExpiry(data.expiresAt);
       
@@ -151,7 +181,7 @@ const Signup = () => {
         description: "Verifique seu WhatsApp",
       });
     } catch (error: any) {
-      console.error('❌ Erro ao enviar código:', error);
+      addDebugLog(`❌ Catch error: ${error.message}`);
       toast({
         title: "Erro ao enviar código",
         description: error.message || "Erro desconhecido ao processar solicitação",
@@ -159,6 +189,7 @@ const Signup = () => {
       });
     } finally {
       setLoading(false);
+      addDebugLog('✓ sendWhatsAppCode finalizado');
     }
   };
 
@@ -409,7 +440,7 @@ const Signup = () => {
 
   const nextStep = async () => {
     try {
-      console.log('🚀 Avançando do step:', step);
+      addDebugLog(`🚀 Avançando do step: ${step}`);
       
       const fieldsToValidate = (
         step === 1 ? ["fullName", "email", "password"] : 
@@ -418,29 +449,31 @@ const Signup = () => {
         ["cep", "rua", "numero", "bairro", "cidade", "estado"]
       ) as (keyof SignupForm)[];
       
-      console.log('🔍 Validando campos:', fieldsToValidate);
+      addDebugLog(`🔍 Validando campos: ${fieldsToValidate.join(', ')}`);
       const isValid = await trigger(fieldsToValidate);
       
-      console.log('✅ Validação:', isValid);
+      addDebugLog(`✅ Validação resultado: ${isValid}`);
       
       if (isValid) {
         if (step === 2 && !whatsappVerified) {
-          console.log('⚠️ WhatsApp não verificado');
+          addDebugLog('⚠️ WhatsApp não verificado - bloqueando avanço');
           return;
         }
         if (step === 3 && !cpfValidated) {
-          console.log('⚠️ CPF não validado');
+          addDebugLog('⚠️ CPF não validado - bloqueando avanço');
           return;
         }
         
         const nextStepNum = step + 1;
-        console.log('➡️ Indo para step:', nextStepNum);
+        addDebugLog(`➡️ Indo para step: ${nextStepNum}`);
         setStep(nextStepNum);
+        addDebugLog(`✓ Step atualizado para: ${nextStepNum}`);
       } else {
-        console.log('❌ Validação falhou');
+        addDebugLog(`❌ Validação falhou - errors: ${JSON.stringify(errors)}`);
       }
-    } catch (error) {
-      console.error('💥 Erro ao avançar step:', error);
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      addDebugLog(`💥 ERRO ao avançar step: ${errorMsg}`);
       toast({
         title: "Erro",
         description: "Ocorreu um erro ao avançar. Tente novamente.",
@@ -478,11 +511,45 @@ const Signup = () => {
     );
   }
 
-  // Adicionar log para debug de renderização
-  console.log('🔄 Renderizando Signup - Step:', step, 'WhatsApp Verified:', whatsappVerified, 'CPF Validated:', cpfValidated);
+  // Log de renderização
+  useEffect(() => {
+    addDebugLog(`🔄 Renderizando - Step: ${step}, WhatsApp: ${whatsappVerified}, CPF: ${cpfValidated}`);
+  }, [step, whatsappVerified, cpfValidated]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center p-4">
+      {/* Botão de Debug - sempre visível */}
+      <button
+        onClick={() => setShowDebug(!showDebug)}
+        className="fixed top-4 right-4 z-50 bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-xs font-bold"
+      >
+        {showDebug ? 'Fechar Debug' : 'Ver Debug'}
+      </button>
+
+      {/* Painel de Debug */}
+      {showDebug && (
+        <div className="fixed top-16 right-4 z-50 bg-background border-2 border-destructive rounded-lg p-4 max-w-xs max-h-96 overflow-y-auto shadow-xl">
+          <h3 className="font-bold mb-2 text-sm">Debug Logs:</h3>
+          <div className="space-y-1 text-xs font-mono">
+            {debugLogs.length === 0 ? (
+              <p className="text-muted-foreground">Nenhum log ainda</p>
+            ) : (
+              debugLogs.map((log, idx) => (
+                <div key={idx} className="text-foreground break-words">
+                  {log}
+                </div>
+              ))
+            )}
+          </div>
+          <button
+            onClick={() => setDebugLogs([])}
+            className="mt-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded"
+          >
+            Limpar Logs
+          </button>
+        </div>
+      )}
+
       <Card className="max-w-md w-full">
         <CardHeader>
           <CardTitle>Cadastro de Novo Revendedor</CardTitle>
