@@ -242,7 +242,11 @@ const Login = () => {
         noise={{ opacity: 0.15, scale: 1.5 }}
       />
 
-      <Card className="relative z-10 max-w-md w-full bg-black/40 backdrop-blur-sm border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.3)]">
+      {/* Card de Login - sempre visível quando não está em 2FA */}
+      <Card 
+        className="relative z-10 max-w-md w-full bg-black/40 backdrop-blur-sm border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.3)]"
+        style={{ display: show2FA ? 'none' : 'block' }}
+      >
         <CardHeader className="space-y-4">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-primary mb-2 drop-shadow-[0_0_20px_rgba(0,255,255,0.5)]">YTech</h1>
@@ -302,28 +306,26 @@ const Login = () => {
         </CardContent>
       </Card>
 
-      {/* Overlay customizado para 2FA - sempre no DOM */}
-      <div 
-        className={`fixed inset-0 z-50 ${show2FA ? 'flex' : 'hidden'} items-center justify-center bg-black/80 backdrop-blur-sm`}
-        style={{ display: show2FA ? 'flex' : 'none' }}
+      {/* Card de 2FA - sempre no DOM, apenas escondido com CSS */}
+      <Card 
+        className="relative z-10 max-w-md w-full bg-black/40 backdrop-blur-sm border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.3)]"
+        style={{ display: show2FA ? 'block' : 'none' }}
       >
-        <Card className="w-full max-w-md mx-4 bg-black/90 border-primary/30">
-          <CardHeader>
-            <CardTitle className="text-white">Verificação em 2 Fatores</CardTitle>
-            <CardDescription className="text-white/70">
-              Digite o código de 6 dígitos enviado para {pendingAuth?.whatsapp ? pendingAuth.whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3") : ''}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TwoFactorModal
-              open={show2FA}
-              whatsapp={pendingAuth?.whatsapp || ''}
-              onVerified={handleTwoFactorVerified}
-              onCancel={handleTwoFactorCancel}
-            />
-          </CardContent>
-        </Card>
-      </div>
+        <CardHeader>
+          <CardTitle className="text-white">Verificação em 2 Fatores</CardTitle>
+          <CardDescription className="text-white/70">
+            Digite o código de 6 dígitos enviado para {pendingAuth?.whatsapp ? pendingAuth.whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3") : ''}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TwoFactorModal
+            open={true}
+            whatsapp={pendingAuth?.whatsapp || ''}
+            onVerified={handleTwoFactorVerified}
+            onCancel={handleTwoFactorCancel}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
