@@ -143,17 +143,27 @@ const Signup = () => {
       }
 
       console.log('✅ Código enviado com sucesso!');
+      console.log('🔍 User Agent:', navigator.userAgent);
+      console.log('🔍 Estado ANTES:', { codeSent, whatsappVerified, step });
       
       toast({
         title: "Código enviado!",
         description: "Verifique seu WhatsApp",
       });
 
-      // Pequeno delay para Android processar antes de atualizar UI
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      setCodeSent(true);
+      // Forçar atualização síncrona para Chrome Android
       setCodeExpiry(data.expiresAt);
+      
+      // Usar callback para garantir atualização correta
+      setCodeSent((prev) => {
+        console.log('🔍 Atualizando codeSent de', prev, 'para true');
+        return true;
+      });
+      
+      // Aguardar um frame de animação para Chrome processar
+      await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      }));
       
       console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {
@@ -509,7 +519,7 @@ const Signup = () => {
 
             {/* Etapa 2: WhatsApp */}
             {step === 2 && (
-              <div key="step-2-whatsapp">
+              <div key="step-2-whatsapp" style={{ minHeight: '200px' }}>
                 <div className="space-y-2">
                   <Label htmlFor="whatsapp">WhatsApp</Label>
                   <Input
@@ -522,6 +532,9 @@ const Signup = () => {
                   {errors.whatsapp && (
                     <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    {codeSent ? '✅ Código enviado' : 'Digite seu WhatsApp com DDD'}
+                  </p>
                 </div>
 
                 {!codeSent && !whatsappVerified && (
@@ -538,7 +551,7 @@ const Signup = () => {
                 )}
 
                 {codeSent && !whatsappVerified && (
-                  <div key="verification-code-section">
+                  <div key="verification-code-section" style={{ minHeight: '150px' }}>
                     <div className="space-y-2">
                       <Label htmlFor="verificationCode">Código de Verificação</Label>
                       <Input
