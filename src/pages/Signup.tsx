@@ -37,24 +37,12 @@ const Signup = () => {
   const { toast } = useToast();
   const referralCode = searchParams.get("ref");
 
-  // Recuperar estado do localStorage (para Android quando volta do WhatsApp)
-  const getStoredState = () => {
-    try {
-      const stored = localStorage.getItem('signup_state');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const storedState = getStoredState();
-
-  const [step, setStep] = useState(storedState?.step || 1);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [cpfValidated, setCpfValidated] = useState(storedState?.cpfValidated || false);
-  const [whatsappVerified, setWhatsappVerified] = useState(storedState?.whatsappVerified || false);
-  const [codeSent, setCodeSent] = useState(storedState?.codeSent || false);
-  const [codeExpiry, setCodeExpiry] = useState<string>(storedState?.codeExpiry || "");
+  const [cpfValidated, setCpfValidated] = useState(false);
+  const [whatsappVerified, setWhatsappVerified] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
 
   const {
@@ -73,48 +61,17 @@ const Signup = () => {
   const cpf = watch("cpf");
   const cep = watch("cep");
 
-  // Salvar estado no localStorage sempre que mudar (para Android)
-  useEffect(() => {
-    const state = {
-      step,
-      cpfValidated,
-      whatsappVerified,
-      codeSent,
-      codeExpiry,
-    };
-    localStorage.setItem('signup_state', JSON.stringify(state));
-  }, [step, cpfValidated, whatsappVerified, codeSent, codeExpiry]);
-
-  // Limpar estado quando finalizar cadastro
-  useEffect(() => {
-    return () => {
-      if (step === 5) {
-        localStorage.removeItem('signup_state');
-      }
-    };
-  }, [step]);
-
-  // Detectar quando usuário volta do WhatsApp (visibilidade da página)
+  // Detectar quando usuário volta do WhatsApp (apenas quando código foi enviado)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('👁️ Página ficou visível novamente');
-        // Forçar re-renderização
-        const stored = getStoredState();
-        if (stored) {
-          console.log('📥 Restaurando estado:', stored);
-          setStep(stored.step);
-          setCpfValidated(stored.cpfValidated);
-          setWhatsappVerified(stored.whatsappVerified);
-          setCodeSent(stored.codeSent);
-          setCodeExpiry(stored.codeExpiry);
-        }
+      if (document.visibilityState === 'visible' && codeSent && !whatsappVerified) {
+        console.log('👁️ Voltou do WhatsApp - mantendo estado do código');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  }, [codeSent, whatsappVerified]);
 
   // Validar CPF
   const validateCPF = async () => {
@@ -188,15 +145,6 @@ const Signup = () => {
       console.log('✅ Código enviado com sucesso!');
       setCodeSent(true);
       setCodeExpiry(data.expiresAt);
-      
-      // Salvar imediatamente no localStorage
-      localStorage.setItem('signup_state', JSON.stringify({
-        step,
-        cpfValidated,
-        whatsappVerified,
-        codeSent: true,
-        codeExpiry: data.expiresAt,
-      }));
       
       toast({
         title: "Código enviado!",
@@ -438,9 +386,6 @@ const Signup = () => {
         // Não bloqueia o cadastro se a notificação falhar
       }
 
-      // Limpar estado salvo
-      localStorage.removeItem('signup_state');
-      
       toast({
         title: "Cadastro realizado!",
         description: "Faça login para continuar",
