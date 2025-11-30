@@ -13,6 +13,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { EtheralShadow } from "@/components/ui/etheral-shadow";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { useIsChromeAndroid } from "@/hooks/use-chrome-android";
+import { LoginSimple } from "@/components/LoginSimple";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -22,6 +24,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 const Login = () => {
+  const isChromeAndroid = useIsChromeAndroid();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
@@ -32,6 +35,12 @@ const Login = () => {
   const [pendingAuth, setPendingAuth] = useState<{ email: string; password: string; whatsapp: string } | null>(null);
   const hasRedirected = useRef(false);
   const isVerifying2FA = useRef(false); // Flag para indicar que estamos no processo de 2FA
+  
+  // Renderizar versão simplificada para Chrome Android
+  if (isChromeAndroid) {
+    console.log('📱 Renderizando versão simplificada para Chrome Android');
+    return <LoginSimple />;
+  }
 
   // Redirect to dashboard if already logged in - with protection against loops
   useEffect(() => {
