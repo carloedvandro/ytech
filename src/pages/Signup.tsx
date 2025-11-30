@@ -323,40 +323,66 @@ const Signup = () => {
     addDebugLog(`📤 Enviando código para WhatsApp: ${whatsapp}`);
     
     try {
-      const { data, error } = await supabase.functions.invoke("send-whatsapp-verification", {
+      const response = await supabase.functions.invoke("send-whatsapp-verification", {
         body: { whatsapp, checkDuplicate: true },
       });
 
-      addDebugLog(`📦 Resposta recebida - error: ${error ? 'sim' : 'não'}, data: ${JSON.stringify(data)}`);
+      addDebugLog(`📦 Resposta recebida - error: ${response.error ? 'sim' : 'não'}, data: ${JSON.stringify(response.data)}`);
 
-      if (error) {
-        addDebugLog(`❌ Error object: ${JSON.stringify(error)}`);
-        const errorMessage = error.context?.error || error.message || "Erro ao enviar código de verificação";
-        throw new Error(errorMessage);
+      // Se houver erro na requisição
+      if (response.error) {
+        addDebugLog(`❌ Error object: ${JSON.stringify(response.error)}`);
+        
+        // Tentar pegar a mensagem do corpo da resposta
+        let errorMessage = "Erro ao enviar código de verificação";
+        
+        // O erro pode vir no data quando é um erro HTTP
+        if (response.data && response.data.error) {
+          errorMessage = response.data.error;
+          addDebugLog(`📝 Mensagem de erro do backend: ${errorMessage}`);
+        } else if (response.error.message) {
+          errorMessage = response.error.message;
+        }
+        
+        toast({
+          title: "Não foi possível enviar o código",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000,
+        });
+        return;
       }
 
       // Verificar se a resposta contém erro mesmo sem o objeto error
-      if (data && data.error) {
-        addDebugLog(`❌ Data contém erro: ${data.error}`);
-        throw new Error(data.error);
+      if (response.data && response.data.error) {
+        addDebugLog(`❌ Data contém erro: ${response.data.error}`);
+        toast({
+          title: "Não foi possível enviar o código",
+          description: response.data.error,
+          variant: "destructive",
+          duration: 5000,
+        });
+        return;
       }
 
       addDebugLog('✅ Código enviado com sucesso!');
       setCodeSent(true);
-      setCodeExpiry(data.expiresAt);
-      addDebugLog(`⏰ Código expira em: ${data.expiresAt}`);
+      setCodeExpiry(response.data.expiresAt);
+      addDebugLog(`⏰ Código expira em: ${response.data.expiresAt}`);
       
       toast({
-        title: "Código enviado!",
-        description: "Verifique seu WhatsApp",
+        title: "✅ Código enviado!",
+        description: "Verifique seu WhatsApp e insira o código de 6 dígitos",
+        duration: 5000,
       });
     } catch (error: any) {
       addDebugLog(`💥 Catch error no envio: ${error.message}`);
       addDebugLog(`💥 Error stack: ${error.stack?.substring(0, 200) || 'N/A'}`);
       toast({
-        title: "Erro ao enviar código",
-        description: error.message || "Erro desconhecido ao processar solicitação",
+        title: "Erro ao processar solicitação",
+        description: error.message || "Erro desconhecido. Tente novamente.",
         variant: "destructive",
+        duration: 5000,
       });
     } finally {
       setLoading(false);
