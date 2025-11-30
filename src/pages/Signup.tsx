@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useIsChromeAndroid } from "@/hooks/use-chrome-android";
+import { SignupSimple } from "@/components/SignupSimple";
 
 // Schema de validação
 const signupSchema = z.object({
@@ -32,6 +34,7 @@ const signupSchema = z.object({
 type SignupForm = z.infer<typeof signupSchema>;
 
 const Signup = () => {
+  const isChromeAndroid = useIsChromeAndroid();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,6 +47,12 @@ const Signup = () => {
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
+  
+  // Renderizar versão simplificada para Chrome Android
+  if (isChromeAndroid) {
+    console.log('📱 Renderizando versão simplificada de Signup para Chrome Android');
+    return <SignupSimple />;
+  }
 
   const {
     register,
