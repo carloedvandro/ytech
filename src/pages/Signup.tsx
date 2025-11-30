@@ -516,61 +516,83 @@ const Signup = () => {
     addDebugLog(`🔄 Renderizando - Step: ${step}, WhatsApp: ${whatsappVerified}, CPF: ${cpfValidated}`);
   }, [step, whatsappVerified, cpfValidated]);
 
+  // Log detalhado de cada step
+  useEffect(() => {
+    addDebugLog(`📍 Mostrando conteúdo do Step ${step}`);
+    if (step === 2) {
+      addDebugLog(`📱 Step 2 - WhatsApp verificado: ${whatsappVerified}, Código enviado: ${codeSent}`);
+    }
+  }, [step]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center p-4">
-      {/* Botão de Debug - sempre visível */}
+    <>
+      {/* Botão de Debug - SEMPRE VISÍVEL, fora do card */}
       <button
-        onClick={() => setShowDebug(!showDebug)}
-        className="fixed top-4 right-4 z-50 bg-destructive text-destructive-foreground px-3 py-1 rounded-md text-xs font-bold"
+        onClick={() => {
+          setShowDebug(!showDebug);
+          addDebugLog(`👁️ Debug ${!showDebug ? 'ABERTO' : 'FECHADO'}`);
+        }}
+        className="fixed top-4 right-4 z-[9999] bg-destructive text-destructive-foreground px-4 py-2 rounded-md text-sm font-bold shadow-2xl border-2 border-white"
+        style={{ position: 'fixed' }}
       >
-        {showDebug ? 'Fechar Debug' : 'Ver Debug'}
+        {showDebug ? 'Fechar Depuração' : 'Ver Depuração'}
       </button>
 
       {/* Painel de Debug */}
       {showDebug && (
-        <div className="fixed top-16 right-4 z-50 bg-background border-2 border-destructive rounded-lg p-4 max-w-xs max-h-96 overflow-y-auto shadow-xl">
-          <h3 className="font-bold mb-2 text-sm">Debug Logs:</h3>
+        <div className="fixed top-20 right-4 z-[9999] bg-background border-4 border-destructive rounded-lg p-4 w-80 max-h-96 overflow-y-auto shadow-2xl">
+          <h3 className="font-bold mb-2 text-base text-destructive">Registros de depuração:</h3>
+          <div className="mb-2 p-2 bg-primary/10 rounded text-xs">
+            <p><strong>Step atual:</strong> {step}</p>
+            <p><strong>WhatsApp verificado:</strong> {String(whatsappVerified)}</p>
+            <p><strong>CPF validado:</strong> {String(cpfValidated)}</p>
+          </div>
           <div className="space-y-1 text-xs font-mono">
             {debugLogs.length === 0 ? (
               <p className="text-muted-foreground">Nenhum log ainda</p>
             ) : (
               debugLogs.map((log, idx) => (
-                <div key={idx} className="text-foreground break-words">
+                <div key={idx} className="text-foreground break-words border-b border-border/20 pb-1">
                   {log}
                 </div>
               ))
             )}
           </div>
           <button
-            onClick={() => setDebugLogs([])}
-            className="mt-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded"
+            onClick={() => {
+              setDebugLogs([]);
+              addDebugLog('🗑️ Registros Limpos');
+            }}
+            className="mt-3 w-full text-xs bg-primary text-primary-foreground px-3 py-2 rounded font-bold"
           >
             Limpar Logs
           </button>
         </div>
       )}
 
-      <Card className="max-w-md w-full">
-        <CardHeader>
-          <CardTitle>Cadastro de Novo Revendedor</CardTitle>
-          <CardDescription>
-            Preencha os dados abaixo para se cadastrar (Etapa {step} de 5)
-          </CardDescription>
-          <div className="flex justify-between items-center mt-4">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <div
-                key={s}
-                className={`h-2 flex-1 rounded-full mx-1 transition-all ${
-                  s <= step ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            ))}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Etapa 1: Dados Pessoais */}
-            {step === 1 && (
+      <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center p-4">
+
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Cadastro de Novo Revendedor</CardTitle>
+            <CardDescription>
+              Preencha os dados abaixo para se cadastrar (Etapa {step} de 5)
+            </CardDescription>
+            <div className="flex justify-between items-center mt-4">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <div
+                  key={s}
+                  className={`h-2 flex-1 rounded-full mx-1 transition-all ${
+                    s <= step ? "bg-primary" : "bg-muted"
+                  }`}
+                />
+              ))}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Etapa 1: Dados Pessoais */}
+              {step === 1 && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Nome Completo</Label>
@@ -870,10 +892,11 @@ const Signup = () => {
                 </div>
               </>
             )}
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 };
 
