@@ -49,23 +49,23 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginForm) => {
+    console.log('🚀 [LOGIN] Início do submit');
     setLoading(true);
     isVerifying2FA.current = true;
     
     try {
-      console.log('🔑 Buscando usuário pelo email...');
-      console.log('🌐 User-Agent:', navigator.userAgent);
-      console.log('📱 Chrome Android detected:', /Chrome.*Mobile|Android.*Chrome/.test(navigator.userAgent));
+      console.log('🔑 [LOGIN] Buscando usuário pelo email...');
       
-      // Buscar perfil pelo email primeiro
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("id, whatsapp")
         .eq("email", data.email)
         .limit(1);
 
+      console.log('📊 [LOGIN] Resposta profiles:', { profiles, profileError });
+
       if (profileError || !profiles || profiles.length === 0) {
-        console.error('❌ Usuário não encontrado');
+        console.error('❌ [LOGIN] Usuário não encontrado');
         toast({
           title: "Erro ao fazer login",
           description: "Email ou senha incorretos",
@@ -77,9 +77,10 @@ const Login = () => {
       }
 
       const profile = profiles[0];
+      console.log('👤 [LOGIN] Profile encontrado:', profile);
 
       if (!profile.whatsapp) {
-        console.error('❌ WhatsApp não cadastrado');
+        console.error('❌ [LOGIN] WhatsApp não cadastrado');
         toast({
           title: "Erro",
           description: "WhatsApp não cadastrado. Entre em contato com o suporte.",
@@ -90,15 +91,16 @@ const Login = () => {
         return;
       }
 
-      console.log('📱 Enviando código 2FA para:', profile.whatsapp);
+      console.log('📱 [LOGIN] Enviando código 2FA para:', profile.whatsapp);
 
-      // Enviar código via WhatsApp
       const { error: sendError } = await supabase.functions.invoke("send-whatsapp-verification", {
         body: { whatsapp: profile.whatsapp },
       });
 
+      console.log('📨 [LOGIN] Resposta envio código:', { sendError });
+
       if (sendError) {
-        console.error('❌ Erro ao enviar código:', sendError);
+        console.error('❌ [LOGIN] Erro ao enviar código:', sendError);
         toast({
           title: "Erro ao enviar código",
           description: "Não foi possível enviar o código. Tente novamente.",
@@ -109,52 +111,43 @@ const Login = () => {
         return;
       }
 
-      console.log('✅ Código enviado com sucesso');
+      console.log('✅ [LOGIN] Código enviado com sucesso');
+      console.log('💾 [LOGIN] Salvando dados pendentes...');
 
-      // Guardar dados para login após verificação
+      // Salvar dados de autenticação pendente
       const authInfo = {
         email: data.email,
         password: data.password,
         whatsapp: profile.whatsapp,
       };
       
-      console.log('💾 Salvando pendingAuth');
-      
-      // CRÍTICO: Para Chrome Android - garantir que setState seja processado
-      // antes de mostrar a UI 2FA
+      console.log('📝 [LOGIN] setPendingAuth chamado');
       setPendingAuth(authInfo);
       
-      // Forçar um flush de todas as atualizações de estado antes de continuar
-      await new Promise(resolve => {
-        // Usar setTimeout(0) para garantir que React processe o setState
-        setTimeout(() => {
-          // Usar requestAnimationFrame duplo para garantir re-paint no Chrome Android
-          requestAnimationFrame(() => {
-            requestAnimationFrame(resolve);
-          });
-        }, 0);
-      });
+      console.log('⏳ [LOGIN] Aguardando processamento...');
+      // Dar tempo para o estado ser atualizado antes de mudar a tela
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      console.log('🔓 Ativando tela 2FA');
+      console.log('🔓 [LOGIN] setShow2FA(true) chamado');
       setShow2FA(true);
       
-      // Aguardar mais um ciclo para o Chrome Android renderizar
-      await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        });
-      });
+      console.log('⏳ [LOGIN] Aguardando mais um ciclo...');
+      await new Promise(resolve => setTimeout(resolve, 50));
       
-      console.log('✅ Estado show2FA ativado');
+      console.log('✅ [LOGIN] setLoading(false) chamado');
       setLoading(false);
 
+      console.log('🎉 [LOGIN] Mostrando toast de sucesso');
       toast({
         title: "Código enviado!",
         description: "Verifique seu WhatsApp",
       });
+      
+      console.log('✅ [LOGIN] onSubmit concluído com sucesso');
 
     } catch (error: any) {
-      console.error('❌ Erro inesperado no login:', error);
+      console.error('❌ [LOGIN] Erro inesperado no login:', error);
+      console.error('Stack trace:', error.stack);
       toast({
         title: "Erro ao fazer login",
         description: error.message || "Erro inesperado. Tente novamente.",

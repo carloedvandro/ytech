@@ -118,7 +118,10 @@ const Signup = () => {
 
   // Enviar código WhatsApp
   const sendWhatsAppCode = async () => {
+    console.log('🚀 [SIGNUP] Início sendWhatsAppCode');
+    
     if (!whatsapp || whatsapp.length !== 11) {
+      console.log('❌ [SIGNUP] WhatsApp inválido:', whatsapp);
       toast({
         title: "WhatsApp inválido",
         description: "Digite os 11 dígitos (DDD + número)",
@@ -127,23 +130,25 @@ const Signup = () => {
       return;
     }
 
+    console.log('⏳ [SIGNUP] setLoading(true)');
     setLoading(true);
-    console.log('📤 Enviando código de verificação para:', whatsapp);
-    console.log('🌐 User-Agent:', navigator.userAgent);
-    console.log('📱 Chrome Android detected:', /Chrome.*Mobile|Android.*Chrome/.test(navigator.userAgent));
+    console.log('📤 [SIGNUP] Enviando código de verificação para:', whatsapp);
+    console.log('🌐 [SIGNUP] User-Agent:', navigator.userAgent);
     
     try {
+      console.log('📞 [SIGNUP] Chamando edge function...');
       const { data, error } = await supabase.functions.invoke("send-whatsapp-verification", {
         body: { whatsapp, checkDuplicate: true },
       });
 
+      console.log('📥 [SIGNUP] Resposta:', { data, error });
+
       if (error) {
-        console.error('❌ Erro ao enviar código:', error);
+        console.error('❌ [SIGNUP] Erro ao enviar código:', error);
         
-        // Capturar mensagem de erro do servidor
         const errorMessage = error.context?.error || error.message || "";
+        console.log('📝 [SIGNUP] Mensagem de erro:', errorMessage);
         
-        // Identificar tipos específicos de erro e dar feedback amigável
         let title = "Não foi possível enviar o código";
         let description = "Tente novamente em alguns instantes";
         
@@ -164,62 +169,51 @@ const Signup = () => {
           description = errorMessage;
         }
         
+        console.log('🚨 [SIGNUP] Mostrando toast de erro:', { title, description });
         toast({
           title,
           description,
           variant: "destructive",
         });
+        
+        console.log('✅ [SIGNUP] setLoading(false) após erro');
+        setLoading(false);
         return;
       }
 
-      console.log('✅ Código enviado com sucesso!');
-      console.log('🔍 User Agent:', navigator.userAgent);
-      console.log('🔍 Estado ANTES:', { codeSent, whatsappVerified, step });
+      console.log('✅ [SIGNUP] Código enviado com sucesso!');
+      console.log('🔍 [SIGNUP] Estado ANTES:', { codeSent, whatsappVerified, step });
       
+      console.log('🎉 [SIGNUP] Mostrando toast de sucesso');
       toast({
         title: "Código enviado! ✅",
         description: `Enviamos um código de 6 dígitos para o WhatsApp ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
       });
 
-      // CRÍTICO: Para Chrome Android - garantir que setState seja processado
-      // antes de mostrar a UI de verificação
+      console.log('💾 [SIGNUP] setCodeExpiry chamado');
       setCodeExpiry(data.expiresAt);
       
-      // Forçar um flush de todas as atualizações de estado antes de continuar
-      await new Promise(resolve => {
-        // Usar setTimeout(0) para garantir que React processe os estados
-        setTimeout(() => {
-          // Usar requestAnimationFrame duplo para garantir re-paint no Chrome Android
-          requestAnimationFrame(() => {
-            requestAnimationFrame(resolve);
-          });
-        }, 0);
-      });
+      console.log('⏳ [SIGNUP] Aguardando processamento...');
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      console.log('🔓 Ativando UI de verificação de código');
+      console.log('🔓 [SIGNUP] setCodeSent(true) chamado');
+      setCodeSent(true);
       
-      // Usar callback para garantir atualização correta
-      setCodeSent((prev) => {
-        console.log('🔍 Atualizando codeSent de', prev, 'para true');
-        return true;
-      });
+      console.log('⏳ [SIGNUP] Aguardando mais um ciclo...');
+      await new Promise(resolve => setTimeout(resolve, 50));
       
-      // Aguardar mais um ciclo para o Chrome Android renderizar
-      await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        });
-      });
+      console.log('✅ [SIGNUP] Estado atualizado - codeSent:', true);
       
-      console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {
-      console.error('❌ Erro inesperado:', error);
+      console.error('❌ [SIGNUP] Erro inesperado:', error);
+      console.error('[SIGNUP] Stack trace:', error.stack);
       toast({
         title: "Erro inesperado",
         description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente.",
         variant: "destructive",
       });
     } finally {
+      console.log('🏁 [SIGNUP] setLoading(false) no finally');
       setLoading(false);
     }
   };
