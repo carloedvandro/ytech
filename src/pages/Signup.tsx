@@ -327,10 +327,18 @@ const Signup = () => {
         body: { whatsapp, checkDuplicate: true },
       });
 
+      addDebugLog(`📦 Resposta recebida - error: ${error ? 'sim' : 'não'}, data: ${JSON.stringify(data)}`);
+
       if (error) {
-        addDebugLog(`❌ Erro ao enviar: ${error.message}`);
+        addDebugLog(`❌ Error object: ${JSON.stringify(error)}`);
         const errorMessage = error.context?.error || error.message || "Erro ao enviar código de verificação";
         throw new Error(errorMessage);
+      }
+
+      // Verificar se a resposta contém erro mesmo sem o objeto error
+      if (data && data.error) {
+        addDebugLog(`❌ Data contém erro: ${data.error}`);
+        throw new Error(data.error);
       }
 
       addDebugLog('✅ Código enviado com sucesso!');
@@ -344,6 +352,7 @@ const Signup = () => {
       });
     } catch (error: any) {
       addDebugLog(`💥 Catch error no envio: ${error.message}`);
+      addDebugLog(`💥 Error stack: ${error.stack?.substring(0, 200) || 'N/A'}`);
       toast({
         title: "Erro ao enviar código",
         description: error.message || "Erro desconhecido ao processar solicitação",
@@ -819,53 +828,56 @@ const Signup = () => {
                     )}
                   </div>
 
-                  {!codeSent && !whatsappVerified && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="w-full"
-                      onClick={sendWhatsAppCode}
-                      disabled={loading || !whatsapp || whatsapp.length !== 11}
-                    >
-                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Enviar Código de Verificação
-                    </Button>
-                  )}
-
-                  {codeSent && !whatsappVerified && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="verificationCode">Código de Verificação</Label>
-                        <Input
-                          id="verificationCode"
-                          placeholder="000000"
-                          maxLength={6}
-                          {...register("verificationCode")}
-                        />
-                        {errors.verificationCode && (
-                          <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
-                        )}
-                      </div>
-
+                  {/* Sempre renderiza o container, mas muda o conteúdo */}
+                  <div className="space-y-4">
+                    {!codeSent && !whatsappVerified && (
                       <Button
                         type="button"
                         variant="secondary"
                         className="w-full"
-                        onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
-                        disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
+                        onClick={sendWhatsAppCode}
+                        disabled={loading || !whatsapp || whatsapp.length !== 11}
                       >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Verificar Código
+                        Enviar Código de Verificação
                       </Button>
-                    </>
-                  )}
+                    )}
 
-                  {whatsappVerified && (
-                    <Alert>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <AlertDescription>WhatsApp verificado com sucesso!</AlertDescription>
-                    </Alert>
-                  )}
+                    {codeSent && !whatsappVerified && (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="verificationCode">Código de Verificação</Label>
+                          <Input
+                            id="verificationCode"
+                            placeholder="000000"
+                            maxLength={6}
+                            {...register("verificationCode")}
+                          />
+                          {errors.verificationCode && (
+                            <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
+                          )}
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="w-full"
+                          onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
+                          disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
+                        >
+                          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Verificar Código
+                        </Button>
+                      </div>
+                    )}
+
+                    {whatsappVerified && (
+                      <Alert>
+                        <CheckCircle2 className="h-4 w-4" />
+                        <AlertDescription>WhatsApp verificado com sucesso!</AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
 
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
