@@ -50,10 +50,11 @@ const Login = () => {
 
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
-    isVerifying2FA.current = true; // Ativar flag de verificação 2FA
+    isVerifying2FA.current = true;
     
     try {
-      console.log('🔑 Validando credenciais...');
+      console.log('🔑 [Chrome Android] Validando credenciais...');
+      console.log('📱 [Chrome Android] User Agent:', navigator.userAgent);
       
       // Validar credenciais SEM fazer login ainda
       const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -62,7 +63,7 @@ const Login = () => {
       });
 
       if (error) {
-        console.error('❌ Erro de autenticação:', error);
+        console.error('❌ [Chrome Android] Erro de autenticação:', error);
         toast({
           title: "Erro ao fazer login",
           description: error.message === 'Invalid login credentials' 
@@ -71,26 +72,26 @@ const Login = () => {
           variant: "destructive",
         });
         setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
+        isVerifying2FA.current = false;
         return;
       }
 
       if (!authData.user) {
-        console.error('❌ Dados de autenticação incompletos');
+        console.error('❌ [Chrome Android] Dados de autenticação incompletos');
         toast({
           title: "Erro ao fazer login",
           description: "Erro inesperado. Tente novamente.",
           variant: "destructive",
         });
         setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
+        isVerifying2FA.current = false;
         return;
       }
 
-      // Fazer logout imediato para não completar o login ainda
+      console.log('🔐 [Chrome Android] Fazendo logout temporário...');
       await supabase.auth.signOut();
 
-      // Buscar WhatsApp do usuário
+      console.log('👤 [Chrome Android] Buscando perfil do usuário...');
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("whatsapp")
@@ -98,68 +99,86 @@ const Login = () => {
         .single();
 
       if (profileError || !profile?.whatsapp) {
-        console.error('❌ WhatsApp não encontrado:', profileError);
+        console.error('❌ [Chrome Android] WhatsApp não encontrado:', profileError);
         toast({
           title: "Erro",
           description: "WhatsApp não cadastrado. Entre em contato com o suporte.",
           variant: "destructive",
         });
         setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
+        isVerifying2FA.current = false;
         return;
       }
 
-      console.log('📱 Enviando código 2FA para:', profile.whatsapp);
+      console.log('📱 [Chrome Android] Enviando código 2FA para:', profile.whatsapp);
 
       // Enviar código via WhatsApp
-      const { error: sendError } = await supabase.functions.invoke("send-whatsapp-verification", {
+      const { data: sendData, error: sendError } = await supabase.functions.invoke("send-whatsapp-verification", {
         body: { whatsapp: profile.whatsapp },
       });
 
+      console.log('📤 [Chrome Android] Resposta do envio:', { sendData, sendError });
+
       if (sendError) {
-        console.error('❌ Erro ao enviar código:', sendError);
+        console.error('❌ [Chrome Android] Erro ao enviar código:', sendError);
+        
+        // Extrair mensagem de erro mais amigável
+        let errorMessage = "Não foi possível enviar o código. Tente novamente.";
+        if (sendError.message) {
+          errorMessage = sendError.message;
+        }
+        
         toast({
           title: "Erro ao enviar código",
-          description: "Não foi possível enviar o código. Tente novamente.",
+          description: errorMessage,
           variant: "destructive",
+          duration: 6000,
         });
         setLoading(false);
-        isVerifying2FA.current = false; // Desativar flag em caso de erro
+        isVerifying2FA.current = false;
         return;
       }
 
-      console.log('✅ Código enviado com sucesso');
+      console.log('✅ [Chrome Android] Código enviado com sucesso!');
 
-      // Guardar dados para login após verificação ANTES de mostrar o modal
+      // Preparar dados para o modal
       const authInfo = {
         email: data.email,
         password: data.password,
         whatsapp: profile.whatsapp,
       };
       
-      console.log('💾 Salvando pendingAuth:', authInfo);
+      console.log('💾 [Chrome Android] Configurando pendingAuth...');
       setPendingAuth(authInfo);
       
-      console.log('🔓 Ativando modal 2FA');
-      setShow2FA(true);
+      // Aguardar estado atualizar antes de abrir modal
+      await new Promise(resolve => requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      }));
       
-      console.log('📊 Estados atualizados - show2FA: true, pendingAuth:', authInfo);
+      console.log('🔓 [Chrome Android] Abrindo modal 2FA...');
+      setShow2FA(true);
       setLoading(false);
+      
+      console.log('📊 [Chrome Android] Estados finais - show2FA: true, loading: false');
 
       toast({
         title: "Código enviado!",
-        description: "Verifique seu WhatsApp",
+        description: `Código enviado para ${profile.whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
+        duration: 4000,
       });
 
     } catch (error: any) {
-      console.error('❌ Erro inesperado no login:', error);
+      console.error('❌ [Chrome Android] Erro inesperado no login:', error);
+      console.error('❌ [Chrome Android] Stack trace:', error.stack);
       toast({
         title: "Erro ao fazer login",
         description: error.message || "Erro inesperado. Tente novamente.",
         variant: "destructive",
+        duration: 6000,
       });
       setLoading(false);
-      isVerifying2FA.current = false; // Desativar flag em caso de erro
+      isVerifying2FA.current = false;
     }
   };
 
@@ -285,8 +304,9 @@ const Login = () => {
         </Card>
       </div>
 
+      {/* Modal 2FA - sempre renderizado, controlado por 'open' */}
       <TwoFactorModal
-        open={show2FA && !!pendingAuth}
+        open={show2FA}
         whatsapp={pendingAuth?.whatsapp || ''}
         onVerified={handleTwoFactorVerified}
         onCancel={handleTwoFactorCancel}
