@@ -234,84 +234,83 @@ const Login = () => {
   };
 
   return (
-    <>
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
-        {/* Animated Shadow Overlay Background */}
-        <EtheralShadow
-          color="rgba(0, 255, 255, 0.2)"
-          animation={{ scale: 50, speed: 30 }}
-          noise={{ opacity: 0.15, scale: 1.5 }}
-        />
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
+      {/* Animated Shadow Overlay Background */}
+      <EtheralShadow
+        color="rgba(0, 255, 255, 0.2)"
+        animation={{ scale: 50, speed: 30 }}
+        noise={{ opacity: 0.15, scale: 1.5 }}
+      />
 
-        <Card className="relative z-10 max-w-md w-full bg-black/40 backdrop-blur-sm border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.3)]">
-          <CardHeader className="space-y-4">
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-primary mb-2 drop-shadow-[0_0_20px_rgba(0,255,255,0.5)]">YTech</h1>
-              <p className="text-sm text-white/70">Yrwen Technology</p>
+      <Card className="relative z-10 max-w-md w-full bg-black/40 backdrop-blur-sm border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.3)]">
+        <CardHeader className="space-y-4">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-primary mb-2 drop-shadow-[0_0_20px_rgba(0,255,255,0.5)]">YTech</h1>
+            <p className="text-sm text-white/70">Yrwen Technology</p>
+          </div>
+          <div className="space-y-1">
+            <CardTitle className="text-white">Login</CardTitle>
+            <CardDescription className="text-white/70">Entre com suas credenciais</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-white">Email</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="seu@email.com" 
+                {...register("email")}
+                className="bg-black/60 border-primary/30 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary"
+              />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
-            <div className="space-y-1">
-              <CardTitle className="text-white">Login</CardTitle>
-              <CardDescription className="text-white/70">Entre com suas credenciais</CardDescription>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white">Senha</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                placeholder="Sua senha" 
+                {...register("password")}
+                className="bg-black/60 border-primary/30 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary"
+              />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password.message}</p>
+              )}
             </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="seu@email.com" 
-                  {...register("email")}
-                  className="bg-black/60 border-primary/30 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary"
-                />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white">Senha</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="Sua senha" 
-                  {...register("password")}
-                  className="bg-black/60 border-primary/30 text-white placeholder:text-white/40 focus:border-primary focus:ring-primary"
-                />
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
-                )}
-              </div>
+            <Button 
+              type="submit" 
+              className="w-full bg-primary text-black hover:bg-primary/90 shadow-[0_0_30px_rgba(0,255,255,0.5)] hover:shadow-[0_0_40px_rgba(0,255,255,0.7)] transition-all font-semibold" 
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Entrar
+            </Button>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-primary text-black hover:bg-primary/90 shadow-[0_0_30px_rgba(0,255,255,0.5)] hover:shadow-[0_0_40px_rgba(0,255,255,0.7)] transition-all font-semibold" 
-                disabled={loading}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Entrar
-              </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-2 border-primary/50 bg-black/40 text-primary hover:bg-primary/10 hover:border-primary transition-all"
+              onClick={() => navigate("/")}
+            >
+              Voltar para o início
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-2 border-primary/50 bg-black/40 text-primary hover:bg-primary/10 hover:border-primary transition-all"
-                onClick={() => navigate("/")}
-              >
-                Voltar para o início
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Modal 2FA - sempre renderizado, controlado por 'open' */}
+      {/* Modal 2FA - SEMPRE no DOM, apenas controla visibilidade */}
       <TwoFactorModal
+        key="two-factor-modal-login"
         open={show2FA}
         whatsapp={pendingAuth?.whatsapp || ''}
         onVerified={handleTwoFactorVerified}
         onCancel={handleTwoFactorCancel}
       />
-    </>
+    </div>
   );
 };
 
