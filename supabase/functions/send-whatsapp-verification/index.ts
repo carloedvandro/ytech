@@ -11,6 +11,8 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('🚀 Edge function send-whatsapp-verification iniciada');
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -20,13 +22,28 @@ Deno.serve(async (req) => {
     const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
     const megaToken = Deno.env.get('MEGA_API_KEY');
 
+    console.log('🔑 Verificando credenciais Mega API:', {
+      hasHost: !!megaApiHost,
+      hasInstanceKey: !!megaInstanceKey,
+      hasToken: !!megaToken
+    });
+
     if (!megaApiHost || !megaInstanceKey || !megaToken) {
-      throw new Error('Credenciais Mega API não configuradas. Configure os secrets: MEGA_API_HOST, MEGA_INSTANCE_KEY, MEGA_API_KEY');
+      const errorMsg = 'Credenciais Mega API não configuradas. Configure os secrets: MEGA_API_HOST, MEGA_INSTANCE_KEY, MEGA_API_KEY';
+      console.error('❌ ' + errorMsg);
+      return new Response(JSON.stringify({ 
+        error: errorMsg 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     const { whatsapp, checkDuplicate = false } = await req.json();
+    console.log('📥 Parâmetros recebidos:', { whatsapp, checkDuplicate });
 
     if (!whatsapp) {
+      console.error('❌ WhatsApp não fornecido');
       return new Response(JSON.stringify({ 
         error: 'WhatsApp não fornecido' 
       }), {
@@ -37,14 +54,20 @@ Deno.serve(async (req) => {
 
     // Verificar se o WhatsApp já está cadastrado (APENAS NO SIGNUP)
     if (checkDuplicate) {
-      const { data: existingProfile } = await supabase
+      console.log('🔍 Verificando duplicatas...');
+      const { data: existingProfile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('whatsapp', whatsapp)
         .is('deleted_at', null)
         .maybeSingle();
 
+      if (profileError) {
+        console.error('❌ Erro ao verificar profiles:', profileError);
+      }
+
       if (existingProfile) {
+        console.log('⚠️ WhatsApp já cadastrado em profiles');
         return new Response(JSON.stringify({ 
           error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
         }), {
@@ -53,14 +76,19 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: userError } = await supabase
         .from('users')
         .select('id')
         .eq('whatsapp', whatsapp)
         .is('deleted_at', null)
         .maybeSingle();
 
+      if (userError) {
+        console.error('❌ Erro ao verificar users:', userError);
+      }
+
       if (existingUser) {
+        console.log('⚠️ WhatsApp já cadastrado em users');
         return new Response(JSON.stringify({ 
           error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
         }), {
@@ -71,17 +99,23 @@ Deno.serve(async (req) => {
     }
 
     // Verificar se há tentativas de fraude bloqueadas
-    const { data: fraudCheck } = await supabase
+    console.log('🛡️ Verificando bloqueios por fraude...');
+    const { data: fraudCheck, error: fraudError } = await supabase
       .from('fraud_attempts')
       .select('*')
       .eq('identifier', whatsapp)
       .eq('attempt_type', 'whatsapp')
       .single();
 
+    if (fraudError && fraudError.code !== 'PGRST116') {
+      console.error('❌ Erro ao verificar fraude:', fraudError);
+    }
+
     if (fraudCheck && fraudCheck.blocked_until) {
       const blockedUntil = new Date(fraudCheck.blocked_until);
       if (blockedUntil > new Date()) {
         const hoursLeft = Math.ceil((blockedUntil.getTime() - Date.now()) / (1000 * 60 * 60));
+        console.log('🚫 WhatsApp bloqueado até:', blockedUntil);
         return new Response(JSON.stringify({ 
           error: `WhatsApp bloqueado. Tente novamente em ${hoursLeft}h` 
         }), {
@@ -94,8 +128,10 @@ Deno.serve(async (req) => {
     // Gerar código de 6 dígitos
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+    console.log('🎲 Código gerado:', code, 'expira em:', expiresAt.toISOString());
 
     // Salvar código no banco
+    console.log('💾 Salvando verificação no banco...');
     const { error: insertError } = await supabase
       .from('whatsapp_verifications')
       .insert({
@@ -107,9 +143,15 @@ Deno.serve(async (req) => {
       });
 
     if (insertError) {
-      console.error('Erro ao salvar verificação:', insertError);
-      throw insertError;
+      console.error('❌ Erro ao salvar verificação:', insertError);
+      return new Response(JSON.stringify({ 
+        error: 'Erro ao criar verificação: ' + insertError.message
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+    console.log('✅ Verificação salva com sucesso');
 
     // Formatar número para o Mega API (adicionar 55 se não tiver)
     let formattedNumber = whatsapp.replace(/\D/g, '');
@@ -146,9 +188,15 @@ Deno.serve(async (req) => {
     console.log('Resposta Mega API:', JSON.stringify(megaData, null, 2));
 
     if (!megaResponse.ok) {
-      console.error('Erro do Mega API:', megaData);
-      throw new Error(`Erro ao enviar mensagem: ${megaData.error || 'Erro desconhecido'}`);
+      console.error('❌ Erro do Mega API:', megaData);
+      return new Response(JSON.stringify({ 
+        error: `Erro ao enviar WhatsApp: ${megaData.error || 'Erro desconhecido'}` 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+    console.log('✅ Mensagem enviada via Mega API');
 
     // Salvar mensagem enviada
     await supabase
@@ -171,10 +219,14 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Erro:', error);
+    console.error('❌ Erro crítico na edge function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('Stack trace:', errorStack);
+    
     return new Response(JSON.stringify({ 
-      error: errorMessage 
+      error: errorMessage,
+      details: errorStack
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
