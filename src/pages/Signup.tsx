@@ -37,12 +37,24 @@ const Signup = () => {
   const { toast } = useToast();
   const referralCode = searchParams.get("ref");
 
-  const [step, setStep] = useState(1);
+  // Recuperar estado do localStorage (para Android quando volta do WhatsApp)
+  const getStoredState = () => {
+    try {
+      const stored = localStorage.getItem('signup_state');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const storedState = getStoredState();
+
+  const [step, setStep] = useState(storedState?.step || 1);
   const [loading, setLoading] = useState(false);
-  const [cpfValidated, setCpfValidated] = useState(false);
-  const [whatsappVerified, setWhatsappVerified] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
-  const [codeExpiry, setCodeExpiry] = useState<string>("");
+  const [cpfValidated, setCpfValidated] = useState(storedState?.cpfValidated || false);
+  const [whatsappVerified, setWhatsappVerified] = useState(storedState?.whatsappVerified || false);
+  const [codeSent, setCodeSent] = useState(storedState?.codeSent || false);
+  const [codeExpiry, setCodeExpiry] = useState<string>(storedState?.codeExpiry || "");
   const [cepLoading, setCepLoading] = useState(false);
 
   const {
@@ -60,6 +72,49 @@ const Signup = () => {
   const whatsapp = watch("whatsapp");
   const cpf = watch("cpf");
   const cep = watch("cep");
+
+  // Salvar estado no localStorage sempre que mudar (para Android)
+  useEffect(() => {
+    const state = {
+      step,
+      cpfValidated,
+      whatsappVerified,
+      codeSent,
+      codeExpiry,
+    };
+    localStorage.setItem('signup_state', JSON.stringify(state));
+  }, [step, cpfValidated, whatsappVerified, codeSent, codeExpiry]);
+
+  // Limpar estado quando finalizar cadastro
+  useEffect(() => {
+    return () => {
+      if (step === 5) {
+        localStorage.removeItem('signup_state');
+      }
+    };
+  }, [step]);
+
+  // Detectar quando usuário volta do WhatsApp (visibilidade da página)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Página ficou visível novamente');
+        // Forçar re-renderização
+        const stored = getStoredState();
+        if (stored) {
+          console.log('📥 Restaurando estado:', stored);
+          setStep(stored.step);
+          setCpfValidated(stored.cpfValidated);
+          setWhatsappVerified(stored.whatsappVerified);
+          setCodeSent(stored.codeSent);
+          setCodeExpiry(stored.codeExpiry);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // Validar CPF
   const validateCPF = async () => {
@@ -116,25 +171,39 @@ const Signup = () => {
     }
 
     setLoading(true);
+    console.log('📤 Enviando código de verificação para:', whatsapp);
+    
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp-verification", {
         body: { whatsapp, checkDuplicate: true },
       });
 
       if (error) {
+        console.error('❌ Erro ao enviar código:', error);
         // Supabase retorna FunctionsHttpError com context
         const errorMessage = error.context?.error || error.message || "Erro ao enviar código de verificação";
         throw new Error(errorMessage);
       }
 
+      console.log('✅ Código enviado com sucesso!');
       setCodeSent(true);
       setCodeExpiry(data.expiresAt);
+      
+      // Salvar imediatamente no localStorage
+      localStorage.setItem('signup_state', JSON.stringify({
+        step,
+        cpfValidated,
+        whatsappVerified,
+        codeSent: true,
+        codeExpiry: data.expiresAt,
+      }));
+      
       toast({
         title: "Código enviado!",
         description: "Verifique seu WhatsApp",
       });
     } catch (error: any) {
-      console.error('Erro ao enviar código:', error);
+      console.error('❌ Erro ao enviar código:', error);
       toast({
         title: "Erro ao enviar código",
         description: error.message || "Erro desconhecido ao processar solicitação",
@@ -369,6 +438,9 @@ const Signup = () => {
         // Não bloqueia o cadastro se a notificação falhar
       }
 
+      // Limpar estado salvo
+      localStorage.removeItem('signup_state');
+      
       toast({
         title: "Cadastro realizado!",
         description: "Faça login para continuar",
