@@ -559,7 +559,7 @@ const Signup = () => {
 
             {/* Etapa 2: WhatsApp */}
             {step === 2 && (
-              <div key="step-2-whatsapp" style={{ minHeight: '300px' }}>
+              <div key="step-2-whatsapp">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp">WhatsApp</Label>
@@ -578,8 +578,8 @@ const Signup = () => {
                     </p>
                   </div>
 
-                  {/* Botão de enviar código - sempre no DOM, controla apenas visibilidade */}
-                  <div style={{ display: (!codeSent && !whatsappVerified) ? 'block' : 'none' }}>
+                  {/* Botão de enviar código */}
+                  {!codeSent && !whatsappVerified && (
                     <Button
                       type="button"
                       variant="secondary"
@@ -590,10 +590,11 @@ const Signup = () => {
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Enviar Código de Verificação
                     </Button>
-                  </div>
+                  )}
 
-                  {/* Seção de verificação - sempre no DOM, controla apenas visibilidade */}
-                  <div style={{ display: (codeSent && !whatsappVerified) ? 'block' : 'none' }}>
+                  {/* Seção de verificação */}
+                  {/* Seção de verificação */}
+                  {codeSent && !whatsappVerified && (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="verificationCode">Código de Verificação</Label>
@@ -619,25 +620,25 @@ const Signup = () => {
                         Verificar Código
                       </Button>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Alert de sucesso - sempre no DOM, controla apenas visibilidade */}
-                  <div style={{ display: whatsappVerified ? 'block' : 'none' }}>
+                  {/* Alert de sucesso */}
+                  {whatsappVerified && (
                     <Alert>
                       <CheckCircle2 className="h-4 w-4" />
                       <AlertDescription>WhatsApp verificado com sucesso!</AlertDescription>
                     </Alert>
-                  </div>
+                  )}
 
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
                       Voltar
                     </Button>
-                    <div style={{ display: whatsappVerified ? 'block' : 'none', flex: 1 }}>
+                    {whatsappVerified && (
                       <Button type="button" className="w-full" onClick={nextStep}>
                         Continuar
                       </Button>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
