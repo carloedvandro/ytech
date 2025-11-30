@@ -163,6 +163,17 @@ const Signup = () => {
       const logMessage = `[${timestamp}] ${message}`;
       console.log(logMessage);
       setDebugLogs(prev => [...prev.slice(-30), logMessage]);
+      
+      // Salvar no localStorage para o GlobalDebugPanel
+      try {
+        const existingLogs = localStorage.getItem('debug-logs');
+        const logs = existingLogs ? JSON.parse(existingLogs) : [];
+        logs.push(logMessage);
+        if (logs.length > 100) logs.shift();
+        localStorage.setItem('debug-logs', JSON.stringify(logs));
+      } catch (e) {
+        console.error('Erro ao salvar log no localStorage:', e);
+      }
     } catch (e) {
       console.error('Erro ao adicionar log:', e);
     }
