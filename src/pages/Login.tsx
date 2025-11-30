@@ -11,10 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-import { EtheralShadow } from "@/components/ui/etheral-shadow";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { useIsChromeAndroid } from "@/hooks/use-chrome-android";
-import { LoginSimple } from "@/components/LoginSimple";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -24,7 +20,6 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const isChromeAndroid = useIsChromeAndroid();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
@@ -34,13 +29,7 @@ const Login = () => {
   const [verifying, setVerifying] = useState(false);
   const [pendingAuth, setPendingAuth] = useState<{ email: string; password: string; whatsapp: string } | null>(null);
   const hasRedirected = useRef(false);
-  const isVerifying2FA = useRef(false); // Flag para indicar que estamos no processo de 2FA
-  
-  // Renderizar versão simplificada para Chrome Android
-  if (isChromeAndroid) {
-    console.log('📱 Renderizando versão simplificada para Chrome Android');
-    return <LoginSimple />;
-  }
+  const isVerifying2FA = useRef(false);
 
   // Redirect to dashboard if already logged in - with protection against loops
   useEffect(() => {
@@ -285,14 +274,7 @@ const Login = () => {
   return (
     <>
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
-        {/* Animated Shadow Overlay Background */}
-        <EtheralShadow
-          color="rgba(0, 255, 255, 0.2)"
-          animation={{ scale: 50, speed: 30 }}
-          noise={{ opacity: 0.15, scale: 1.5 }}
-        />
-
-        <Card className="relative z-10 max-w-md w-full bg-black/40 backdrop-blur-sm border-primary/30 shadow-[0_0_30px_rgba(0,255,255,0.3)]">
+        <Card className="relative z-10 max-w-md w-full bg-black/90 border-primary/30">
           <CardHeader className="space-y-4">
             <div className="text-center">
               <h1 className="text-3xl font-bold text-primary mb-2 drop-shadow-[0_0_20px_rgba(0,255,255,0.5)]">YTech</h1>
@@ -358,31 +340,29 @@ const Login = () => {
               <div style={{ display: show2FA ? 'block' : 'none', minHeight: '300px' }}>
                 <div className="space-y-4">
                   <div className="text-center space-y-2">
-                    <h3 className="text-lg font-semibold text-white">Verificação em 2 etapas</h3>
+                    <h3 className="text-lg font-semibold text-white">Verificação 2FA</h3>
                     <p className="text-sm text-white/70">
-                      Digite o código de 6 dígitos enviado para seu WhatsApp
+                      Digite o código de 6 dígitos
                     </p>
                     <p className="text-sm text-primary font-medium">
                       {pendingAuth?.whatsapp}
                     </p>
                   </div>
 
-                  <div className="flex flex-col items-center gap-6 py-4">
-                    <InputOTP
-                      maxLength={6}
-                      value={verificationCode}
-                      onChange={setVerificationCode}
-                      disabled={verifying}
-                    >
-                      <InputOTPGroup>
-                        <InputOTPSlot index={0} className="bg-black/60 border-primary/30 text-white" />
-                        <InputOTPSlot index={1} className="bg-black/60 border-primary/30 text-white" />
-                        <InputOTPSlot index={2} className="bg-black/60 border-primary/30 text-white" />
-                        <InputOTPSlot index={3} className="bg-black/60 border-primary/30 text-white" />
-                        <InputOTPSlot index={4} className="bg-black/60 border-primary/30 text-white" />
-                        <InputOTPSlot index={5} className="bg-black/60 border-primary/30 text-white" />
-                      </InputOTPGroup>
-                    </InputOTP>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="verification-code" className="text-white">Código</Label>
+                      <Input
+                        id="verification-code"
+                        type="text"
+                        maxLength={6}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="000000"
+                        disabled={verifying}
+                        className="bg-black/60 border-primary/30 text-white text-center text-xl tracking-widest"
+                      />
+                    </div>
 
                     <div className="flex gap-2 w-full">
                       <Button
