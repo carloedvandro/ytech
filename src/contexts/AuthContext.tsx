@@ -120,6 +120,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let initialCheckDone = false;
 
+    // Clean potentially corrupted auth state on mount
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('temp-') || 
+          key.startsWith('pending-')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      if (keysToRemove.length > 0) {
+        console.log('🧹 AuthContext: Cleaned corrupted data on mount');
+      }
+    } catch (e) {
+      console.error('Error cleaning auth state:', e);
+    }
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {

@@ -31,8 +31,32 @@ const Login = () => {
   const hasRedirected = useRef(false);
   const isVerifying2FA = useRef(false);
 
-  // Redirect to dashboard if already logged in - DESABILITADO durante verificação 2FA
+  // Clean corrupted data on mount and redirect if logged in
   useEffect(() => {
+    // Aggressive cleanup on mount for Chrome Android
+    const cleanCorruptedData = () => {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (
+            key.startsWith('temp-') || 
+            key.startsWith('pending-') ||
+            key.includes('verification') ||
+            key.includes('2fa')
+          )) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log('🧹 Cleaned corrupted auth data on mount');
+      } catch (error) {
+        console.error('Error cleaning data:', error);
+      }
+    };
+
+    cleanCorruptedData();
+
     // NÃO redirecionar se estamos no processo de 2FA ou se o modal 2FA está aberto
     if (!authLoading && user && !hasRedirected.current && !isVerifying2FA.current && !show2FA) {
       hasRedirected.current = true;

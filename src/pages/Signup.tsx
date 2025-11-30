@@ -45,6 +45,32 @@ const Signup = () => {
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
 
+  // Clean corrupted data on mount
+  useEffect(() => {
+    const cleanCorruptedData = () => {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (
+            key.startsWith('temp-') || 
+            key.startsWith('pending-') ||
+            key.includes('verification') ||
+            key.includes('2fa')
+          )) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log('🧹 Cleaned corrupted signup data on mount');
+      } catch (error) {
+        console.error('Error cleaning data:', error);
+      }
+    };
+
+    cleanCorruptedData();
+  }, []);
+
   const {
     register,
     handleSubmit,
