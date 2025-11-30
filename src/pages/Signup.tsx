@@ -793,42 +793,59 @@ const Signup = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de Verificação - SEMPRE no DOM, fora do Card para evitar re-render */}
-      <Dialog key="whatsapp-verification-dialog" open={showCodeDialog} onOpenChange={setShowCodeDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Código de Verificação</DialogTitle>
-            <DialogDescription>
+      {/* Overlay customizado para verificação - sempre no DOM */}
+      <div 
+        className={`fixed inset-0 z-50 ${showCodeDialog ? 'flex' : 'hidden'} items-center justify-center bg-black/80 backdrop-blur-sm`}
+        style={{ display: showCodeDialog ? 'flex' : 'none' }}
+      >
+        <Card className="w-full max-w-md mx-4 bg-black/90 border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-white">Código de Verificação</CardTitle>
+            <CardDescription className="text-white/70">
               Digite o código de 6 dígitos que enviamos para seu WhatsApp
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="verificationCode">Código</Label>
+              <Label htmlFor="verificationCode" className="text-white">Código</Label>
               <Input
                 id="verificationCode"
                 placeholder="000000"
                 maxLength={6}
                 {...register("verificationCode")}
                 autoFocus
+                className="bg-black/60 border-primary/30 text-white"
               />
               {errors.verificationCode && (
                 <p className="text-sm text-destructive">{errors.verificationCode.message}</p>
               )}
             </div>
 
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
-              disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
-            >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Verificar Código
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowCodeDialog(false);
+                  setValue("verificationCode", "");
+                }}
+                className="flex-1 border-primary/50 text-primary hover:bg-primary/10"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
+                disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
+                className="flex-1 bg-primary text-black hover:bg-primary/90"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Verificar Código
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

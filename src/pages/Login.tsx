@@ -302,14 +302,28 @@ const Login = () => {
         </CardContent>
       </Card>
 
-      {/* Modal 2FA - SEMPRE no DOM, apenas controla visibilidade */}
-      <TwoFactorModal
-        key="two-factor-modal-login"
-        open={show2FA}
-        whatsapp={pendingAuth?.whatsapp || ''}
-        onVerified={handleTwoFactorVerified}
-        onCancel={handleTwoFactorCancel}
-      />
+      {/* Overlay customizado para 2FA - sempre no DOM */}
+      <div 
+        className={`fixed inset-0 z-50 ${show2FA ? 'flex' : 'hidden'} items-center justify-center bg-black/80 backdrop-blur-sm`}
+        style={{ display: show2FA ? 'flex' : 'none' }}
+      >
+        <Card className="w-full max-w-md mx-4 bg-black/90 border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-white">Verificação em 2 Fatores</CardTitle>
+            <CardDescription className="text-white/70">
+              Digite o código de 6 dígitos enviado para {pendingAuth?.whatsapp ? pendingAuth.whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3") : ''}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TwoFactorModal
+              open={show2FA}
+              whatsapp={pendingAuth?.whatsapp || ''}
+              onVerified={handleTwoFactorVerified}
+              onCancel={handleTwoFactorCancel}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
