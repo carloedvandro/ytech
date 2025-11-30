@@ -408,44 +408,16 @@ const Signup = () => {
   };
 
   const nextStep = async () => {
-    try {
-      console.log('🚀 Avançando do step:', step);
-      
-      const fieldsToValidate = (
-        step === 1 ? ["fullName", "email", "password"] : 
-        step === 2 ? ["whatsapp"] : 
-        step === 3 ? ["cpf"] :
-        ["cep", "rua", "numero", "bairro", "cidade", "estado"]
-      ) as (keyof SignupForm)[];
-      
-      console.log('🔍 Validando campos:', fieldsToValidate);
-      const isValid = await trigger(fieldsToValidate);
-      
-      console.log('✅ Validação:', isValid);
-      
-      if (isValid) {
-        if (step === 2 && !whatsappVerified) {
-          console.log('⚠️ WhatsApp não verificado');
-          return;
-        }
-        if (step === 3 && !cpfValidated) {
-          console.log('⚠️ CPF não validado');
-          return;
-        }
-        
-        const nextStepNum = step + 1;
-        console.log('➡️ Indo para step:', nextStepNum);
-        setStep(nextStepNum);
-      } else {
-        console.log('❌ Validação falhou');
-      }
-    } catch (error) {
-      console.error('💥 Erro ao avançar step:', error);
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao avançar. Tente novamente.",
-        variant: "destructive",
-      });
+    const isValid = await trigger(
+      step === 1 ? ["fullName", "email", "password"] : 
+      step === 2 ? ["whatsapp"] : 
+      step === 3 ? ["cpf"] :
+      ["cep", "rua", "numero", "bairro", "cidade", "estado"]
+    );
+    if (isValid) {
+      if (step === 2 && !whatsappVerified) return;
+      if (step === 3 && !cpfValidated) return;
+      setStep(step + 1);
     }
   };
 
@@ -478,27 +450,14 @@ const Signup = () => {
     );
   }
 
-  // Adicionar log para debug de renderização
-  console.log('🔄 Renderizando Signup - Step:', step, 'WhatsApp Verified:', whatsappVerified, 'CPF Validated:', cpfValidated);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center p-4">
       <Card className="max-w-md w-full">
         <CardHeader>
-          <CardTitle>Cadastro de Novo Revendedor</CardTitle>
+          <CardTitle>Criar Conta</CardTitle>
           <CardDescription>
-            Preencha os dados abaixo para se cadastrar (Etapa {step} de 5)
+            Etapa {step} de 5 • Código: {referralCode.slice(0, 8)}...
           </CardDescription>
-          <div className="flex justify-between items-center mt-4">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <div
-                key={s}
-                className={`h-2 flex-1 rounded-full mx-1 transition-all ${
-                  s <= step ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            ))}
-          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
