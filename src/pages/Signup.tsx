@@ -44,6 +44,7 @@ const Signup = () => {
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
+  const [sendError, setSendError] = useState<{ title: string; description: string } | null>(null);
 
   const {
     register,
@@ -128,6 +129,7 @@ const Signup = () => {
     }
 
     setLoading(true);
+    setSendError(null); // Limpar erro anterior
     console.log('📤 Enviando código de verificação para:', whatsapp);
     
     try {
@@ -162,14 +164,22 @@ const Signup = () => {
           description = errorMessage;
         }
         
+        // Guardar erro no estado para mostrar na UI (importante para Chrome Android)
+        setSendError({ title, description });
+        
         toast({
           title,
           description,
           variant: "destructive",
         });
+        
+        // NÃO fazer return - manter a UI renderizada
+        setLoading(false);
         return;
       }
 
+      // Sucesso - limpar erro e continuar
+      setSendError(null);
       console.log('✅ Código enviado com sucesso!');
       console.log('🔍 User Agent:', navigator.userAgent);
       console.log('🔍 Estado ANTES:', { codeSent, whatsappVerified, step });
@@ -196,9 +206,13 @@ const Signup = () => {
       console.log('✅ Estado atualizado - codeSent:', true);
     } catch (error: any) {
       console.error('❌ Erro inesperado:', error);
-      toast({
+      const errorData = {
         title: "Erro inesperado",
-        description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente.",
+        description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente."
+      };
+      setSendError(errorData);
+      toast({
+        ...errorData,
         variant: "destructive",
       });
     } finally {
@@ -547,7 +561,7 @@ const Signup = () => {
 
             {/* Etapa 2: WhatsApp */}
             {step === 2 && (
-              <div key="step-2-whatsapp">
+              <div key="step-2-whatsapp" style={{ minHeight: '300px' }}>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="whatsapp">WhatsApp</Label>
@@ -564,6 +578,17 @@ const Signup = () => {
                     <p className="text-xs text-muted-foreground">
                       {codeSent ? '✅ Código enviado' : 'Digite seu WhatsApp com DDD'}
                     </p>
+                  </div>
+
+                  {/* Alert de erro - sempre no DOM */}
+                  <div style={{ display: sendError ? 'block' : 'none' }}>
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="font-semibold">{sendError?.title}</div>
+                        <div className="text-sm mt-1">{sendError?.description}</div>
+                      </AlertDescription>
+                    </Alert>
                   </div>
 
                   {/* Botão de enviar código - sempre no DOM, controla apenas visibilidade */}
