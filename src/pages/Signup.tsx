@@ -116,9 +116,11 @@ const Signup = () => {
     }
   };
 
-  // Enviar código WhatsApp
-  const sendWhatsAppCode = async () => {
-    console.log('🚀 [SIGNUP] Início sendWhatsAppCode');
+  // Handler seguro para envio de código
+  const handleSendCode = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🖱️ [SIGNUP] Botão enviar código clicado');
     
     if (!whatsapp || whatsapp.length !== 11) {
       console.log('❌ [SIGNUP] WhatsApp inválido:', whatsapp);
@@ -132,8 +134,7 @@ const Signup = () => {
 
     console.log('⏳ [SIGNUP] setLoading(true)');
     setLoading(true);
-    console.log('📤 [SIGNUP] Enviando código de verificação para:', whatsapp);
-    console.log('🌐 [SIGNUP] User-Agent:', navigator.userAgent);
+    console.log('📤 [SIGNUP] Enviando código para:', whatsapp);
     
     try {
       console.log('📞 [SIGNUP] Chamando edge function...');
@@ -144,79 +145,52 @@ const Signup = () => {
       console.log('📥 [SIGNUP] Resposta:', { data, error });
 
       if (error) {
-        console.error('❌ [SIGNUP] Erro ao enviar código:', error);
+        console.error('❌ [SIGNUP] Erro:', error);
         
         const errorMessage = error.context?.error || error.message || "";
-        console.log('📝 [SIGNUP] Mensagem de erro:', errorMessage);
-        
         let title = "Não foi possível enviar o código";
-        let description = "Tente novamente em alguns instantes";
+        let description = "Tente novamente";
         
         if (errorMessage.toLowerCase().includes("já cadastrado") || 
-            errorMessage.toLowerCase().includes("já existe") ||
-            errorMessage.toLowerCase().includes("already")) {
+            errorMessage.toLowerCase().includes("já existe")) {
           title = "WhatsApp já cadastrado";
-          description = `Este número (${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}) já está registrado no sistema. Se você já tem uma conta, faça login. Caso contrário, use outro número.`;
-        } else if (errorMessage.toLowerCase().includes("bloqueado") || 
-                   errorMessage.toLowerCase().includes("blocked")) {
-          title = "Número temporariamente bloqueado";
-          description = "Muitas tentativas foram realizadas. Aguarde 24 horas ou entre em contato com o suporte.";
-        } else if (errorMessage.toLowerCase().includes("expirado") || 
-                   errorMessage.toLowerCase().includes("expired")) {
-          title = "Código expirado";
-          description = "O código anterior expirou. Clique novamente para receber um novo código.";
-        } else if (errorMessage) {
-          description = errorMessage;
+          description = `Número ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")} já registrado`;
         }
         
-        console.log('🚨 [SIGNUP] Mostrando toast de erro:', { title, description });
-        toast({
-          title,
-          description,
-          variant: "destructive",
-        });
-        
-        console.log('✅ [SIGNUP] setLoading(false) após erro');
+        toast({ title, description, variant: "destructive" });
         setLoading(false);
         return;
       }
 
-      console.log('✅ [SIGNUP] Código enviado com sucesso!');
-      console.log('🔍 [SIGNUP] Estado ANTES:', { codeSent, whatsappVerified, step });
+      console.log('✅ [SIGNUP] Sucesso!');
       
-      console.log('🎉 [SIGNUP] Mostrando toast de sucesso');
       toast({
-        title: "Código enviado! ✅",
-        description: `Enviamos um código de 6 dígitos para o WhatsApp ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
+        title: "Código enviado!",
+        description: `WhatsApp ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
       });
 
-      console.log('💾 [SIGNUP] setCodeExpiry chamado');
       setCodeExpiry(data.expiresAt);
       
-      console.log('⏳ [SIGNUP] Aguardando processamento...');
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      console.log('🔓 [SIGNUP] setCodeSent(true) chamado');
-      setCodeSent(true);
-      
-      console.log('⏳ [SIGNUP] Aguardando mais um ciclo...');
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      console.log('✅ [SIGNUP] Estado atualizado - codeSent:', true);
-      
+      // Esperar antes de mudar UI
+      setTimeout(() => {
+        console.log('🔓 [SIGNUP] Ativando campo de código');
+        setCodeSent(true);
+        setLoading(false);
+      }, 200);
+
     } catch (error: any) {
       console.error('❌ [SIGNUP] Erro inesperado:', error);
-      console.error('[SIGNUP] Stack trace:', error.stack);
       toast({
-        title: "Erro inesperado",
-        description: "Não foi possível processar sua solicitação. Verifique sua conexão e tente novamente.",
+        title: "Erro",
+        description: "Tente novamente",
         variant: "destructive",
       });
-    } finally {
-      console.log('🏁 [SIGNUP] setLoading(false) no finally');
       setLoading(false);
     }
   };
+
+  // Enviar código WhatsApp
+  const sendWhatsAppCode = handleSendCode;
 
   // Verificar código WhatsApp
   const verifyWhatsAppCode = async (code: string) => {
@@ -578,13 +552,12 @@ const Signup = () => {
                     </p>
                   </div>
 
-                  {/* Botão de enviar código - sempre no DOM, controla apenas visibilidade */}
                   <div style={{ display: (!codeSent && !whatsappVerified) ? 'block' : 'none' }}>
                     <Button
                       type="button"
                       variant="secondary"
                       className="w-full"
-                      onClick={sendWhatsAppCode}
+                      onClick={handleSendCode}
                       disabled={loading || !whatsapp || whatsapp.length !== 11}
                     >
                       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
