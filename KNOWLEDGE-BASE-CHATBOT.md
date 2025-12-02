@@ -23,11 +23,14 @@
   - Após 160GB: velocidade reduzida para 2 MB/s até renovação (internet NÃO é bloqueada)
   - Renovação automática após pagamento
 
-### Plano Rural - 250GB
-- **Franquia:** 250 GB mensais
+### Plano Rural - 250GB - R$ 129,99/mês
+- **Franquia:** 250 GB acumulativos mensais
 - **Operadora:** Vivo
-- **Características:** Voltado para áreas rurais
-- (Outros detalhes similares ao plano de 160GB)
+- **Valor:** R$ 129,99/mês (mesmo valor do plano de 160GB)
+- **Características:** Voltado para áreas rurais com cobertura Vivo
+- **Tecnologia:** 5G
+- **Tipo:** Pré-pago SEM fidelidade
+- **Benefícios:** Mesmos benefícios do plano de 160GB (redes sociais ilimitadas, etc.)
 
 ## 🎯 Sistema de Indicações (MMN) - Renda Passiva Recorrente
 
