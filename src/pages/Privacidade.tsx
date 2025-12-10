@@ -48,7 +48,7 @@ const Privacidade = () => {
                   <li>Nome completo</li>
                   <li>CPF (Cadastro de Pessoa Física)</li>
                   <li>Número de WhatsApp</li>
-                  <li>Endereço de e-mail (opcional)</li>
+                  <li>Endereço de e-mail</li>
                 </ul>
 
                 <h3 className="text-lg font-medium text-white mt-6 mb-3">2.2 Dados de Ativação</h3>

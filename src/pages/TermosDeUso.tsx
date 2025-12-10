@@ -71,7 +71,7 @@ const TermosDeUso = () => {
                 </p>
                 <ul className="list-disc pl-6 space-y-2 mt-4">
                   <li>PIX (pagamento instantâneo)</li>
-                  <li>Criptomoedas (USDT)</li>
+                  <li>Criptomoedas USDT (em breve)</li>
                 </ul>
                 <p className="mt-4">
                   O não pagamento até a data de vencimento pode resultar na suspensão temporária ou cancelamento do serviço. A reativação está sujeita a nova adesão ao plano.
