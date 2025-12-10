@@ -39,9 +39,9 @@ export const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4 text-white">Legal</h4>
             <ul className="space-y-2 text-sm text-white/60">
-              <li><a href="#" className="hover:text-primary transition-colors">Termos de Uso</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacidade</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Regulamento MMN</a></li>
+              <li><a href="/termos-de-uso" className="hover:text-primary transition-colors">Termos de Uso</a></li>
+              <li><a href="/privacidade" className="hover:text-primary transition-colors">Privacidade</a></li>
+              <li><a href="/regulamento-mmn" className="hover:text-primary transition-colors">Regulamento MMN</a></li>
             </ul>
           </div>
         </div>
