@@ -1,4 +1,4 @@
-import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical, Smartphone, Webhook, FileText } from "lucide-react";
+import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical, Smartphone, Webhook, FileText, Presentation } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,7 @@ const menuItems = [
   { title: "SIM CARD e eSIM", url: "/sim-activation", icon: Smartphone },
   { title: "Minha Rede", url: "/network", icon: UsersIcon },
   { title: "Financeiro", url: "/financial", icon: DollarSign },
+  { title: "Apresentação de Negócio", url: "/apn", icon: Presentation },
   { title: "Trocar Senha", url: "/change-password", icon: KeyRound },
 ];
 
