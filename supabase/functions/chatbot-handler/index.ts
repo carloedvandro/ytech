@@ -320,9 +320,21 @@ Deno.serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const assistantMessage = aiData.choices[0].message.content;
+    let assistantMessage = aiData.choices[0].message.content;
 
-    console.log('✅ Resposta da IA:', assistantMessage);
+    // Limpar formatação Markdown que não funciona bem no WhatsApp
+    // Remove asteriscos duplos (bold) mas mantém o conteúdo
+    assistantMessage = assistantMessage.replace(/\*\*(.*?)\*\*/g, '$1');
+    // Remove asteriscos simples (itálico) mas mantém o conteúdo
+    assistantMessage = assistantMessage.replace(/\*(.*?)\*/g, '$1');
+    // Remove underscores duplos (bold alternativo)
+    assistantMessage = assistantMessage.replace(/__(.*?)__/g, '$1');
+    // Remove underscores simples (itálico alternativo)
+    assistantMessage = assistantMessage.replace(/_(.*?)_/g, '$1');
+    // Remove links markdown [texto](url) -> texto: url
+    assistantMessage = assistantMessage.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$2');
+
+    console.log('✅ Resposta da IA (limpa):', assistantMessage);
 
     // Adicionar resposta ao histórico
     conversationHistory.push({
