@@ -166,12 +166,14 @@ const Dashboard = () => {
         .select("amount, type")
         .eq("user_id", activeProfile.id);
 
-      // Buscar data de renovação e desconto aplicado
+      // Buscar data de renovação e desconto aplicado (pagamento com next_renewal_date mais futura)
       const { data: paymentData } = await supabase
         .from("payments")
         .select("next_renewal_date, amount, metadata")
         .eq("user_id", activeProfile.id)
-        .order("created_at", { ascending: false })
+        .eq("status", "completed")
+        .not("next_renewal_date", "is", null)
+        .order("next_renewal_date", { ascending: false })
         .limit(1)
         .maybeSingle();
 
