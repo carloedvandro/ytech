@@ -26,10 +26,12 @@ import SimActivation from "./pages/SimActivation";
 import FixCommissions from "./pages/FixCommissions";
 import WebhookTest from "./pages/WebhookTest";
 import AuditLogs from "./pages/AuditLogs";
+import TermosDeUso from "./pages/TermosDeUso";
+import Privacidade from "./pages/Privacidade";
+import RegulamentoMMN from "./pages/RegulamentoMMN";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -59,6 +61,9 @@ const App = () => (
                 <Route path="/audit-logs" element={<AuthGuard><AuditLogs /></AuthGuard>} />
                 <Route path="/migrate-users" element={<MigrateUsers />} />
                 <Route path="/site/:username" element={<MiniSite />} />
+                <Route path="/termos-de-uso" element={<TermosDeUso />} />
+                <Route path="/privacidade" element={<Privacidade />} />
+                <Route path="/regulamento-mmn" element={<RegulamentoMMN />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
