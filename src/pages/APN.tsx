@@ -962,10 +962,10 @@ const APN = () => {
               Ainda não conhece ninguém? Sem problemas! Você pode se cadastrar diretamente com a Y-TECH:
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center px-2">
-              <Button size="lg" className="text-base sm:text-lg px-6 sm:px-10 py-6 bg-white text-black hover:bg-gray-100 whitespace-nowrap" asChild>
+              <Button size="lg" className="text-sm sm:text-base md:text-lg px-8 sm:px-10 py-6 bg-white text-black hover:bg-gray-100 whitespace-nowrap" asChild>
                 <a href="https://ytech.yrwentechnology.com.br/cadastro?ref=ytech" target="_blank" rel="noopener noreferrer">
                   Cadastrar com Y-TECH
-                  <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
+                  <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                 </a>
               </Button>
             </div>
