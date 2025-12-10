@@ -18,7 +18,6 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
       {/* Video Background */}
       <VideoBackground
         videoUrl={VIDEO_URL}
-        posterUrl="/og-image.jpg"
         overlayOpacity={55}
       />
 
