@@ -16,7 +16,10 @@ import {
   Target,
   Rocket,
   Star,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  MapPin,
+  Quote
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +27,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/Footer";
 import { VideoBackground } from "@/components/ui/video-background";
+import ceoPhoto from "@/assets/ceo-photo.jpeg";
 
 const APN = () => {
   const [directReferrals, setDirectReferrals] = useState([10]);
@@ -433,6 +437,111 @@ const APN = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CEO & Company Section */}
+      <section className="relative py-20 px-4">
+        <div className="absolute inset-0 bg-black/90 z-0" />
+        <div className="container mx-auto relative z-10">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-amber-500/20 text-amber-400 border-amber-500/30">
+              <Building2 className="w-4 h-4 mr-2 inline" />
+              Quem Somos
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">A Empresa por Trás da Y-TECH</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Conheça a história de sucesso que construiu a maior operadora virtual do Brasil.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* CEO Photo */}
+              <div className="relative">
+                <div className="relative overflow-hidden rounded-2xl border-2 border-primary/30 shadow-2xl shadow-primary/20">
+                  <img 
+                    src={ceoPhoto} 
+                    alt="Carlo Edvandro Camera Gonçalves - CEO da Yrwen Technology"
+                    className="w-full h-auto object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h3 className="text-2xl font-bold text-white">Carlo Edvandro Camera Gonçalves</h3>
+                    <p className="text-primary font-semibold">CEO & Fundador - Yrwen Technology</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CEO Story */}
+              <div className="space-y-6">
+                <div className="relative">
+                  <Quote className="w-12 h-12 text-primary/30 absolute -top-2 -left-4" />
+                  <div className="space-y-4 text-gray-300 leading-relaxed pl-8">
+                    <p>
+                      A <span className="text-primary font-semibold">Y-TECH</span> é um produto da{" "}
+                      <span className="text-white font-semibold">Yrwen Technology</span>, empresa com{" "}
+                      <span className="text-primary font-semibold">quase 8 anos de experiência</span> no mercado de telecomunicações.
+                    </p>
+                    <p>
+                      Nosso CEO, <span className="text-white font-semibold">Carlo Edvandro</span>, foi o{" "}
+                      <span className="text-primary font-semibold">segundo maior executivo da Chip Livre</span> e{" "}
+                      <span className="text-white font-semibold">proprietário do centro de distribuição da região Sudeste inteira</span> — 
+                      tornando-se o <span className="text-primary font-semibold">maior distribuidor de chips da Chip Livre em todo o Brasil</span>.
+                    </p>
+                    <p>
+                      Desde então, Carlo tem <span className="text-white font-semibold">liderado o mercado de planos rurais</span>, 
+                      conectando milhares de famílias em áreas remotas do país. Agora, com o{" "}
+                      <span className="text-primary font-semibold">Marketing Multinível</span>, a Y-TECH veio para ficar, 
+                      oferecendo uma oportunidade real de renda para todos.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Company Info Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
+                  <Card className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-gray-400 text-xs">CNPJ</p>
+                          <p className="text-white font-mono text-sm">30.266.458/0001-58</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
+                          <MapPin className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-gray-400 text-xs">Localização</p>
+                          <p className="text-white text-sm">Guarulhos, SP</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Full Address */}
+                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-gray-400 text-sm">Endereço Comercial</p>
+                      <p className="text-white">Rua Imperial, 183 - Parque das Nações</p>
+                      <p className="text-gray-300">Guarulhos - São Paulo, Brasil</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
