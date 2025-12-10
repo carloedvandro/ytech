@@ -3,12 +3,6 @@ import { Wifi } from "lucide-react";
 export const Footer = () => {
   return (
     <footer className="relative bg-black/80 backdrop-blur-sm border-t border-primary/20 py-12 px-4 overflow-hidden">
-      {/* Tech Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
-      
-      {/* Glowing accent */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-primary/5 rounded-full blur-[100px]"></div>
-      
       <div className="container mx-auto max-w-7xl relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
