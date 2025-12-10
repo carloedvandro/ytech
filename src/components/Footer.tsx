@@ -2,7 +2,7 @@ import { Wifi } from "lucide-react";
 
 export const Footer = () => {
   return (
-    <footer className="relative bg-black border-t border-primary/20 py-12 px-4 overflow-hidden">
+    <footer className="relative bg-black/80 backdrop-blur-sm border-t border-primary/20 py-12 px-4 overflow-hidden">
       {/* Tech Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#0a0a0a_1px,transparent_1px),linear-gradient(to_bottom,#0a0a0a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
       

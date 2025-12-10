@@ -23,7 +23,7 @@ export const VideoBackground = ({
   }, []);
 
   return (
-    <div className={`absolute inset-0 overflow-hidden ${className}`}>
+    <div className={`fixed inset-0 overflow-hidden ${className}`}>
       {/* Video */}
       <video
         ref={videoRef}

@@ -1,9 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield, Building2 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { VideoBackground } from "@/components/ui/video-background";
-
-const VIDEO_URL = "https://fkdaaxaybuynohmnatdv.supabase.co/storage/v1/object/public/videos//videooficialytech.mp4";
 
 interface HeroProps {
   referrerUsername?: string;
@@ -14,12 +11,7 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
   const signupUrl = referrerUsername 
     ? `/cadastro?ref=${referrerUsername}` 
     : '/cadastro';
-  return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
-      {/* Video Background */}
-      <VideoBackground
-        videoUrl={VIDEO_URL}
-        overlayOpacity={55}
-      />
+  return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-20">
 
       <div className="container relative z-10 mx-auto max-w-7xl">
         <div className={`text-center space-y-8 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
