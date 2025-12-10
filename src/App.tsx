@@ -8,9 +8,10 @@ import { EnvironmentProvider } from "@/contexts/EnvironmentContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { AuthGuard } from "@/components/AuthGuard";
 import Index from "./pages/Index";
+import Resellers from "./pages/Resellers";
+import MiniSite from "./pages/MiniSite";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
-import Resellers from "./pages/Resellers";
 import Dashboard from "./pages/Dashboard";
 import Checkout from "./pages/Checkout";
 import Payment from "./pages/Payment";
@@ -18,18 +19,18 @@ import Network from "./pages/Network";
 import Financial from "./pages/Financial";
 import Admin from "./pages/Admin";
 import Users from "./pages/Users";
-import AdminActivations from "./pages/AdminActivations";
-import MigrateUsers from "./pages/MigrateUsers";
 import ChangePassword from "./pages/ChangePassword";
-import MiniSite from "./pages/MiniSite";
+import MigrateUsers from "./pages/MigrateUsers";
 import SimActivation from "./pages/SimActivation";
+import AdminActivations from "./pages/AdminActivations";
 import FixCommissions from "./pages/FixCommissions";
 import WebhookTest from "./pages/WebhookTest";
 import AuditLogs from "./pages/AuditLogs";
+import NotFound from "./pages/NotFound";
 import TermosDeUso from "./pages/TermosDeUso";
 import Privacidade from "./pages/Privacidade";
 import RegulamentoMMN from "./pages/RegulamentoMMN";
-import NotFound from "./pages/NotFound";
+import APN from "./pages/APN";
 
 const queryClient = new QueryClient();
 const App = () => (
@@ -42,10 +43,11 @@ const App = () => (
           <AuthProvider>
             <ImpersonationProvider>
               <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/revendedores" element={<Resellers />} />
-          <Route path="/cadastro" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/apn" element={<APN />} />
+              <Route path="/revendedores" element={<Resellers />} />
+              <Route path="/cadastro" element={<Signup />} />
+              <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />
                 <Route path="/checkout" element={<AuthGuard><Checkout /></AuthGuard>} />
                 <Route path="/payment/:paymentId" element={<AuthGuard><Payment /></AuthGuard>} />
