@@ -6,6 +6,7 @@ import { Plans } from "@/components/Plans";
 import { HowToJoin } from "@/components/HowToJoin";
 import { HowItWorks } from "@/components/HowItWorks";
 import { MMNSection } from "@/components/MMNSection";
+import { MiniSiteCTA } from "@/components/MiniSiteCTA";
 import { Footer } from "@/components/Footer";
 import { VideoBackground } from "@/components/ui/video-background";
 import { Loader2 } from "lucide-react";
@@ -91,6 +92,7 @@ const MiniSite = () => {
         <HowToJoin />
         <HowItWorks />
         <MMNSection />
+        <MiniSiteCTA referrerUsername={referrer.username} />
         <Footer />
       </main>
     </>
