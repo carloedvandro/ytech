@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Wifi, Zap, Shield, Building2 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { EtheralShadow } from "@/components/ui/etheral-shadow";
+import { VideoBackground } from "@/components/ui/video-background";
+
+const VIDEO_URL = "https://fkdaaxaybuynohmnatdv.supabase.co/storage/v1/object/public/site-assets/videooficialytech.mp4";
 
 interface HeroProps {
   referrerUsername?: string;
@@ -13,11 +15,11 @@ export const Hero = ({ referrerUsername }: HeroProps = {}) => {
     ? `/cadastro?ref=${referrerUsername}` 
     : '/cadastro';
   return <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black px-4 py-20">
-      {/* Animated Shadow Overlay Background */}
-      <EtheralShadow
-        color="rgba(0, 255, 255, 0.2)"
-        animation={{ scale: 50, speed: 30 }}
-        noise={{ opacity: 0.15, scale: 1.5 }}
+      {/* Video Background */}
+      <VideoBackground
+        videoUrl={VIDEO_URL}
+        posterUrl="/og-image.jpg"
+        overlayOpacity={55}
       />
 
       <div className="container relative z-10 mx-auto max-w-7xl">
