@@ -7,7 +7,10 @@ import { HowToJoin } from "@/components/HowToJoin";
 import { HowItWorks } from "@/components/HowItWorks";
 import { MMNSection } from "@/components/MMNSection";
 import { Footer } from "@/components/Footer";
+import { VideoBackground } from "@/components/ui/video-background";
 import { Loader2 } from "lucide-react";
+
+const VIDEO_URL = "https://fkdaaxaybuynohmnatdv.supabase.co/storage/v1/object/public/videos//videooficialytech.mp4";
 
 interface ReferrerData {
   id: string;
@@ -69,23 +72,28 @@ const MiniSite = () => {
   }
 
   return (
-    <main className="min-h-screen">
-      <div className="bg-gradient-to-br from-primary/5 via-background to-primary/5 py-4 border-b border-primary/20">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Você foi convidado por{" "}
-            <span className="font-semibold text-primary">{referrer.full_name}</span>
-          </p>
-        </div>
-      </div>
+    <>
+      {/* Fixed Video Background */}
+      <VideoBackground videoUrl={VIDEO_URL} overlayOpacity={65} />
       
-      <Hero referrerUsername={referrer.username} />
-      <Plans referrerUsername={referrer.username} />
-      <HowToJoin />
-      <HowItWorks />
-      <MMNSection />
-      <Footer />
-    </main>
+      <main className="relative min-h-screen z-10">
+        <div className="bg-gradient-to-br from-primary/5 via-transparent to-primary/5 py-4 border-b border-primary/20">
+          <div className="container mx-auto px-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Você foi convidado por{" "}
+              <span className="font-semibold text-primary">{referrer.full_name}</span>
+            </p>
+          </div>
+        </div>
+        
+        <Hero referrerUsername={referrer.username} />
+        <Plans referrerUsername={referrer.username} />
+        <HowToJoin />
+        <HowItWorks />
+        <MMNSection />
+        <Footer />
+      </main>
+    </>
   );
 };
 
