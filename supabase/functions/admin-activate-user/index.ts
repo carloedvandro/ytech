@@ -185,6 +185,21 @@ serve(async (req) => {
       console.log(`${commissionsToCreate.length} comissões criadas com sucesso`);
     }
 
+    // Log audit entry
+    await supabase.from("admin_audit_logs").insert({
+      admin_id: user.id,
+      target_user_id: userId,
+      action_type: "user_activation",
+      action_details: {
+        plan_id: planId,
+        plan_name: plan.name,
+        plan_price: plan.price,
+        payment_id: payment.id,
+        commissions_created: commissionsToCreate.length,
+      },
+      user_agent: req.headers.get("user-agent"),
+    });
+
     return new Response(
       JSON.stringify({ 
         success: true, 

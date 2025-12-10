@@ -25,6 +25,7 @@ import MiniSite from "./pages/MiniSite";
 import SimActivation from "./pages/SimActivation";
 import FixCommissions from "./pages/FixCommissions";
 import WebhookTest from "./pages/WebhookTest";
+import AuditLogs from "./pages/AuditLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="/sim-activation" element={<AuthGuard><SimActivation /></AuthGuard>} />
                 <Route path="/fix-commissions" element={<AuthGuard><FixCommissions /></AuthGuard>} />
                 <Route path="/webhook-test" element={<AuthGuard><WebhookTest /></AuthGuard>} />
+                <Route path="/audit-logs" element={<AuthGuard><AuditLogs /></AuthGuard>} />
                 <Route path="/migrate-users" element={<MigrateUsers />} />
                 <Route path="/site/:username" element={<MiniSite />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

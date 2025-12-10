@@ -112,6 +112,21 @@ serve(async (req) => {
       console.log('Saldo removido com sucesso (ajuste manual)');
     }
 
+    // Log audit entry
+    await supabase.from("admin_audit_logs").insert({
+      admin_id: user.id,
+      target_user_id: userId,
+      action_type: "balance_adjustment",
+      action_details: {
+        type,
+        amount,
+        reason,
+        balance_before: balanceBefore,
+        balance_after: balanceAfter,
+      },
+      user_agent: req.headers.get("user-agent"),
+    });
+
     return new Response(
       JSON.stringify({ 
         success: true, 

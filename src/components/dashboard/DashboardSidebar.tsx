@@ -1,4 +1,4 @@
-import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical, Smartphone, Webhook } from "lucide-react";
+import { Home, Users as UsersIcon, DollarSign, LogOut, Shield, KeyRound, FlaskConical, Smartphone, Webhook, FileText } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -172,6 +172,20 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                       >
                         <Webhook className="h-4 w-4" />
                         {open && <span>Teste Webhook</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/audit-logs"
+                        className={({ isActive }) =>
+                          isActive ? "bg-accent text-accent-foreground" : ""
+                        }
+                      >
+                        <FileText className="h-4 w-4" />
+                        {open && <span>Logs de Auditoria</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -91,6 +91,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Get old username for audit log
+    const { data: oldProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .single();
+
+    const oldUsername = oldProfile?.username || null;
+
     // Update username using service role (bypasses RLS)
     const { error: updateError } = await supabaseAdmin
       .from("profiles")
@@ -101,6 +110,18 @@ Deno.serve(async (req) => {
       console.error("Update error:", updateError);
       throw updateError;
     }
+
+    // Log audit entry
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: user.id,
+      target_user_id: userId,
+      action_type: "username_update",
+      action_details: {
+        old_username: oldUsername,
+        new_username: username,
+      },
+      user_agent: req.headers.get("user-agent"),
+    });
 
     console.log(`Admin ${user.id} updated username for user ${userId} to: ${username}`);
 
