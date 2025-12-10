@@ -2,7 +2,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { EtheralShadow } from "@/components/ui/etheral-shadow";
 
 interface PlansProps {
   referrerUsername?: string;
@@ -44,13 +43,6 @@ export const Plans = ({ referrerUsername }: PlansProps = {}) => {
   
   return (
     <section id="planos" className="relative py-20 px-4 bg-black/70 backdrop-blur-sm overflow-hidden">
-      {/* Animated Shadow Overlay Background */}
-      <EtheralShadow
-        color="rgba(168, 85, 247, 0.15)"
-        animation={{ scale: 40, speed: 25 }}
-        noise={{ opacity: 0.1, scale: 1.5 }}
-      />
-      
       <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white drop-shadow-[0_0_30px_rgba(0,255,255,0.3)]">

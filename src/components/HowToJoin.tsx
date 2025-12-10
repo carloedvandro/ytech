@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPlus, Link2, ShoppingCart, Users } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { EtheralShadow } from "@/components/ui/etheral-shadow";
 
 const steps = [
   {
@@ -31,13 +30,6 @@ export const HowToJoin = () => {
   
   return (
     <section id="como-participar" className="relative py-20 px-4 bg-black/70 backdrop-blur-sm overflow-hidden">
-      {/* Animated Shadow Overlay Background */}
-      <EtheralShadow
-        color="rgba(0, 255, 255, 0.18)"
-        animation={{ scale: 45, speed: 28 }}
-        noise={{ opacity: 0.12, scale: 1.5 }}
-      />
-      
       <div ref={ref} className={`container mx-auto max-w-7xl relative z-10 transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
         <div className="text-center space-y-4 mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-white drop-shadow-[0_0_30px_rgba(0,255,255,0.3)]">
