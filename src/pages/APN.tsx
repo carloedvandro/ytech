@@ -19,7 +19,8 @@ import {
   ArrowRight,
   Building2,
   MapPin,
-  Quote
+  Quote,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +28,12 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/Footer";
 import { VideoBackground } from "@/components/ui/video-background";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import ceoPhoto from "@/assets/ceo-photo.jpeg";
 
 const APN = () => {
@@ -719,6 +726,156 @@ const APN = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="relative py-20 px-4">
+        <div className="absolute inset-0 bg-black/80 z-0" />
+        <div className="container mx-auto relative z-10">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-blue-500/20 text-blue-400 border-blue-500/30">
+              <HelpCircle className="w-4 h-4 mr-2 inline" />
+              Dúvidas Frequentes
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Perguntas Frequentes</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Tire suas dúvidas sobre os planos, sistema de indicação e como funciona a Y-TECH.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="space-y-4">
+              <AccordionItem value="item-1" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Qual a diferença entre o Plano 160GB e o Plano Rural 250GB?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  O <span className="text-primary font-semibold">Plano 160GB</span> é ideal para uso urbano e residencial, com 160GB mensais. 
+                  Já o <span className="text-green-400 font-semibold">Plano Rural 250GB</span> é voltado para áreas rurais e possui uma vantagem especial: 
+                  os GB são <span className="text-white font-semibold">acumulativos</span> — se você não usar toda a franquia, ela soma ao próximo mês! 
+                  Ambos custam R$129,99/mês e dão direito a participar do programa de indicações.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-2" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Preciso pagar para me cadastrar?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  <span className="text-green-400 font-semibold">Não!</span> O cadastro é 100% gratuito. 
+                  Você só paga quando ativar seu plano de internet (R$129,99/mês). 
+                  O cadastro serve apenas para reservar seu lugar na rede e gerar seu link de indicação após a ativação.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-3" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Posso indicar pessoas sem ter um plano ativo?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  <span className="text-red-400 font-semibold">Não.</span> Para indicar pessoas e gerar comissões, você precisa estar com o plano ativo. 
+                  Isso porque seu <span className="text-white font-semibold">link de indicação só é gerado após a ativação</span> do plano. 
+                  Você pode se cadastrar gratuitamente, mas para começar a construir sua rede, precisa ativar o plano primeiro.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-4" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Como funcionam as comissões?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  Você ganha comissões em <span className="text-primary font-semibold">4 níveis</span>:
+                  <ul className="mt-2 space-y-1">
+                    <li>• <span className="text-white font-semibold">Nível 1 (indicação direta):</span> R$26,00 por pessoa</li>
+                    <li>• <span className="text-white font-semibold">Nível 2:</span> R$5,00 por pessoa</li>
+                    <li>• <span className="text-white font-semibold">Nível 3:</span> R$5,00 por pessoa</li>
+                    <li>• <span className="text-white font-semibold">Nível 4:</span> R$5,00 por pessoa</li>
+                  </ul>
+                  <p className="mt-2">As comissões são recorrentes — você ganha toda vez que seus indicados renovam o plano!</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-5" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Como faço para sacar minhas comissões?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  Os saques são feitos via <span className="text-primary font-semibold">PIX</span> para conta de mesma titularidade. 
+                  <ul className="mt-2 space-y-1">
+                    <li>• <span className="text-white font-semibold">Valor mínimo:</span> R$200,00</li>
+                    <li>• <span className="text-white font-semibold">Taxa:</span> 3% do valor</li>
+                    <li>• <span className="text-white font-semibold">Solicitação:</span> toda sexta-feira pelo escritório virtual</li>
+                    <li>• <span className="text-white font-semibold">Crédito:</span> até a terça-feira seguinte</li>
+                  </ul>
+                  <p className="mt-2">Você também pode usar o saldo para pagar a mensalidade de qualquer associado da sua rede!</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-6" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Como é feita a ativação do chip/eSIM?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  A ativação é <span className="text-green-400 font-semibold">100% remota</span> e feita em até 48 horas:
+                  <ul className="mt-2 space-y-1">
+                    <li>• <span className="text-white font-semibold">Chip físico:</span> Compre um chip Vivo em qualquer loja, envie foto do código de barras (com embalagem fechada) e aguarde a ativação.</li>
+                    <li>• <span className="text-white font-semibold">eSIM:</span> Digite *#06# no celular, envie o código EID (32 números) via WhatsApp e receba o QR Code para ativação.</li>
+                  </ul>
+                  <p className="mt-2 text-yellow-400">⚠️ Importante: Nunca insira o chip antes da ativação pela Y-TECH!</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-7" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Qual operadora a Y-TECH utiliza?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  Utilizamos a infraestrutura da <span className="text-primary font-semibold">operadora Vivo</span>, 
+                  garantindo a melhor cobertura 5G nacional. Você terá acesso à mesma qualidade de rede da Vivo, 
+                  com planos mais acessíveis e a oportunidade de ganhar indicando.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-8" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  Tem fidelidade ou multa para cancelar?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  <span className="text-green-400 font-semibold">Não!</span> Nossos planos são pré-pagos e <span className="text-white font-semibold">sem fidelidade</span>. 
+                  Você pode cancelar quando quiser, sem multas ou taxas. 
+                  Se não renovar, o plano simplesmente não é renovado no próximo mês.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-9" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  As redes sociais realmente não consomem dados?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  <span className="text-green-400 font-semibold">Sim!</span> As seguintes redes sociais são <span className="text-white font-semibold">ilimitadas</span> e não consomem sua franquia:
+                  <ul className="mt-2 space-y-1">
+                    <li>• WhatsApp, Telegram</li>
+                    <li>• Instagram, Facebook, TikTok</li>
+                    <li>• YouTube, Spotify</li>
+                  </ul>
+                  <p className="mt-2 text-gray-400">Obs: Streaming como Netflix, HBO e IPTV consomem a franquia normalmente.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="item-10" className="bg-white/5 border border-white/10 rounded-xl px-6">
+                <AccordionTrigger className="text-white hover:text-primary text-left">
+                  A Y-TECH é uma empresa confiável?
+                </AccordionTrigger>
+                <AccordionContent className="text-gray-300">
+                  <span className="text-green-400 font-semibold">Sim!</span> A Y-TECH é um produto da <span className="text-white font-semibold">Yrwen Technology</span>, 
+                  empresa com <span className="text-primary font-semibold">quase 8 anos de experiência</span> no mercado de telecomunicações. 
+                  Nosso CEO, Carlo Edvandro, foi o maior distribuidor da Chip Livre no Brasil e lidera o mercado de planos rurais há anos. 
+                  CNPJ: 30.266.458/0001-58 | Sede: Guarulhos, SP.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </div>
       </section>
