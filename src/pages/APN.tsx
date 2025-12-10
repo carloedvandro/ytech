@@ -403,6 +403,59 @@ const APN = () => {
         </div>
       </section>
 
+      {/* Video Presentation Section */}
+      <section className="relative py-20 px-4">
+        <div className="absolute inset-0 bg-black/85 z-0" />
+        <div className="container mx-auto relative z-10">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-primary/20 text-primary border-primary/30">
+              <Rocket className="w-4 h-4 mr-2 inline" />
+              Apresentação
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Conheça a Y-TECH</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Assista ao vídeo e entenda como funciona nossa oportunidade de negócio e sistema de internet 5G.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="relative rounded-2xl overflow-hidden border border-primary/30 shadow-2xl shadow-primary/20">
+              <video 
+                controls 
+                className="w-full aspect-video bg-black"
+                poster=""
+                preload="metadata"
+              >
+                <source 
+                  src="https://fkdaaxaybuynohmnatdv.supabase.co/storage/v1/object/public/videos//video1ytech.mp4" 
+                  type="video/mp4" 
+                />
+                Seu navegador não suporta vídeos HTML5.
+              </video>
+              
+              {/* Decorative elements */}
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl pointer-events-none" />
+            </div>
+
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full">
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                <span className="text-gray-300 text-sm">Internet 5G Vivo</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full">
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                <span className="text-gray-300 text-sm">Ganhos Recorrentes</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full">
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                <span className="text-gray-300 text-sm">Sem Fidelidade</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Comparison Section */}
       <section className="relative py-20 px-4">
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-primary/10 z-0" />
