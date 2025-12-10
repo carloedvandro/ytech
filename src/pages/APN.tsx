@@ -551,22 +551,32 @@ const APN = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-black/90 z-0" />
         <div className="container mx-auto relative z-10 text-center">
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            Pronto para Começar?
+            Pronto para Fazer Parte?
           </h2>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
             Junte-se a milhares de pessoas que já estão economizando e ganhando com a Y-TECH.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="text-lg px-10 py-6 bg-white text-black hover:bg-gray-100" asChild>
-              <Link to="/cadastro">
-                Criar Minha Conta Grátis
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 max-w-2xl mx-auto mb-8">
+            <h3 className="text-xl font-semibold text-white mb-4">Como se cadastrar?</h3>
+            <p className="text-gray-300 mb-6">
+              O cadastro na Y-TECH é feito através de um <span className="text-primary font-semibold">link de indicação</span>. 
+              Se você conhece alguém que já é parceiro Y-TECH, peça o link de indicação para essa pessoa.
+            </p>
+            <p className="text-gray-400 text-sm mb-6">
+              Ainda não conhece ninguém? Sem problemas! Você pode se cadastrar diretamente com a Y-TECH:
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" className="text-lg px-10 py-6 bg-white text-black hover:bg-gray-100" asChild>
+                <a href="https://ytech.yrwentechnology.com.br/cadastro?ref=ytech" target="_blank" rel="noopener noreferrer">
+                  Cadastrar com Y-TECH
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </a>
+              </Button>
+            </div>
           </div>
 
-          <p className="text-gray-500 text-sm mt-6">
+          <p className="text-gray-500 text-sm">
             Cadastro 100% gratuito. Sem compromisso.
           </p>
           <p className="text-gray-600 text-xs mt-4">
