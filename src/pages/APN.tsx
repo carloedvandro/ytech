@@ -818,12 +818,20 @@ const APN = () => {
                   Como é feita a ativação do chip/eSIM?
                 </AccordionTrigger>
                 <AccordionContent className="text-gray-300">
-                  A ativação é <span className="text-green-400 font-semibold">100% remota</span> e feita em até 48 horas:
+                  A ativação é <span className="text-green-400 font-semibold">100% remota, automatizada</span> e feita em até 48 horas:
                   <ul className="mt-2 space-y-1">
-                    <li>• <span className="text-white font-semibold">Chip físico:</span> Compre um chip Vivo em qualquer loja, envie foto do código de barras (com embalagem fechada) e aguarde a ativação.</li>
-                    <li>• <span className="text-white font-semibold">eSIM:</span> Digite *#06# no celular, envie o código EID (32 números) via WhatsApp e receba o QR Code para ativação.</li>
+                    <li>• <span className="text-white font-semibold">Chip físico:</span> Compre um chip Vivo em qualquer loja, tire foto do código de barras (com embalagem fechada).</li>
+                    <li>• <span className="text-white font-semibold">eSIM:</span> Digite *#06# no celular, tire print do código EID (32 números).</li>
                   </ul>
-                  <p className="mt-2 text-yellow-400">⚠️ Importante: Nunca insira o chip antes da ativação pela Y-TECH!</p>
+                  <div className="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/30">
+                    <p className="text-primary font-semibold mb-2">📤 Como enviar?</p>
+                    <p>Envie a foto ou print pelo <span className="text-white font-semibold">Escritório Virtual</span>, no menu lateral <span className="text-white font-semibold">"SIM CARD e eSIM"</span>.</p>
+                    <p className="mt-2 text-sm text-gray-400">
+                      ✨ <span className="text-primary">Sistema 100% automatizado com Inteligência Artificial</span> — 
+                      nossa IA lê os dados da imagem automaticamente e entrega o pedido de ativação diretamente para o setor responsável!
+                    </p>
+                  </div>
+                  <p className="mt-3 text-yellow-400">⚠️ Importante: Nunca insira o chip antes da ativação pela Y-TECH!</p>
                 </AccordionContent>
               </AccordionItem>
 
