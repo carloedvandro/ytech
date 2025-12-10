@@ -113,11 +113,16 @@ Deno.serve(async (req) => {
       if (profile?.whatsapp) {
         try {
           // Send WhatsApp notification with new password
-          const megaApiHost = Deno.env.get("MEGA_API_HOST");
+          let megaApiHost = Deno.env.get("MEGA_API_HOST");
           const megaInstanceKey = Deno.env.get("MEGA_INSTANCE_KEY");
           const megaApiKey = Deno.env.get("MEGA_API_KEY");
 
           if (megaApiHost && megaInstanceKey && megaApiKey) {
+            // Ensure URL has protocol
+            if (!megaApiHost.startsWith("http://") && !megaApiHost.startsWith("https://")) {
+              megaApiHost = `https://${megaApiHost}`;
+            }
+            
             const message = `🔐 *Y-Tech - Nova Senha*\n\nOlá ${profile.full_name}!\n\nSua senha foi redefinida pelo administrador.\n\n*Nova senha temporária:* ${tempPassword}\n\n⚠️ Por segurança, altere sua senha após o login.\n\nAcesse: https://ytech.yrwentechnology.com.br/login`;
 
             const response = await fetch(
