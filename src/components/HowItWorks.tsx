@@ -29,7 +29,7 @@ export const HowItWorks = () => {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
   
   return (
-    <section className="relative py-20 px-4 bg-black overflow-hidden">
+    <section className="relative py-20 px-4 bg-black/70 backdrop-blur-sm overflow-hidden">
       {/* Animated Shadow Overlay Background */}
       <EtheralShadow
         color="rgba(168, 85, 247, 0.2)"

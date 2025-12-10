@@ -30,7 +30,7 @@ export const HowToJoin = () => {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
   
   return (
-    <section id="como-participar" className="relative py-20 px-4 bg-black overflow-hidden">
+    <section id="como-participar" className="relative py-20 px-4 bg-black/70 backdrop-blur-sm overflow-hidden">
       {/* Animated Shadow Overlay Background */}
       <EtheralShadow
         color="rgba(0, 255, 255, 0.18)"
