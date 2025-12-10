@@ -69,14 +69,16 @@ const Users = () => {
 
       if (error) throw error;
 
-      // Buscar a data de renovação de cada usuário
+      // Buscar a data de renovação de cada usuário (pagamento com next_renewal_date mais futura)
       const usersWithRenewal = await Promise.all(
         profiles.map(async (profile) => {
           const { data: payment } = await supabase
             .from("payments")
             .select("next_renewal_date")
             .eq("user_id", profile.id)
-            .order("created_at", { ascending: false })
+            .eq("status", "completed")
+            .not("next_renewal_date", "is", null)
+            .order("next_renewal_date", { ascending: false })
             .limit(1)
             .maybeSingle();
 
@@ -141,7 +143,9 @@ const Users = () => {
         .from("payments")
         .select("next_renewal_date, subscription_id")
         .eq("user_id", selectedUser.id)
-        .order("created_at", { ascending: false })
+        .eq("status", "completed")
+        .not("next_renewal_date", "is", null)
+        .order("next_renewal_date", { ascending: false })
         .limit(1)
         .maybeSingle();
 
