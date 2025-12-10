@@ -288,16 +288,16 @@ const APN = () => {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto px-2">
             <Card className="bg-white/5 border-white/10">
-              <CardContent className="p-8">
-                <div className="grid md:grid-cols-2 gap-12">
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <div className="grid md:grid-cols-2 gap-8 md:gap-12">
                   {/* Controls */}
-                  <div className="space-y-8">
+                  <div className="space-y-6 sm:space-y-8">
                     <div>
-                      <div className="flex justify-between mb-4">
-                        <label className="text-white font-medium">Suas indicações diretas (Nível 1)</label>
-                        <span className="text-primary font-bold text-xl">{directReferrals[0]}</span>
+                      <div className="flex justify-between items-center mb-4 gap-2">
+                        <label className="text-white font-medium text-sm sm:text-base">Suas indicações diretas (Nível 1)</label>
+                        <span className="text-primary font-bold text-lg sm:text-xl flex-shrink-0">{directReferrals[0]}</span>
                       </div>
                       <Slider
                         value={directReferrals}
@@ -307,13 +307,13 @@ const APN = () => {
                         step={1}
                         className="w-full"
                       />
-                      <p className="text-gray-500 text-sm mt-2">Pessoas que você indica diretamente</p>
+                      <p className="text-gray-500 text-xs sm:text-sm mt-2">Pessoas que você indica diretamente</p>
                     </div>
 
                     <div>
-                      <div className="flex justify-between mb-4">
-                        <label className="text-white font-medium">Indicações por pessoa (Níveis 2-4)</label>
-                        <span className="text-primary font-bold text-xl">{indirectPerDirect[0]}</span>
+                      <div className="flex justify-between items-center mb-4 gap-2">
+                        <label className="text-white font-medium text-sm sm:text-base">Indicações por pessoa (Níveis 2-4)</label>
+                        <span className="text-primary font-bold text-lg sm:text-xl flex-shrink-0">{indirectPerDirect[0]}</span>
                       </div>
                       <Slider
                         value={indirectPerDirect}
@@ -323,31 +323,31 @@ const APN = () => {
                         step={1}
                         className="w-full"
                       />
-                      <p className="text-gray-500 text-sm mt-2">Média de indicações de cada pessoa</p>
+                      <p className="text-gray-500 text-xs sm:text-sm mt-2">Média de indicações de cada pessoa</p>
                     </div>
 
-                    <div className="bg-white/5 rounded-xl p-4 space-y-3">
-                      <div className="flex justify-between text-sm">
+                    <div className="bg-white/5 rounded-xl p-3 sm:p-4 space-y-3">
+                      <div className="flex justify-between text-xs sm:text-sm gap-2">
                         <span className="text-gray-400">Nível 1 ({directReferrals[0]} pessoas × R$26)</span>
-                        <span className="text-white">R${level1Earnings.toFixed(2)}</span>
+                        <span className="text-white flex-shrink-0">R${level1Earnings.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs sm:text-sm gap-2">
                         <span className="text-gray-400">Níveis 2-4 ({level2to4Referrals} pessoas × R$5)</span>
-                        <span className="text-white">R${level2to4Earnings.toFixed(2)}</span>
+                        <span className="text-white flex-shrink-0">R${level2to4Earnings.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Results */}
                   <div className="flex flex-col justify-center">
-                    <div className="text-center bg-gradient-to-br from-primary/20 to-green-500/20 rounded-2xl p-8 border border-primary/30">
-                      <p className="text-gray-400 mb-2">Ganho Mensal Estimado</p>
-                      <div className="text-5xl md:text-6xl font-bold text-white mb-4">
+                    <div className="text-center bg-gradient-to-br from-primary/20 to-green-500/20 rounded-2xl p-6 sm:p-8 border border-primary/30">
+                      <p className="text-gray-400 mb-2 text-sm sm:text-base">Ganho Mensal Estimado</p>
+                      <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4">
                         R${totalMonthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </div>
                       <div className="border-t border-white/20 pt-4 mt-4">
-                        <p className="text-gray-400 text-sm">Projeção Anual</p>
-                        <div className="text-2xl font-bold text-primary">
+                        <p className="text-gray-400 text-xs sm:text-sm">Projeção Anual</p>
+                        <div className="text-xl sm:text-2xl font-bold text-primary">
                           R${totalAnnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </div>
                       </div>
@@ -961,11 +961,11 @@ const APN = () => {
             <p className="text-gray-400 text-sm mb-6">
               Ainda não conhece ninguém? Sem problemas! Você pode se cadastrar diretamente com a Y-TECH:
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="text-lg px-10 py-6 bg-white text-black hover:bg-gray-100" asChild>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center px-2">
+              <Button size="lg" className="text-base sm:text-lg px-6 sm:px-10 py-6 bg-white text-black hover:bg-gray-100 whitespace-nowrap" asChild>
                 <a href="https://ytech.yrwentechnology.com.br/cadastro?ref=ytech" target="_blank" rel="noopener noreferrer">
                   Cadastrar com Y-TECH
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-5 w-5 flex-shrink-0" />
                 </a>
               </Button>
             </div>
