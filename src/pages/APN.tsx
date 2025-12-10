@@ -103,7 +103,7 @@ const APN = () => {
     { icon: Shield, title: "Sem Fidelidade", description: "Cancele quando quiser, sem multas ou taxas" },
     { icon: Clock, title: "Ativação Rápida", description: "eSIM ativado em até 48 horas úteis" },
     { icon: Smartphone, title: "Redes Sociais Ilimitadas", description: "WhatsApp, Instagram, Facebook, YouTube e mais sem gastar dados" },
-    { icon: Zap, title: "2 Opções de Plano", description: "160GB Smartphone ou 250GB Rural - ambos por R$129,99" },
+    { icon: Zap, title: "2 Opções de Plano", description: "160GB Smartphone ou 250GB Rural Acumulativo - ambos por R$129,99" },
   ];
 
   const opportunityBenefits = [
@@ -215,12 +215,16 @@ const APN = () => {
                   <p className="text-gray-400 text-sm mt-2">Ideal para uso urbano e residencial</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30">
+              <Card className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                  ACUMULATIVO
+                </div>
                 <CardContent className="p-6 text-center">
                   <Badge className="mb-3 bg-green-500/30 text-green-400 border-green-500/50">Área Rural</Badge>
                   <div className="text-4xl font-bold text-white mb-2">R$129,99<span className="text-lg text-gray-400">/mês</span></div>
                   <p className="text-gray-300 font-semibold">Plano Rural 250GB</p>
-                  <p className="text-gray-400 text-sm mt-2">GB acumulativos para o campo</p>
+                  <p className="text-green-400 text-sm mt-2 font-medium">GB acumulam se não usar!</p>
+                  <p className="text-gray-500 text-xs mt-1">Os dados não utilizados somam ao próximo mês</p>
                 </CardContent>
               </Card>
             </div>
