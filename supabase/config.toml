@@ -101,3 +101,6 @@ verify_jwt = true
 
 [functions.admin-cancel-asaas-payment]
 verify_jwt = true
+
+[functions.admin-reset-password]
+verify_jwt = true
