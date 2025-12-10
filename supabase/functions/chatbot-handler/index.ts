@@ -171,17 +171,21 @@ Não Conecta:
 
 **📲 ATIVAÇÃO (após pagamento confirmado):**
 
+⚠️ **IMPORTANTE:** O envio da foto/print deve ser feito pelo **Escritório Virtual**, no menu lateral **"SIM CARD e eSIM"**.
+✨ O sistema é **100% automatizado com Inteligência Artificial** — nossa IA lê os dados da imagem automaticamente e entrega o pedido de ativação diretamente para o setor responsável!
+
 CHIP FÍSICO:
 1. Cliente compra chip Vivo em loja
-2. Envia foto da etiqueta COM EMBALAGEM FECHADA
+2. Tira foto da etiqueta COM EMBALAGEM FECHADA
 3. Código de barras + 20 números visíveis
-4. Aguarda contato do setor de ativação
+4. Envia pelo Escritório Virtual em "SIM CARD e eSIM"
+5. IA processa automaticamente e encaminha para ativação
 
 eSIM (aparelhos compatíveis):
 1. Digite *#06# no teclado
 2. Tire print do código EID (32 números)
-3. Envie via WhatsApp
-4. Ativação em até 24h
+3. Envie pelo Escritório Virtual em "SIM CARD e eSIM"
+4. IA processa e ativação em até 24h
 
 **💳 PAGAMENTOS:**
 - Cartão de crédito, PIX, Boleto, Débito automático
