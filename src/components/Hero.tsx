@@ -3,7 +3,7 @@ import { Wifi, Zap, Shield, Building2 } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { VideoBackground } from "@/components/ui/video-background";
 
-const VIDEO_URL = "https://fkdaaxaybuynohmnatdv.supabase.co/storage/v1/object/public/site-assets/videooficialytech.mp4";
+const VIDEO_URL = "https://fkdaaxaybuynohmnatdv.supabase.co/storage/v1/object/public/videos//videooficialytech.mp4";
 
 interface HeroProps {
   referrerUsername?: string;
