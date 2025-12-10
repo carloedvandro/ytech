@@ -445,6 +445,179 @@ const APN = () => {
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <section className="relative py-20 px-4">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/90 to-primary/10 z-0" />
+        <div className="container mx-auto relative z-10">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-green-500/20 text-green-400 border-green-500/30">
+              <Users className="w-4 h-4 mr-2 inline" />
+              Depoimentos Reais
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Quem Usa, Recomenda</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Clientes e parceiros que estão conosco há anos e transformaram suas vidas com a Y-TECH.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {/* Testimonial 1 - Rural Client */}
+            <Card className="bg-white/5 border-green-500/30 hover:border-green-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-green-500/30 mb-3" />
+                <p className="text-gray-300 mb-6 leading-relaxed">
+                  "Moro em uma fazenda no interior de Minas Gerais e há <span className="text-green-400 font-semibold">7 anos</span> uso a internet da Y-TECH. 
+                  Antes, não tinha como acompanhar o mercado de gado nem fazer transferências bancárias. 
+                  Hoje, administro tudo pelo celular. <span className="text-white font-semibold">Mudou minha vida!</span>"
+                </p>
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-white font-semibold">José Antônio M.</p>
+                  <p className="text-green-400 text-sm">Produtor Rural • Araxá, MG</p>
+                  <p className="text-gray-500 text-xs mt-1">Cliente desde 2018</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Testimonial 2 - Rural Client */}
+            <Card className="bg-white/5 border-green-500/30 hover:border-green-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-green-500/30 mb-3" />
+                <p className="text-gray-300 mb-6 leading-relaxed">
+                  "No sítio da família, nenhuma operadora chegava. A Y-TECH foi a <span className="text-green-400 font-semibold">única solução</span> que funcionou. 
+                  Uso há <span className="text-green-400 font-semibold">quase 8 anos</span> e nunca me deixou na mão. 
+                  Meus filhos conseguem estudar online e eu monitoro a irrigação pelo app. <span className="text-white font-semibold">Recomendo demais!</span>"
+                </p>
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-white font-semibold">Maria das Graças S.</p>
+                  <p className="text-green-400 text-sm">Agricultora • Itapeva, SP</p>
+                  <p className="text-gray-500 text-xs mt-1">Cliente desde 2017</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Testimonial 3 - MLM Partner */}
+            <Card className="bg-white/5 border-primary/30 hover:border-primary/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-primary/30 mb-3" />
+                <p className="text-gray-300 mb-6 leading-relaxed">
+                  "Comecei indicando para a família na roça e hoje tenho uma <span className="text-primary font-semibold">rede com mais de 200 pessoas</span>. 
+                  A renda extra todo mês me ajudou a realizar o sonho de comprar meu carro. 
+                  <span className="text-white font-semibold">O produto se vende sozinho porque funciona de verdade!</span>"
+                </p>
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-white font-semibold">Carlos Eduardo F.</p>
+                  <p className="text-primary text-sm">Parceiro MMN • Ribeirão Preto, SP</p>
+                  <p className="text-gray-500 text-xs mt-1">Parceiro desde 2019</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Testimonial 4 - Rural Client */}
+            <Card className="bg-white/5 border-green-500/30 hover:border-green-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-green-500/30 mb-3" />
+                <p className="text-gray-300 mb-6 leading-relaxed">
+                  "Tenho uma pousada rural e a internet era o maior problema. 
+                  Com a Y-TECH, ofereço <span className="text-green-400 font-semibold">Wi-Fi de qualidade</span> para os hóspedes. 
+                  São <span className="text-green-400 font-semibold">6 anos</span> de parceria e minhas avaliações no Booking subiram muito!"
+                </p>
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-white font-semibold">Fernanda C.</p>
+                  <p className="text-green-400 text-sm">Proprietária de Pousada • Serra Negra, SP</p>
+                  <p className="text-gray-500 text-xs mt-1">Cliente desde 2019</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Testimonial 5 - Rural Community */}
+            <Card className="bg-white/5 border-green-500/30 hover:border-green-500/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-green-500/30 mb-3" />
+                <p className="text-gray-300 mb-6 leading-relaxed">
+                  "Sou presidente da associação de moradores e trouxemos a Y-TECH para nossa comunidade rural. 
+                  Hoje, <span className="text-green-400 font-semibold">mais de 50 famílias</span> têm internet pela primeira vez. 
+                  <span className="text-white font-semibold">A Y-TECH leva conexão onde ninguém mais chega!</span>"
+                </p>
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-white font-semibold">Antônio Roberto L.</p>
+                  <p className="text-green-400 text-sm">Líder Comunitário • Formosa, GO</p>
+                  <p className="text-gray-500 text-xs mt-1">Comunidade conectada desde 2020</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Testimonial 6 - MLM Success */}
+            <Card className="bg-white/5 border-primary/30 hover:border-primary/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  ))}
+                </div>
+                <Quote className="w-8 h-8 text-primary/30 mb-3" />
+                <p className="text-gray-300 mb-6 leading-relaxed">
+                  "Trabalhava em escritório e hoje <span className="text-primary font-semibold">vivo das comissões da Y-TECH</span>. 
+                  Minha rede cresceu porque o produto é sério e a empresa tem <span className="text-primary font-semibold">quase 8 anos de história</span>. 
+                  <span className="text-white font-semibold">Não é promessa, é realidade!</span>"
+                </p>
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-white font-semibold">Patrícia M.</p>
+                  <p className="text-primary text-sm">Top Líder MMN • São Paulo, SP</p>
+                  <p className="text-gray-500 text-xs mt-1">Parceira desde 2020</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Stats Banner */}
+          <div className="mt-12 bg-gradient-to-r from-green-500/20 to-primary/20 rounded-2xl p-8 border border-white/10 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div>
+                <div className="text-3xl md:text-4xl font-bold text-white">8</div>
+                <div className="text-gray-400 text-sm">Anos de Mercado</div>
+              </div>
+              <div>
+                <div className="text-3xl md:text-4xl font-bold text-green-400">5.000+</div>
+                <div className="text-gray-400 text-sm">Clientes Rurais</div>
+              </div>
+              <div>
+                <div className="text-3xl md:text-4xl font-bold text-primary">98%</div>
+                <div className="text-gray-400 text-sm">Satisfação</div>
+              </div>
+              <div>
+                <div className="text-3xl md:text-4xl font-bold text-yellow-400">4.9</div>
+                <div className="text-gray-400 text-sm">Nota Média</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CEO & Company Section */}
       <section className="relative py-20 px-4">
         <div className="absolute inset-0 bg-black/90 z-0" />
