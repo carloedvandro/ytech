@@ -53,7 +53,8 @@ const APN = () => {
         { text: "eSIM ativado remotamente", positive: true },
         { text: "Ativação em até 48 horas", positive: true },
         { text: "Ganhos em 4 níveis de indicação", positive: true },
-        { text: "160GB por R$129,99/mês", positive: true },
+        { text: "2 planos: 160GB ou 250GB Rural", positive: true },
+        { text: "Redes sociais ilimitadas", positive: true },
         { text: "Suporte via WhatsApp 24/7", positive: true },
       ]
     }
@@ -69,7 +70,7 @@ const APN = () => {
     {
       step: 2,
       title: "Ative seu Plano",
-      description: "Escolha o plano 160GB e receba seu eSIM em até 48h.",
+      description: "Escolha o plano 160GB ou Rural 250GB e receba seu eSIM em até 48h.",
       icon: Zap
     },
     {
@@ -97,6 +98,8 @@ const APN = () => {
     { icon: Globe, title: "Cobertura Nacional", description: "Conectado em todo o Brasil com a melhor tecnologia" },
     { icon: Shield, title: "Sem Fidelidade", description: "Cancele quando quiser, sem multas ou taxas" },
     { icon: Clock, title: "Ativação Rápida", description: "eSIM ativado em até 48 horas úteis" },
+    { icon: Smartphone, title: "Redes Sociais Ilimitadas", description: "WhatsApp, Instagram, Facebook, YouTube e mais sem gastar dados" },
+    { icon: Zap, title: "2 Opções de Plano", description: "160GB Smartphone ou 250GB Rural - ambos por R$129,99" },
   ];
 
   const opportunityBenefits = [
@@ -148,10 +151,14 @@ const APN = () => {
             </Button>
           </div>
 
-          <div className="mt-12 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+          <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold text-primary">160GB</div>
-              <div className="text-sm text-gray-400">de internet</div>
+              <div className="text-sm text-gray-400">Plano Smartphone</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl md:text-4xl font-bold text-green-400">250GB</div>
+              <div className="text-sm text-gray-400">Plano Rural</div>
             </div>
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold text-primary">R$26</div>
@@ -194,13 +201,28 @@ const APN = () => {
             ))}
           </div>
 
-          <div className="mt-12 text-center">
-            <Card className="bg-gradient-to-r from-primary/20 to-blue-500/20 border-primary/30 inline-block">
-              <CardContent className="p-8">
-                <div className="text-5xl font-bold text-white mb-2">R$129,99<span className="text-xl text-gray-400">/mês</span></div>
-                <p className="text-gray-300">Plano Smartphone 160GB</p>
-              </CardContent>
-            </Card>
+          <div className="mt-12">
+            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              <Card className="bg-gradient-to-r from-primary/20 to-blue-500/20 border-primary/50">
+                <CardContent className="p-6 text-center">
+                  <Badge className="mb-3 bg-primary/30 text-primary border-primary/50">Mais Popular</Badge>
+                  <div className="text-4xl font-bold text-white mb-2">R$129,99<span className="text-lg text-gray-400">/mês</span></div>
+                  <p className="text-gray-300 font-semibold">Plano Smartphone 160GB</p>
+                  <p className="text-gray-400 text-sm mt-2">Ideal para uso urbano e residencial</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30">
+                <CardContent className="p-6 text-center">
+                  <Badge className="mb-3 bg-green-500/30 text-green-400 border-green-500/50">Área Rural</Badge>
+                  <div className="text-4xl font-bold text-white mb-2">R$129,99<span className="text-lg text-gray-400">/mês</span></div>
+                  <p className="text-gray-300 font-semibold">Plano Rural 250GB</p>
+                  <p className="text-gray-400 text-sm mt-2">GB acumulativos para o campo</p>
+                </CardContent>
+              </Card>
+            </div>
+            <p className="text-center text-gray-500 text-sm mt-6">
+              Ambos os planos dão direito a participar do programa de indicações e ganhar comissões
+            </p>
           </div>
         </div>
       </section>
@@ -437,6 +459,9 @@ const APN = () => {
 
           <p className="text-gray-500 text-sm mt-6">
             Cadastro 100% gratuito. Sem compromisso.
+          </p>
+          <p className="text-gray-600 text-xs mt-4">
+            Utilizamos a infraestrutura de rede da operadora Vivo para garantir a melhor cobertura 5G nacional.
           </p>
         </div>
       </section>
