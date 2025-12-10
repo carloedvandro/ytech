@@ -90,6 +90,17 @@ Deno.serve(async (req) => {
 
     console.log(`Admin ${user.id} reset password for user ${userId}`);
 
+    // Log audit entry
+    await supabaseAdmin.from("admin_audit_logs").insert({
+      admin_id: user.id,
+      target_user_id: userId,
+      action_type: "password_reset",
+      action_details: {
+        send_whatsapp: sendWhatsApp,
+      },
+      user_agent: req.headers.get("user-agent"),
+    });
+
     // Get user's profile for WhatsApp notification
     let whatsappSent = false;
     if (sendWhatsApp) {

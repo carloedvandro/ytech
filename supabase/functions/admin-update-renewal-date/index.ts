@@ -442,6 +442,19 @@ serve(async (req) => {
       }
     }
 
+    // Log audit entry
+    await supabase.from("admin_audit_logs").insert({
+      admin_id: user.id,
+      target_user_id: userId,
+      action_type: "renewal_date_update",
+      action_details: {
+        new_renewal_date: newRenewalDate,
+        subscription_id: subscriptionId,
+        payment_id: latestPayment?.id,
+      },
+      user_agent: req.headers.get("user-agent"),
+    });
+
     return new Response(
       JSON.stringify({ 
         success: true, 
