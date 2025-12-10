@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { MarketingMaterialGenerator } from "@/components/marketing/MarketingMaterialGenerator";
 import { ExternalLink } from "lucide-react";
 import { AnimatedGradient } from "@/components/ui/animated-gradient-with-svg";
+import { AdminPasswordReset } from "@/components/AdminPasswordReset";
 
 const Dashboard = () => {
   const { profile, refreshProfile } = useAuth();
@@ -757,6 +758,14 @@ const Dashboard = () => {
             />
           </CardContent>
         </Card>
+
+        {/* Admin Password Reset - only show when impersonating */}
+        {isImpersonating && activeProfile && (
+          <AdminPasswordReset 
+            userId={activeProfile.id} 
+            userName={activeProfile.full_name} 
+          />
+        )}
 
         <Card className="relative overflow-hidden backdrop-blur-xl bg-background/50">
           <AnimatedGradient colors={["#f97316", "#fb923c", "#fdba74"]} speed={0.05} blur="medium" />
