@@ -96,4 +96,8 @@ verify_jwt = true
 [functions.check-and-create-renewal-payment]
 verify_jwt = false
 
+[functions.admin-update-username]
+verify_jwt = true
 
+[functions.admin-cancel-asaas-payment]
+verify_jwt = true

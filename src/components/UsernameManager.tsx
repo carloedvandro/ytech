@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Check, Edit2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UsernameManagerProps {
   userId: string;
@@ -14,11 +15,15 @@ interface UsernameManagerProps {
 
 export const UsernameManager = ({ userId, currentUsername, onUsernameUpdate }: UsernameManagerProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(!currentUsername);
   const [username, setUsername] = useState(currentUsername || "");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
+  
+  // Detectar se é impersonação (userId diferente do user logado)
+  const isImpersonating = user?.id !== userId;
 
   useEffect(() => {
     setUsername(currentUsername || "");
@@ -100,16 +105,29 @@ export const UsernameManager = ({ userId, currentUsername, onUsernameUpdate }: U
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ username })
-        .eq("id", userId);
+      if (isImpersonating) {
+        // Se está impersonando, usar edge function administrativa
+        const { data, error } = await supabase.functions.invoke("admin-update-username", {
+          body: { userId, username },
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+      } else {
+        // Update normal via RLS
+        const { error } = await supabase
+          .from("profiles")
+          .update({ username })
+          .eq("id", userId);
+
+        if (error) throw error;
+      }
 
       toast({
         title: "Username salvo!",
-        description: "Seu link de indicação foi atualizado",
+        description: isImpersonating 
+          ? "Username do usuário atualizado" 
+          : "Seu link de indicação foi atualizado",
       });
 
       onUsernameUpdate(username);
