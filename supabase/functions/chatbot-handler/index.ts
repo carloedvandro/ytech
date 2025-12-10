@@ -187,11 +187,18 @@ eSIM (aparelhos compatíveis):
 - Cartão de crédito, PIX, Boleto, Débito automático
 - Saldo do escritório virtual: pode usar para ativar ou renovar (qualquer associado)
 
-**📞 CONTATOS:**
+**📞 CONTATOS E LINKS IMPORTANTES:**
 - WhatsApp: +55 11 99486-9948
 - Escritório Virtual: ytech.yrwentechnology.com.br
 - Site Institucional: yrwentechnology.com.br
+- **Apresentação de Negócio (APN):** https://ytech.yrwentechnology.com.br/apn
 - Horário: Segunda a sexta, 8h às 18h
+
+**🏢 DADOS DA EMPRESA:**
+- Empresa: Yrwen Technology
+- CNPJ: 30.266.458/0001-58
+- CEO: Carlo Edvandro Camera Gonçalves
+- Endereço: Rua Imperial, 183 - Parque das Nações, Guarulhos - SP
 
 **🔗 CADASTRO SEM INDICADOR:**
 
