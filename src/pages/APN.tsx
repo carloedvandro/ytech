@@ -214,22 +214,22 @@ const APN = () => {
 
           <div className="mt-12">
             <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              <Card className="bg-gradient-to-r from-primary/20 to-blue-500/20 border-primary/50">
+              <Card className="bg-[#0a2a2a] border-primary/50">
                 <CardContent className="p-6 text-center">
-                  <Badge className="mb-3 bg-primary/30 text-primary border-primary/50">Mais Popular</Badge>
-                  <div className="text-4xl font-bold text-white mb-2">R$129,99<span className="text-lg text-gray-400">/mês</span></div>
-                  <p className="text-gray-300 font-semibold">Plano Smartphone 160GB</p>
+                  <Badge className="mb-3 bg-primary text-white border-primary">Mais Popular</Badge>
+                  <div className="text-4xl font-bold text-primary mb-2">R$129,99<span className="text-lg text-gray-400">/mês</span></div>
+                  <p className="text-white font-semibold">Plano Smartphone 160GB</p>
                   <p className="text-gray-400 text-sm mt-2">Ideal para uso urbano e residencial</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-500/30 relative overflow-hidden">
+              <Card className="bg-[#0a2a1a] border-green-500/50 relative overflow-hidden">
                 <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                   ACUMULATIVO
                 </div>
                 <CardContent className="p-6 text-center">
-                  <Badge className="mb-3 bg-green-500/30 text-green-400 border-green-500/50">Área Rural</Badge>
-                  <div className="text-4xl font-bold text-white mb-2">R$129,99<span className="text-lg text-gray-400">/mês</span></div>
-                  <p className="text-gray-300 font-semibold">Plano Rural 250GB</p>
+                  <Badge className="mb-3 bg-green-500 text-white border-green-500">Área Rural</Badge>
+                  <div className="text-4xl font-bold text-primary mb-2">R$129,99<span className="text-lg text-gray-400">/mês</span></div>
+                  <p className="text-white font-semibold">Plano Rural 250GB</p>
                   <p className="text-green-400 text-sm mt-2 font-medium">GB acumulam se não usar!</p>
                   <p className="text-gray-500 text-xs mt-1">Os dados não utilizados somam ao próximo mês</p>
                 </CardContent>
@@ -475,7 +475,7 @@ const APN = () => {
             {competitors.map((competitor, index) => (
               <Card 
                 key={index} 
-                className={`${index === 1 ? 'bg-gradient-to-br from-primary/20 to-blue-500/10 border-primary/50' : 'bg-white/5 border-white/10'}`}
+                className={`${index === 1 ? 'bg-[#0a2a2a] border-primary/50' : 'bg-[#1a1a1a] border-gray-700'}`}
               >
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-6">
