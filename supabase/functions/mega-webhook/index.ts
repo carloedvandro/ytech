@@ -20,23 +20,48 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     console.log('📩 Webhook recebido do Mega API:', JSON.stringify(payload, null, 2));
 
-    // Detectar mensagem RECEBIDA baseado na estrutura real do Mega API
-    const isIncomingMessage = payload.key?.fromMe === false && 
-                              payload.message && 
-                              !payload.isGroup &&
-                              payload.key?.remoteJid !== 'status@broadcast';
+    // Detectar mensagem RECEBIDA (Mega API pode enviar em formatos diferentes)
+    const getRemoteJid = (p: any): string | undefined =>
+      p?.key?.remoteJid || p?.data?.key?.remoteJid || p?.jid || p?.data?.jid;
+
+    const remoteJid = getRemoteJid(payload);
+    const fromMe = payload?.key?.fromMe ?? payload?.data?.key?.fromMe;
+
+    // Alguns eventos (ex: profilePicture_updated) não são mensagens e não devem acionar o chatbot
+    const hasMessagePayload = Boolean(
+      payload?.message ||
+      payload?.data?.message ||
+      payload?.messageData?.message ||
+      payload?.messageData
+    );
+
+    const isGroup = Boolean(payload?.isGroup ?? payload?.data?.isGroup ?? payload?.data?.key?.participant);
+    const isStatusBroadcast = remoteJid === 'status@broadcast';
+
+    const isIncomingMessage = fromMe === false && hasMessagePayload && !isGroup && !isStatusBroadcast;
 
     if (isIncomingMessage) {
-      const fromNumber = payload.key?.remoteJid?.replace('@s.whatsapp.net', '').replace('@lid', '') || '';
-      const senderName = payload.pushName || 'Cliente';
+      const fromNumber = (remoteJid || '')
+        .replace('@s.whatsapp.net', '')
+        .replace('@lid', '')
+        .replace('@g.us', '');
+
+      const senderName = payload.pushName || payload.data?.pushName || 'Cliente';
       
-      // Processar mensagens de texto
-      const messageText = payload.message?.conversation || 
-                         payload.message?.extendedTextMessage?.text || 
-                         '';
+      // Processar mensagens de texto (cobrindo variações do payload)
+      const msg = payload.message || payload.data?.message || payload.messageData?.message || payload.messageData;
+      const messageText =
+        msg?.conversation ||
+        msg?.extendedTextMessage?.text ||
+        msg?.textMessage?.text ||
+        msg?.message?.conversation ||
+        msg?.message?.extendedTextMessage?.text ||
+        payload?.text ||
+        payload?.data?.text ||
+        '';
       
       // Processar mensagens de áudio
-      const audioMessage = payload.message?.audioMessage;
+      const audioMessage = msg?.audioMessage || msg?.message?.audioMessage;
       
       if (messageText && fromNumber) {
         console.log(`📨 Mensagem de texto recebida de ${fromNumber} (${senderName}): "${messageText}"`);
