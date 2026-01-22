@@ -21,11 +21,23 @@ Deno.serve(async (req) => {
       throw new Error('WhatsApp e código são obrigatórios');
     }
 
+    // Normalizar número para busca (remover 55 se tiver)
+    let cleanNumber = whatsapp.replace(/\D/g, '');
+    let normalizedWhatsapp = cleanNumber;
+    
+    if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
+      normalizedWhatsapp = cleanNumber.substring(2);
+    } else if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) {
+      normalizedWhatsapp = cleanNumber.substring(2);
+    }
+    
+    console.log(`🔍 Buscando verificação para: ${normalizedWhatsapp} (original: ${whatsapp})`);
+
     // Buscar verificação mais recente e não verificada
     const { data: verification, error: fetchError } = await supabase
       .from('whatsapp_verifications')
       .select('*')
-      .eq('whatsapp', whatsapp)
+      .eq('whatsapp', normalizedWhatsapp)
       .eq('verified', false)
       .order('created_at', { ascending: false })
       .limit(1)
