@@ -726,6 +726,36 @@ export type Database = {
           },
         ]
       }
+      verification_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          verified: boolean | null
+          verified_at: string | null
+          whatsapp: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          verified?: boolean | null
+          verified_at?: string | null
+          whatsapp: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          verified?: boolean | null
+          verified_at?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       whatsapp_messages: {
         Row: {
           delivered_at: string | null
