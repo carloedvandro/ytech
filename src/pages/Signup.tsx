@@ -44,6 +44,8 @@ const Signup = () => {
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+  const [showEmailOption, setShowEmailOption] = useState(false);
 
   // Clean corrupted data on mount
   useEffect(() => {
@@ -203,6 +205,63 @@ const Signup = () => {
         setCodeSent(true);
         setLoading(false);
       }, 200);
+
+    } catch (error: any) {
+      console.error('❌ [SIGNUP] Erro inesperado:', error);
+      toast({
+        title: "Erro",
+        description: "Tente novamente",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
+  // Enviar código por Email (alternativa)
+  const sendEmailCode = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const email = watch("email");
+    if (!email) {
+      toast({
+        title: "Email não informado",
+        description: "Volte para a etapa 1 e informe seu email",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    console.log('📧 [SIGNUP] Enviando código por email para:', email);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("send-email-verification", {
+        body: { email, whatsapp, checkDuplicate: true },
+      });
+
+      if (error) {
+        console.error('❌ [SIGNUP] Erro email:', error);
+        toast({
+          title: "Erro ao enviar email",
+          description: error.message || "Tente novamente",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ [SIGNUP] Email enviado!');
+      
+      toast({
+        title: "Código enviado por email!",
+        description: `Verifique sua caixa de entrada: ${email}`,
+      });
+
+      setCodeExpiry(data.expiresAt);
+      setEmailCodeSent(true);
+      setCodeSent(true);
+      setLoading(false);
 
     } catch (error: any) {
       console.error('❌ [SIGNUP] Erro inesperado:', error);
@@ -578,21 +637,53 @@ const Signup = () => {
                       <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {codeSent ? '✅ Código enviado' : 'Digite seu WhatsApp com DDD'}
+                      {codeSent 
+                        ? emailCodeSent 
+                          ? '✅ Código enviado por email' 
+                          : '✅ Código enviado por WhatsApp'
+                        : 'Digite seu WhatsApp com DDD'}
                     </p>
                   </div>
 
+                  {/* Botões para enviar código - apenas quando não enviou ainda */}
                   <div style={{ display: (!codeSent && !whatsappVerified) ? 'block' : 'none' }}>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="w-full"
-                      onClick={handleSendCode}
-                      disabled={loading || !whatsapp || whatsapp.length !== 11}
-                    >
-                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Enviar Código de Verificação
-                    </Button>
+                    <div className="space-y-3">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="w-full"
+                        onClick={handleSendCode}
+                        disabled={loading || !whatsapp || whatsapp.length !== 11}
+                      >
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        📱 Enviar Código por WhatsApp
+                      </Button>
+                      
+                      {/* Link para mostrar opção de email */}
+                      {!showEmailOption && (
+                        <button
+                          type="button"
+                          className="w-full text-sm text-muted-foreground hover:text-primary underline"
+                          onClick={() => setShowEmailOption(true)}
+                        >
+                          Não recebeu? Enviar por email
+                        </button>
+                      )}
+                      
+                      {/* Botão de email */}
+                      {showEmailOption && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={sendEmailCode}
+                          disabled={loading || !whatsapp || whatsapp.length !== 11}
+                        >
+                          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          📧 Enviar Código por Email
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Seção de verificação - sempre no DOM, controla apenas visibilidade */}
@@ -601,6 +692,16 @@ const Signup = () => {
                     minHeight: '180px' 
                   }}>
                     <div className="space-y-4">
+                      {emailCodeSent && (
+                        <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                          <AlertDescription className="text-blue-800 dark:text-blue-200">
+                            📧 Código enviado para: <strong>{watch("email")}</strong>
+                            <br />
+                            <span className="text-xs">Verifique também a pasta de spam</span>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
                       <div className="space-y-2">
                         <Label htmlFor="verificationCode">Código de Verificação</Label>
                         <Input
@@ -624,6 +725,19 @@ const Signup = () => {
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Verificar Código
                       </Button>
+                      
+                      {/* Botão para tentar novamente */}
+                      <button
+                        type="button"
+                        className="w-full text-sm text-muted-foreground hover:text-primary underline"
+                        onClick={() => {
+                          setCodeSent(false);
+                          setEmailCodeSent(false);
+                          setShowEmailOption(true);
+                        }}
+                      >
+                        Reenviar código
+                      </button>
                     </div>
                   </div>
 
