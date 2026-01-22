@@ -40,12 +40,10 @@ const Signup = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [cpfValidated, setCpfValidated] = useState(false);
-  const [whatsappVerified, setWhatsappVerified] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [codeExpiry, setCodeExpiry] = useState<string>("");
   const [cepLoading, setCepLoading] = useState(false);
-  const [emailCodeSent, setEmailCodeSent] = useState(false);
-  const [showEmailOption, setShowEmailOption] = useState(false);
 
   // Clean corrupted data on mount
   useEffect(() => {
@@ -89,17 +87,6 @@ const Signup = () => {
   const cpf = watch("cpf");
   const cep = watch("cep");
 
-  // Detectar quando usuário volta do WhatsApp (apenas quando código foi enviado)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && codeSent && !whatsappVerified) {
-        console.log('👁️ Voltou do WhatsApp - mantendo estado do código');
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [codeSent, whatsappVerified]);
 
   // Validar CPF
   const validateCPF = async () => {
@@ -144,80 +131,7 @@ const Signup = () => {
     }
   };
 
-  // Handler seguro para envio de código
-  const handleSendCode = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('🖱️ [SIGNUP] Botão enviar código clicado');
-    
-    if (!whatsapp || whatsapp.length !== 11) {
-      console.log('❌ [SIGNUP] WhatsApp inválido:', whatsapp);
-      toast({
-        title: "WhatsApp inválido",
-        description: "Digite os 11 dígitos (DDD + número)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    console.log('⏳ [SIGNUP] setLoading(true)');
-    setLoading(true);
-    console.log('📤 [SIGNUP] Enviando código para:', whatsapp);
-    
-    try {
-      console.log('📞 [SIGNUP] Chamando edge function...');
-      const { data, error } = await supabase.functions.invoke("send-whatsapp-verification", {
-        body: { whatsapp, checkDuplicate: true },
-      });
-
-      console.log('📥 [SIGNUP] Resposta:', { data, error });
-
-      if (error) {
-        console.error('❌ [SIGNUP] Erro:', error);
-        
-        const errorMessage = error.context?.error || error.message || "";
-        let title = "Não foi possível enviar o código";
-        let description = "Tente novamente";
-        
-        if (errorMessage.toLowerCase().includes("já cadastrado") || 
-            errorMessage.toLowerCase().includes("já existe")) {
-          title = "WhatsApp já cadastrado";
-          description = `Número ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")} já registrado`;
-        }
-        
-        toast({ title, description, variant: "destructive" });
-        setLoading(false);
-        return;
-      }
-
-      console.log('✅ [SIGNUP] Sucesso!');
-      
-      toast({
-        title: "Código enviado!",
-        description: `WhatsApp ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")}`,
-      });
-
-      setCodeExpiry(data.expiresAt);
-      
-      // Esperar antes de mudar UI
-      setTimeout(() => {
-        console.log('🔓 [SIGNUP] Ativando campo de código');
-        setCodeSent(true);
-        setLoading(false);
-      }, 200);
-
-    } catch (error: any) {
-      console.error('❌ [SIGNUP] Erro inesperado:', error);
-      toast({
-        title: "Erro",
-        description: "Tente novamente",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
-  };
-
-  // Enviar código por Email (alternativa)
+  // Enviar código por Email
   const sendEmailCode = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -252,11 +166,18 @@ const Signup = () => {
 
       if (error) {
         console.error('❌ [SIGNUP] Erro email:', error);
-        toast({
-          title: "Erro ao enviar email",
-          description: error.message || "Tente novamente",
-          variant: "destructive",
-        });
+        
+        const errorMessage = error.message || "";
+        let title = "Erro ao enviar email";
+        let description = "Tente novamente";
+        
+        if (errorMessage.toLowerCase().includes("já cadastrado") || 
+            errorMessage.toLowerCase().includes("já existe")) {
+          title = "WhatsApp já cadastrado";
+          description = `Número ${whatsapp.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")} já registrado`;
+        }
+        
+        toast({ title, description, variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -269,7 +190,6 @@ const Signup = () => {
       });
 
       setCodeExpiry(data.expiresAt);
-      setEmailCodeSent(true);
       setCodeSent(true);
       setLoading(false);
 
@@ -284,24 +204,21 @@ const Signup = () => {
     }
   };
 
-  // Enviar código WhatsApp
-  const sendWhatsAppCode = handleSendCode;
-
-  // Verificar código WhatsApp
-  const verifyWhatsAppCode = async (code: string) => {
+  // Verificar código por Email
+  const verifyEmailCode = async (code: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("verify-whatsapp-code", {
-        body: { whatsapp, code },
+      const { data, error } = await supabase.functions.invoke("verify-email-code", {
+        body: { email: watch("email"), code },
       });
 
       if (error) throw error;
 
       if (data.verified) {
-        setWhatsappVerified(true);
+        setEmailVerified(true);
         toast({
-          title: "WhatsApp verificado!",
-          description: "Número confirmado com sucesso",
+          title: "Email verificado!",
+          description: "Código confirmado com sucesso",
         });
         setStep(3);
       } else {
@@ -381,10 +298,10 @@ const Signup = () => {
       return;
     }
 
-    if (!whatsappVerified) {
+    if (!emailVerified) {
       toast({
-        title: "Verifique o WhatsApp",
-        description: "Você precisa verificar o WhatsApp antes de continuar",
+        title: "Verifique o Email",
+        description: "Você precisa verificar o código enviado por email antes de continuar",
         variant: "destructive",
       });
       return;
@@ -540,7 +457,7 @@ const Signup = () => {
       ["cep", "rua", "numero", "bairro", "cidade", "estado"]
     );
     if (isValid) {
-      if (step === 2 && !whatsappVerified) return;
+      if (step === 2 && !emailVerified) return;
       if (step === 3 && !cpfValidated) return;
       setStep(step + 1);
     }
@@ -630,94 +547,63 @@ const Signup = () => {
               </>
             )}
 
-            {/* Etapa 2: WhatsApp */}
+            {/* Etapa 2: WhatsApp + Email Verificação */}
             {step === 2 && (
-              <div key="step-2-whatsapp" style={{ minHeight: '400px' }}>
+              <div key="step-2-verification" style={{ minHeight: '400px' }}>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="whatsapp">WhatsApp</Label>
+                    <Label htmlFor="whatsapp">WhatsApp (obrigatório)</Label>
                     <Input
                       id="whatsapp"
                       placeholder="11999999999"
                       maxLength={11}
                       {...register("whatsapp")}
-                      disabled={whatsappVerified || codeSent}
+                      disabled={emailVerified || codeSent}
                     />
                     {errors.whatsapp && (
                       <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
                       {codeSent 
-                        ? emailCodeSent 
-                          ? '✅ Código enviado por email' 
-                          : '✅ Código enviado por WhatsApp'
-                        : 'Digite seu WhatsApp com DDD'}
+                        ? '✅ Código de verificação enviado por email' 
+                        : 'Digite seu WhatsApp com DDD (será usado para comunicações futuras)'}
                     </p>
                   </div>
 
-                  {/* Botões para enviar código - apenas quando não enviou ainda */}
-                  <div style={{ display: (!codeSent && !whatsappVerified) ? 'block' : 'none' }}>
+                  {/* Botão para enviar código - apenas quando não enviou ainda */}
+                  <div style={{ display: (!codeSent && !emailVerified) ? 'block' : 'none' }}>
                     <div className="space-y-3">
+                      {(!whatsapp || whatsapp.length !== 11) && (
+                        <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 p-2 rounded-md">
+                          ⚠️ Preencha o número do WhatsApp acima para prosseguir. É obrigatório para o cadastro.
+                        </p>
+                      )}
                       <Button
                         type="button"
                         variant="secondary"
                         className="w-full"
-                        onClick={handleSendCode}
+                        onClick={sendEmailCode}
                         disabled={loading || !whatsapp || whatsapp.length !== 11}
                       >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        📱 Enviar Código por WhatsApp
+                        📧 Enviar Código de Verificação por Email
                       </Button>
-                      
-                      {/* Link para mostrar opção de email */}
-                      {!showEmailOption && (
-                        <button
-                          type="button"
-                          className="w-full text-sm text-muted-foreground hover:text-primary underline"
-                          onClick={() => setShowEmailOption(true)}
-                        >
-                          Não recebeu? Enviar por email
-                        </button>
-                      )}
-                      
-                      {/* Botão de email */}
-                      {showEmailOption && (
-                        <>
-                          {(!whatsapp || whatsapp.length !== 11) && (
-                            <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 p-2 rounded-md">
-                              ⚠️ Preencha o número do WhatsApp acima para prosseguir. É obrigatório para o cadastro.
-                            </p>
-                          )}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={sendEmailCode}
-                            disabled={loading}
-                          >
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            📧 Enviar Código por Email
-                          </Button>
-                        </>
-                      )}
                     </div>
                   </div>
 
                   {/* Seção de verificação - sempre no DOM, controla apenas visibilidade */}
                   <div style={{ 
-                    display: (codeSent && !whatsappVerified) ? 'block' : 'none',
+                    display: (codeSent && !emailVerified) ? 'block' : 'none',
                     minHeight: '180px' 
                   }}>
                     <div className="space-y-4">
-                      {emailCodeSent && (
-                        <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                          <AlertDescription className="text-blue-800 dark:text-blue-200">
-                            📧 Código enviado para: <strong>{watch("email")}</strong>
-                            <br />
-                            <span className="text-xs">Verifique também a pasta de spam</span>
-                          </AlertDescription>
-                        </Alert>
-                      )}
+                      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                        <AlertDescription className="text-blue-800 dark:text-blue-200">
+                          📧 Código enviado para: <strong>{watch("email")}</strong>
+                          <br />
+                          <span className="text-xs">Verifique também a pasta de spam</span>
+                        </AlertDescription>
+                      </Alert>
                       
                       <div className="space-y-2">
                         <Label htmlFor="verificationCode">Código de Verificação</Label>
@@ -736,7 +622,7 @@ const Signup = () => {
                         type="button"
                         variant="secondary"
                         className="w-full"
-                        onClick={() => verifyWhatsAppCode(watch("verificationCode"))}
+                        onClick={() => verifyEmailCode(watch("verificationCode"))}
                         disabled={loading || !watch("verificationCode") || watch("verificationCode").length !== 6}
                       >
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -749,8 +635,6 @@ const Signup = () => {
                         className="w-full text-sm text-muted-foreground hover:text-primary underline"
                         onClick={() => {
                           setCodeSent(false);
-                          setEmailCodeSent(false);
-                          setShowEmailOption(true);
                         }}
                       >
                         Reenviar código
@@ -759,10 +643,10 @@ const Signup = () => {
                   </div>
 
                   {/* Alert de sucesso - sempre no DOM, controla apenas visibilidade */}
-                  <div style={{ display: whatsappVerified ? 'block' : 'none' }}>
+                  <div style={{ display: emailVerified ? 'block' : 'none' }}>
                     <Alert>
                       <CheckCircle2 className="h-4 w-4" />
-                      <AlertDescription>WhatsApp verificado com sucesso!</AlertDescription>
+                      <AlertDescription>Email verificado com sucesso!</AlertDescription>
                     </Alert>
                   </div>
 
@@ -770,7 +654,7 @@ const Signup = () => {
                     <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
                       Voltar
                     </Button>
-                    <div style={{ display: whatsappVerified ? 'block' : 'none', flex: 1 }}>
+                    <div style={{ display: emailVerified ? 'block' : 'none', flex: 1 }}>
                       <Button type="button" className="w-full" onClick={nextStep}>
                         Continuar
                       </Button>
