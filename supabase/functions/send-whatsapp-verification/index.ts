@@ -91,15 +91,45 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Normalizar número ANTES de qualquer operação
+    let cleanNumber = whatsapp.replace(/\D/g, '');
+    
+    console.log(`📞 Número original: ${whatsapp}, após limpeza: ${cleanNumber} (${cleanNumber.length} dígitos)`);
+    
+    // Normalizar para formato padrão: DDD + número (11 dígitos, sem 55)
+    // Isso garante consistência no banco de dados
+    let normalizedWhatsapp = cleanNumber;
+    
+    if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
+      // 55 + DDD (2) + número (9) -> remover 55 para salvar
+      normalizedWhatsapp = cleanNumber.substring(2);
+      console.log(`✅ Removido 55 para normalização: ${normalizedWhatsapp}`);
+    } else if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) {
+      // 55 + DDD (2) + número antigo (8) -> remover 55
+      normalizedWhatsapp = cleanNumber.substring(2);
+      console.log(`⚠️ Número antigo, removido 55: ${normalizedWhatsapp}`);
+    } else if (cleanNumber.length === 11) {
+      // Já está no formato correto: DDD (2) + número (9)
+      normalizedWhatsapp = cleanNumber;
+      console.log(`✅ Número já normalizado: ${normalizedWhatsapp}`);
+    } else if (cleanNumber.length === 10) {
+      // Número antigo: DDD (2) + número (8)
+      normalizedWhatsapp = cleanNumber;
+      console.log(`⚠️ Número antigo (10 dígitos): ${normalizedWhatsapp}`);
+    } else {
+      console.log(`⚠️ Formato inesperado: ${cleanNumber} (${cleanNumber.length} dígitos)`);
+      normalizedWhatsapp = cleanNumber;
+    }
+
     // Gerar código de 6 dígitos
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
-    // Salvar código no banco
+    // Salvar código no banco com número NORMALIZADO (sem 55)
     const { error: insertError } = await supabase
       .from('whatsapp_verifications')
       .insert({
-        whatsapp,
+        whatsapp: normalizedWhatsapp,
         code,
         expires_at: expiresAt.toISOString(),
         verified: false,
@@ -111,13 +141,13 @@ Deno.serve(async (req) => {
       throw insertError;
     }
 
-    // Formatar número para o Mega API (adicionar 55 se não tiver)
-    let formattedNumber = whatsapp.replace(/\D/g, '');
-    
-    // Se o número tem 11 dígitos (DDD + número), adicionar código do país
-    if (formattedNumber.length === 11 && !formattedNumber.startsWith('55')) {
+    // Formatar número para o Mega API - adicionar 55 para envio
+    let formattedNumber = normalizedWhatsapp;
+    if (formattedNumber.length === 11 || formattedNumber.length === 10) {
       formattedNumber = '55' + formattedNumber;
     }
+    
+    console.log(`📱 Número para envio Mega API: ${formattedNumber}`);
 
     // Mensagem formatada
     const message = `🔐 *Y-TECH Internet 5G*\n\nSeu código de verificação:\n\n*${code}*\n\nVálido por 10 minutos.\n\n_Não compartilhe este código._`;
