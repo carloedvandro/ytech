@@ -222,6 +222,16 @@ const Signup = () => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Primeiro validar WhatsApp - é obrigatório para o cadastro
+    if (!whatsapp || whatsapp.length !== 11) {
+      toast({
+        title: "WhatsApp obrigatório",
+        description: "Digite o número do WhatsApp (11 dígitos) para prosseguir. É obrigatório para o cadastro.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const email = watch("email");
     if (!email) {
       toast({
@@ -672,16 +682,23 @@ const Signup = () => {
                       
                       {/* Botão de email */}
                       {showEmailOption && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
-                          onClick={sendEmailCode}
-                          disabled={loading || !whatsapp || whatsapp.length !== 11}
-                        >
-                          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          📧 Enviar Código por Email
-                        </Button>
+                        <>
+                          {(!whatsapp || whatsapp.length !== 11) && (
+                            <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950 p-2 rounded-md">
+                              ⚠️ Preencha o número do WhatsApp acima para prosseguir. É obrigatório para o cadastro.
+                            </p>
+                          )}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={sendEmailCode}
+                            disabled={loading}
+                          >
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            📧 Enviar Código por Email
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
