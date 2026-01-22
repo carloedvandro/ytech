@@ -145,10 +145,32 @@ Deno.serve(async (req) => {
     const megaData = await megaResponse.json();
     console.log('Resposta Mega API:', JSON.stringify(megaData, null, 2));
 
-    if (!megaResponse.ok) {
-      console.error('Erro do Mega API:', megaData);
-      throw new Error(`Erro ao enviar mensagem: ${megaData.error || 'Erro desconhecido'}`);
+    // Verificar erro HTTP ou erro na resposta
+    if (!megaResponse.ok || megaData.error === true) {
+      console.error('❌ Erro do Mega API:', megaData);
+      
+      // Salvar mensagem como falha
+      await supabase
+        .from('whatsapp_messages')
+        .insert({
+          whatsapp: formattedNumber,
+          message_type: 'verification_code',
+          message_content: message,
+          status: 'failed',
+          mega_message_id: null,
+          metadata: { 
+            code, 
+            expiresAt: expiresAt.toISOString(),
+            error: megaData.message || megaData.error || 'Erro desconhecido'
+          }
+        });
+      
+      throw new Error(`Erro ao enviar mensagem: ${megaData.message || megaData.error || 'Erro desconhecido'}`);
     }
+
+    // Extrair message ID corretamente (pode estar em messageData.key.id ou key.id)
+    const messageId = megaData.messageData?.key?.id || megaData.key?.id || null;
+    console.log('✅ Mensagem enviada com sucesso. ID:', messageId);
 
     // Salvar mensagem enviada
     await supabase
@@ -158,7 +180,7 @@ Deno.serve(async (req) => {
         message_type: 'verification_code',
         message_content: message,
         status: 'sent',
-        mega_message_id: megaData.key?.id || null,
+        mega_message_id: messageId,
         metadata: { code, expiresAt: expiresAt.toISOString() }
       });
 
