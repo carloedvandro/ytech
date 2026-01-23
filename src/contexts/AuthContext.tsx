@@ -33,6 +33,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // Workaround para loop de TOKEN_REFRESHED/SIGNED_OUT por concorrência de refresh token.
+  // Em alguns ambientes, o autoRefresh pode disparar múltiplos refreshes quase simultâneos,
+  // o que ativa a proteção de reuse detection e derruba a sessão.
+  // Aqui usamos um refresh controlado com lock.
+  const setupControlledRefresh = () => {
+    let refreshing = false;
+
+    const doRefresh = async () => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) return;
+
+        const res = await supabase.auth.refreshSession();
+        if (res.error) {
+          console.warn('⚠️ refreshSession error:', res.error.message);
+        }
+      } catch (e) {
+        console.warn('⚠️ refreshSession exception:', e);
+      } finally {
+        refreshing = false;
+      }
+    };
+
+    // 45 min: antes de 1h (padrão), com folga.
+    const intervalId = window.setInterval(() => {
+      // Evitar refresh quando a aba estiver em background
+      if (document.visibilityState !== 'visible') return;
+      void doRefresh();
+    }, 45 * 60 * 1000);
+
+    // Também tentar uma vez ao voltar para a aba
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void doRefresh();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  };
+
   const fetchProfile = async (userId: string, userEmail?: string) => {
     try {
       const { data, error } = await supabase
@@ -119,6 +165,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let initialCheckDone = false;
+    let cleanupRefresh: (() => void) | null = null;
+
+    // Parar o auto refresh interno e usar refresh controlado
+    try {
+      // stopAutoRefresh não é tipado em algumas versões, mas existe em runtime
+      (supabase.auth as any).stopAutoRefresh?.();
+      cleanupRefresh = setupControlledRefresh();
+      console.log('🛡️ AuthContext: auto-refresh desativado; refresh controlado ativado');
+    } catch (e) {
+      console.warn('⚠️ AuthContext: falha ao configurar refresh controlado', e);
+    }
 
     // Clean potentially corrupted auth state on mount
     try {
@@ -208,6 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      cleanupRefresh?.();
     };
   }, []);
 
