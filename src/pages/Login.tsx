@@ -57,13 +57,14 @@ const Login = () => {
 
     cleanCorruptedData();
 
-    // NÃO redirecionar se estamos no processo de 2FA ou se o modal 2FA está aberto
-    if (!authLoading && user && !hasRedirected.current && !isVerifying2FA.current && !show2FA) {
+    // NÃO redirecionar se estamos no processo de 2FA
+    // isVerifying2FA.current é setado como true durante todo o fluxo de 2FA
+    if (!authLoading && user && !hasRedirected.current && !isVerifying2FA.current) {
       hasRedirected.current = true;
       console.log('User already logged in, redirecting to dashboard');
       navigate('/dashboard', { replace: true });
     }
-  }, [user, authLoading, navigate, show2FA]);
+  }, [user, authLoading, navigate]);
 
   const {
     register,
