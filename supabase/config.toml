@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.admin-reset-password]
 verify_jwt = true
+
+[functions.register-whatsapp-verification]
+verify_jwt = false

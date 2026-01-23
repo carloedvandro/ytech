@@ -18,23 +18,21 @@ Deno.serve(async (req) => {
     const { whatsapp } = await req.json();
 
     if (!whatsapp) {
-      return new Response(JSON.stringify({ 
-        error: 'WhatsApp não fornecido' 
-      }), {
+      return new Response(JSON.stringify({ error: 'WhatsApp não fornecido' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Normalizar número (remover 55 se tiver, manter apenas DDD + número)
+    // Normalizar número
     let normalizedWhatsapp = whatsapp.replace(/\D/g, '');
     if (normalizedWhatsapp.length === 13 && normalizedWhatsapp.startsWith('55')) {
       normalizedWhatsapp = normalizedWhatsapp.substring(2);
     }
 
-    console.log(`📱 Registrando WhatsApp para verificação: ${normalizedWhatsapp}`);
+    console.log('Registrando WhatsApp para verificação:', normalizedWhatsapp);
 
-    // Verificar se o WhatsApp já está cadastrado
+    // Verificar se já está cadastrado
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id')
@@ -44,14 +42,14 @@ Deno.serve(async (req) => {
 
     if (existingProfile) {
       return new Response(JSON.stringify({ 
-        error: 'Este número de WhatsApp já está cadastrado. Use outro número.' 
+        error: 'Este WhatsApp já está cadastrado' 
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Verificar se há tentativas de fraude bloqueadas
+    // Verificar bloqueio por fraude
     const { data: fraudCheck } = await supabase
       .from('fraud_attempts')
       .select('*')
@@ -72,37 +70,31 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Limpar verificações antigas deste número
+    // Limpar verificações antigas
     await supabase
       .from('whatsapp_verifications')
       .delete()
       .eq('whatsapp', normalizedWhatsapp)
       .eq('verified', false);
 
-    // Criar registro de verificação pendente (sem código ainda)
-    // O código será gerado quando o usuário enviar "Oi" no WhatsApp
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+    // Criar verificação pendente (código vazio - será preenchido quando usuário enviar mensagem)
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     const { error: insertError } = await supabase
       .from('whatsapp_verifications')
       .insert({
         whatsapp: normalizedWhatsapp,
-        code: '', // Código vazio - será preenchido quando o usuário enviar "Oi"
+        code: '',
         expires_at: expiresAt.toISOString(),
         verified: false,
         attempts: 0
       });
 
-    if (insertError) {
-      console.error('Erro ao salvar verificação:', insertError);
-      throw insertError;
-    }
-
-    console.log(`✅ WhatsApp ${normalizedWhatsapp} registrado para verificação`);
+    if (insertError) throw insertError;
 
     return new Response(JSON.stringify({ 
       success: true,
-      message: 'WhatsApp registrado. Aguardando mensagem do usuário.',
+      message: 'Aguardando mensagem do usuário',
       expiresAt: expiresAt.toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -110,9 +102,8 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Erro:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(JSON.stringify({ 
-      error: errorMessage 
+      error: error instanceof Error ? error.message : 'Erro desconhecido' 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
