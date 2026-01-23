@@ -281,20 +281,31 @@ const Login = () => {
 
       console.log('✅ Login 2FA completo!');
 
-      // Atualizar last_login no profile
-      await supabase
+      // Atualizar last_login no profile (não aguardar)
+      supabase
         .from("profiles")
         .update({ last_login: new Date().toISOString() })
-        .eq("id", authData.user!.id);
+        .eq("id", authData.user!.id)
+        .then(() => console.log('📝 last_login atualizado'));
 
       toast({
         title: "Login realizado!",
         description: "Bem-vindo de volta!",
       });
 
-      isVerifying2FA.current = false;
-      hasRedirected.current = true;
-      window.location.href = '/dashboard';
+      // CRÍTICO: Limpar estados ANTES do redirect
+      setShow2FA(false);
+      setPendingAuth(null);
+      setVerificationCode("");
+      setVerifying(false);
+      
+      // Usar timeout pequeno para garantir que o toast aparece
+      // E navigate ao invés de window.location para manter o estado
+      setTimeout(() => {
+        isVerifying2FA.current = false;
+        hasRedirected.current = true;
+        navigate('/dashboard', { replace: true });
+      }, 100);
 
     } catch (error: any) {
       console.error('❌ Erro inesperado ao verificar/login:', error);
