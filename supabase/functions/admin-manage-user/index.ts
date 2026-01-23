@@ -192,6 +192,15 @@ serve(async (req) => {
 
         if (deleteError) throw deleteError;
 
+        // IMPORTANTE: Deletar também do auth.users para permitir novo cadastro com mesmo email
+        const { error: authDeleteError } = await supabaseClient.auth.admin.deleteUser(userId);
+        
+        if (authDeleteError) {
+          console.error('Erro ao deletar do auth.users:', authDeleteError);
+          // Não lançar erro aqui pois o profile já foi deletado
+          // Mas logar para investigação
+        }
+
         result = { success: true, message: 'User permanently deleted' };
         break;
       }
