@@ -66,7 +66,101 @@ Deno.serve(async (req) => {
       if (messageText && fromNumber) {
         console.log(`📨 Mensagem de texto recebida de ${fromNumber} (${senderName}): "${messageText}"`);
         
-        // Processar com chatbot IA (não aguardar resposta para não bloquear webhook)
+        // Normalizar número para busca (remover 55 se tiver)
+        let normalizedFromNumber = fromNumber;
+        if (fromNumber.length === 13 && fromNumber.startsWith('55')) {
+          normalizedFromNumber = fromNumber.substring(2);
+        }
+        
+        // Verificar se este número está aguardando verificação de cadastro
+        const { data: pendingVerification } = await supabase
+          .from('whatsapp_verifications')
+          .select('*')
+          .eq('whatsapp', normalizedFromNumber)
+          .eq('verified', false)
+          .eq('code', '') // Código vazio significa que está aguardando a mensagem do usuário
+          .gte('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingVerification) {
+          console.log(`🔐 Número ${normalizedFromNumber} está aguardando verificação de cadastro`);
+          
+          // Gerar código de 6 dígitos
+          const code = Math.floor(100000 + Math.random() * 900000).toString();
+          
+          // Atualizar registro com o código
+          const { error: updateError } = await supabase
+            .from('whatsapp_verifications')
+            .update({ code })
+            .eq('id', pendingVerification.id);
+
+          if (updateError) {
+            console.error('❌ Erro ao atualizar código:', updateError);
+          } else {
+            console.log(`✅ Código ${code} gerado para ${normalizedFromNumber}`);
+            
+            // Enviar código de verificação via WhatsApp
+            // IMPORTANTE: Responder na mesma conversa que o usuário iniciou
+            const megaApiHost = Deno.env.get('MEGA_API_HOST');
+            const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
+            const megaToken = Deno.env.get('MEGA_API_KEY');
+
+            if (megaApiHost && megaInstanceKey && megaToken) {
+              const message = `🔐 *Y-TECH Internet 5G*\n\nSeu código de verificação:\n\n*${code}*\n\nVálido por 10 minutos.\n\n_Não compartilhe este código._`;
+              
+              // Usar o remoteJid original para responder na mesma conversa
+              const replyTo = remoteJid || `${fromNumber}@s.whatsapp.net`;
+              
+              const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
+              
+              try {
+                const megaResponse = await fetch(megaUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${megaToken}`
+                  },
+                  body: JSON.stringify({
+                    messageData: {
+                      to: replyTo.replace('@s.whatsapp.net', '').replace('@lid', ''),
+                      text: message
+                    }
+                  })
+                });
+
+                const megaData = await megaResponse.json();
+                console.log('📤 Resposta do envio do código:', JSON.stringify(megaData, null, 2));
+
+                // Salvar mensagem enviada
+                await supabase
+                  .from('whatsapp_messages')
+                  .insert({
+                    whatsapp: fromNumber,
+                    message_type: 'verification_code_reply',
+                    message_content: message,
+                    status: 'sent',
+                    mega_message_id: megaData.key?.id || megaData.messageData?.key?.id || null,
+                    metadata: { code, replyTo, pendingVerificationId: pendingVerification.id }
+                  });
+
+              } catch (sendError) {
+                console.error('❌ Erro ao enviar código:', sendError);
+              }
+            }
+          }
+
+          return new Response(JSON.stringify({ 
+            success: true,
+            message: 'Código de verificação enviado' 
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        // Se não está aguardando verificação, processar com chatbot IA
         supabase.functions.invoke('chatbot-handler', {
           body: {
             whatsapp: fromNumber,

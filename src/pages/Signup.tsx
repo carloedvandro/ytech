@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, MessageCircle, Copy } from "lucide-react";
 
 // Schema de validação
 const signupSchema = z.object({
@@ -40,6 +40,17 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [cpfValidated, setCpfValidated] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  
+  // Estados para verificação WhatsApp
+  const [whatsappVerified, setWhatsappVerified] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [waitingForCode, setWaitingForCode] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Número do WhatsApp da YTech (configurar conforme necessário)
+  const YTECH_WHATSAPP = "5551997936950"; // Formato: 55 + DDD + número
+  const YTECH_WHATSAPP_DISPLAY = "(51) 99793-6950";
 
   // Clean corrupted data on mount
   useEffect(() => {
@@ -82,6 +93,160 @@ const Signup = () => {
   const whatsapp = watch("whatsapp");
   const cpf = watch("cpf");
   const cep = watch("cep");
+
+  // Limpar polling ao desmontar
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
+
+  // Função para iniciar a espera pelo código
+  const startWaitingForCode = async () => {
+    if (!whatsapp || whatsapp.length !== 11) {
+      toast({
+        title: "WhatsApp inválido",
+        description: "Digite os 11 dígitos do WhatsApp",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Registrar que este número está aguardando verificação
+      const { error } = await supabase.functions.invoke("register-whatsapp-verification", {
+        body: { whatsapp },
+      });
+
+      if (error) throw error;
+
+      setWaitingForCode(true);
+      toast({
+        title: "Aguardando sua mensagem!",
+        description: `Envie "Oi" para ${YTECH_WHATSAPP_DISPLAY}`,
+      });
+
+      // Iniciar polling para verificar se o código foi enviado
+      const interval = setInterval(async () => {
+        try {
+          const { data, error } = await supabase
+            .from('whatsapp_verifications')
+            .select('code, verified')
+            .eq('whatsapp', whatsapp)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (data && data.code && !data.verified) {
+            // Código foi gerado, parar polling
+            clearInterval(interval);
+            setPollingInterval(null);
+            toast({
+              title: "Código enviado!",
+              description: "Digite o código que você recebeu no WhatsApp",
+            });
+          }
+        } catch (err) {
+          console.error('Erro no polling:', err);
+        }
+      }, 3000); // Verificar a cada 3 segundos
+
+      setPollingInterval(interval);
+
+      // Timeout de 5 minutos
+      setTimeout(() => {
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+          setWaitingForCode(false);
+          toast({
+            title: "Tempo esgotado",
+            description: "Tente novamente",
+            variant: "destructive",
+          });
+        }
+      }, 5 * 60 * 1000);
+
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Função para verificar o código
+  const verifyCode = async () => {
+    if (verificationCode.length !== 6) {
+      toast({
+        title: "Código incompleto",
+        description: "Digite os 6 dígitos do código",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-whatsapp-code", {
+        body: { whatsapp, code: verificationCode },
+      });
+
+      if (error) throw error;
+
+      if (data.verified) {
+        setWhatsappVerified(true);
+        setWaitingForCode(false);
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        toast({
+          title: "WhatsApp verificado!",
+          description: "Você pode continuar o cadastro",
+        });
+      } else {
+        toast({
+          title: "Código inválido",
+          description: data.error || "Tente novamente",
+          variant: "destructive",
+        });
+        setVerificationCode("");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao verificar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Função para copiar número do WhatsApp
+  const copyWhatsappNumber = () => {
+    navigator.clipboard.writeText(YTECH_WHATSAPP);
+    toast({
+      title: "Número copiado!",
+      description: "Cole no WhatsApp e envie a mensagem",
+    });
+  };
+
+  // Mensagem específica para cadastro (chatbot vai identificar)
+  const SIGNUP_MESSAGE = "Oi, estou me cadastrando";
+
+  // Função para abrir WhatsApp diretamente
+  const openWhatsapp = () => {
+    const message = encodeURIComponent(SIGNUP_MESSAGE);
+    window.open(`https://wa.me/${YTECH_WHATSAPP}?text=${message}`, '_blank');
+  };
 
 
   // Validar CPF
@@ -337,6 +502,15 @@ const Signup = () => {
       ["cep", "rua", "numero", "bairro", "cidade", "estado"]
     );
     if (isValid) {
+      // Verificar se WhatsApp foi verificado na etapa 2
+      if (step === 2 && !whatsappVerified) {
+        toast({
+          title: "Verifique seu WhatsApp",
+          description: "Você precisa verificar seu WhatsApp antes de continuar",
+          variant: "destructive",
+        });
+        return;
+      }
       if (step === 3 && !cpfValidated) return;
       setStep(step + 1);
     }
@@ -426,38 +600,151 @@ const Signup = () => {
               </>
             )}
 
-            {/* Etapa 2: WhatsApp */}
+            {/* Etapa 2: WhatsApp com Verificação */}
             {step === 2 && (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp">WhatsApp (obrigatório)</Label>
-                  <Input
-                    id="whatsapp"
-                    placeholder="11999999999"
-                    maxLength={11}
-                    {...register("whatsapp")}
-                  />
-                  {errors.whatsapp && (
-                    <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Digite seu WhatsApp com DDD (será usado para comunicações futuras)
-                  </p>
-                </div>
+                {!whatsappVerified ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="whatsapp">WhatsApp (obrigatório)</Label>
+                      <Input
+                        id="whatsapp"
+                        placeholder="11999999999"
+                        maxLength={11}
+                        {...register("whatsapp")}
+                        disabled={waitingForCode}
+                      />
+                      {errors.whatsapp && (
+                        <p className="text-sm text-destructive">{errors.whatsapp.message}</p>
+                      )}
+                    </div>
 
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
-                    Voltar
-                  </Button>
-                  <Button 
-                    type="button" 
-                    className="w-full" 
-                    onClick={nextStep}
-                    disabled={!whatsapp || whatsapp.length !== 11}
-                  >
-                    Continuar
-                  </Button>
-                </div>
+                    {!waitingForCode ? (
+                      <>
+                        <Alert className="bg-primary/10 border-primary/30">
+                          <MessageCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            <strong>Para verificar seu WhatsApp:</strong>
+                            <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+                              <li>Clique em "Iniciar Verificação"</li>
+                              <li>Envie a mensagem indicada para nosso WhatsApp</li>
+                              <li>Você receberá um código de 6 dígitos</li>
+                            </ol>
+                          </AlertDescription>
+                        </Alert>
+
+                        <div className="flex gap-2">
+                          <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
+                            Voltar
+                          </Button>
+                          <Button 
+                            type="button" 
+                            className="w-full" 
+                            onClick={startWaitingForCode}
+                            disabled={loading || !whatsapp || whatsapp.length !== 11}
+                          >
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Iniciar Verificação
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Alert className="bg-green-500/10 border-green-500/30">
+                          <MessageCircle className="h-4 w-4 text-green-500" />
+                          <AlertDescription>
+                            <strong className="text-green-600">Envie a mensagem para:</strong>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-lg font-bold">{YTECH_WHATSAPP_DISPLAY}</span>
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={copyWhatsappNumber}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <p className="text-sm mt-2 p-2 bg-white/50 rounded border">
+                              <strong>Mensagem:</strong> "{SIGNUP_MESSAGE}"
+                            </p>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2 w-full bg-green-500 text-white hover:bg-green-600"
+                              onClick={openWhatsapp}
+                            >
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Abrir WhatsApp
+                            </Button>
+                          </AlertDescription>
+                        </Alert>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="verification-code">Código de Verificação</Label>
+                          <Input
+                            id="verification-code"
+                            placeholder="000000"
+                            maxLength={6}
+                            value={verificationCode}
+                            onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                            className="text-center text-xl tracking-widest"
+                          />
+                          <p className="text-xs text-muted-foreground text-center">
+                            Digite o código de 6 dígitos que você recebeu
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => {
+                              setWaitingForCode(false);
+                              setVerificationCode("");
+                              if (pollingInterval) {
+                                clearInterval(pollingInterval);
+                                setPollingInterval(null);
+                              }
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button 
+                            type="button" 
+                            className="w-full" 
+                            onClick={verifyCode}
+                            disabled={verifying || verificationCode.length !== 6}
+                          >
+                            {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Verificar Código
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Alert className="bg-green-500/10 border-green-500/30">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <AlertDescription>
+                        <strong className="text-green-600">WhatsApp verificado!</strong>
+                        <p className="text-sm mt-1">{whatsapp}</p>
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" className="w-full" onClick={() => setStep(1)}>
+                        Voltar
+                      </Button>
+                      <Button type="button" className="w-full" onClick={nextStep}>
+                        Continuar
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
