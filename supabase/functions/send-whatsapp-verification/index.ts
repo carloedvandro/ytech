@@ -113,9 +113,12 @@ Deno.serve(async (req) => {
       normalizedWhatsapp = cleanNumber;
       console.log(`✅ Número já normalizado: ${normalizedWhatsapp}`);
     } else if (cleanNumber.length === 10) {
-      // Número antigo: DDD (2) + número (8)
-      normalizedWhatsapp = cleanNumber;
-      console.log(`⚠️ Número antigo (10 dígitos): ${normalizedWhatsapp}`);
+      // Número antigo com 8 dígitos - PRECISA ADICIONAR O NONO DÍGITO (9)
+      // Formato: DDD (2) + número antigo (8) -> DDD (2) + 9 + número (8) = 11 dígitos
+      const ddd = cleanNumber.substring(0, 2);
+      const numberPart = cleanNumber.substring(2);
+      normalizedWhatsapp = ddd + '9' + numberPart;
+      console.log(`📱 Número antigo corrigido: ${cleanNumber} -> ${normalizedWhatsapp} (adicionado nono dígito)`);
     } else {
       console.log(`⚠️ Formato inesperado: ${cleanNumber} (${cleanNumber.length} dígitos)`);
       normalizedWhatsapp = cleanNumber;
