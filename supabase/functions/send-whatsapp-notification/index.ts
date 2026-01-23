@@ -175,10 +175,39 @@ Deno.serve(async (req) => {
 
     const { whatsapp, messageType, data, userId, to, message, imageUrl } = await req.json();
 
+    // Função auxiliar para normalizar número para formato internacional (55 + DDD + número)
+    const normalizePhoneNumber = (phone: string): string => {
+      let cleanNumber = phone.replace(/\D/g, '');
+      
+      // Se já tem 55 no início e tem 13 dígitos, está correto
+      if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
+        return cleanNumber;
+      }
+      
+      // Se tem 12 dígitos e começa com 55 (número antigo sem nono dígito)
+      if (cleanNumber.length === 12 && cleanNumber.startsWith('55')) {
+        return cleanNumber;
+      }
+      
+      // Se tem 11 dígitos (DDD + número com nono dígito), adicionar 55
+      if (cleanNumber.length === 11) {
+        return '55' + cleanNumber;
+      }
+      
+      // Se tem 10 dígitos (DDD + número antigo), adicionar 55
+      if (cleanNumber.length === 10) {
+        return '55' + cleanNumber;
+      }
+      
+      // Caso inesperado, retornar como está
+      console.warn(`⚠️ Formato de número inesperado: ${cleanNumber} (${cleanNumber.length} dígitos)`);
+      return cleanNumber;
+    };
+
     // Permitir envio direto de mensagem (sem template) OU uso de template
     if (message && to) {
       // Envio direto - usado pela ativação de SIM
-      const formattedNumber = to.replace(/\D/g, '');
+      const formattedNumber = normalizePhoneNumber(to);
       
       console.log(`📱 Enviando mensagem direta para ${formattedNumber}`);
 
@@ -387,7 +416,7 @@ Deno.serve(async (req) => {
     // Enviar para todos os destinatários
     const results = [];
     for (const recipientWhatsapp of recipients) {
-      const formattedNumber = recipientWhatsapp.replace(/\D/g, '');
+      const formattedNumber = normalizePhoneNumber(recipientWhatsapp);
 
       console.log(`📱 Enviando ${messageType} para ${formattedNumber}`);
 
