@@ -167,15 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialCheckDone = false;
     let cleanupRefresh: (() => void) | null = null;
 
-    // Parar o auto refresh interno e usar refresh controlado
-    try {
-      // stopAutoRefresh não é tipado em algumas versões, mas existe em runtime
-      (supabase.auth as any).stopAutoRefresh?.();
-      cleanupRefresh = setupControlledRefresh();
-      console.log('🛡️ AuthContext: auto-refresh desativado; refresh controlado ativado');
-    } catch (e) {
-      console.warn('⚠️ AuthContext: falha ao configurar refresh controlado', e);
-    }
+    // Configurar refresh controlado (autoRefreshToken está desabilitado no cliente)
+    cleanupRefresh = setupControlledRefresh();
+    console.log('🛡️ AuthContext: refresh controlado ativado');
 
     // Clean potentially corrupted auth state on mount
     try {
