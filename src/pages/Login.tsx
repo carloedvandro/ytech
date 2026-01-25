@@ -28,6 +28,8 @@ const Login = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [pendingAuth, setPendingAuth] = useState<{ email: string; password: string; whatsapp: string } | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('whatsapp');
   const hasRedirected = useRef(false);
   const isVerifying2FA = useRef(false);
 
@@ -328,7 +330,53 @@ const Login = () => {
     setVerificationCode("");
     setLoading(false);
     setVerifying(false);
+    setSendingEmail(false);
+    setVerificationMethod('whatsapp');
     isVerifying2FA.current = false;
+  };
+
+  const handleSendByEmail = async () => {
+    if (!pendingAuth) return;
+    
+    setSendingEmail(true);
+    
+    try {
+      console.log('📧 Enviando código por email...');
+      
+      const { error } = await supabase.functions.invoke("send-email-verification", {
+        body: { 
+          email: pendingAuth.email,
+          whatsapp: pendingAuth.whatsapp 
+        },
+      });
+
+      if (error) {
+        console.error('❌ Erro ao enviar email:', error);
+        toast({
+          title: "Erro ao enviar email",
+          description: "Não foi possível enviar o código por email",
+          variant: "destructive",
+        });
+        setSendingEmail(false);
+        return;
+      }
+
+      setVerificationMethod('email');
+      toast({
+        title: "Código enviado por email!",
+        description: `Verifique sua caixa de entrada: ${pendingAuth.email}`,
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar o código",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   return (
@@ -407,10 +455,10 @@ const Login = () => {
                   <div className="text-center space-y-2">
                     <h3 className="text-lg font-semibold text-white">Verificação 2FA</h3>
                     <p className="text-sm text-white/70">
-                      Digite o código de 6 dígitos
+                      Digite o código de 6 dígitos enviado {verificationMethod === 'email' ? 'por email' : 'via WhatsApp'}
                     </p>
                     <p className="text-sm text-primary font-medium">
-                      {pendingAuth?.whatsapp}
+                      {verificationMethod === 'email' ? pendingAuth?.email : pendingAuth?.whatsapp}
                     </p>
                   </div>
 
@@ -449,6 +497,40 @@ const Login = () => {
                         Verificar
                       </Button>
                     </div>
+
+                    {verificationMethod === 'whatsapp' && (
+                      <div className="pt-2 border-t border-primary/20">
+                        <p className="text-xs text-white/50 text-center mb-2">
+                          Não recebeu o código no WhatsApp?
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleSendByEmail}
+                          disabled={sendingEmail}
+                          className="w-full text-primary hover:text-primary hover:bg-primary/10 text-sm"
+                        >
+                          {sendingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          📧 Enviar código por Email
+                        </Button>
+                      </div>
+                    )}
+
+                    {verificationMethod === 'email' && (
+                      <div className="pt-2 border-t border-primary/20">
+                        <p className="text-xs text-white/50 text-center mb-2">
+                          Prefere receber pelo WhatsApp?
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setVerificationMethod('whatsapp')}
+                          className="w-full text-primary hover:text-primary hover:bg-primary/10 text-sm"
+                        >
+                          📱 Voltar para WhatsApp
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
