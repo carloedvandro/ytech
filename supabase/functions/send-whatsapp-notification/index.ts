@@ -175,6 +175,10 @@ Deno.serve(async (req) => {
 
     const { whatsapp, messageType, data, userId, to, message, imageUrl } = await req.json();
 
+    // DDDs que NÃO usam o nono dígito (regiões do Norte do Brasil)
+    // Amazonas: 92, 97 | Roraima: 95 | Amapá: 96 | Acre: 68
+    const dddsWithout9thDigit = ['92', '97', '95', '96', '68'];
+
     // Função auxiliar para normalizar número para formato internacional (55 + DDD + número)
     const normalizePhoneNumber = (phone: string): string => {
       let cleanNumber = phone.replace(/\D/g, '');
@@ -194,9 +198,21 @@ Deno.serve(async (req) => {
         return '55' + cleanNumber;
       }
       
-      // Se tem 10 dígitos (DDD + número antigo), adicionar 55
+      // Se tem 10 dígitos (DDD + número antigo)
       if (cleanNumber.length === 10) {
-        return '55' + cleanNumber;
+        const ddd = cleanNumber.substring(0, 2);
+        
+        // DDDs do Norte: NÃO adicionar o nono dígito
+        if (dddsWithout9thDigit.includes(ddd)) {
+          console.log(`📱 DDD ${ddd} não usa nono dígito, enviando com 55 + 10 dígitos`);
+          return '55' + cleanNumber;
+        }
+        
+        // Demais DDDs: adicionar o nono dígito
+        const numberPart = cleanNumber.substring(2);
+        const withNinthDigit = ddd + '9' + numberPart;
+        console.log(`📱 Adicionado nono dígito: ${cleanNumber} -> ${withNinthDigit}`);
+        return '55' + withNinthDigit;
       }
       
       // Caso inesperado, retornar como está

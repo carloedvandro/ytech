@@ -91,13 +91,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // DDDs que NÃO usam o nono dígito (regiões do Norte do Brasil)
+    // Amazonas: 92, 97 | Roraima: 95 | Amapá: 96 | Acre: 68
+    // Esses DDDs mantêm números com 8 dígitos
+    const dddsWithout9thDigit = ['92', '97', '95', '96', '68'];
+
     // Normalizar número ANTES de qualquer operação
     let cleanNumber = whatsapp.replace(/\D/g, '');
     
     console.log(`📞 Número original: ${whatsapp}, após limpeza: ${cleanNumber} (${cleanNumber.length} dígitos)`);
     
-    // Normalizar para formato padrão: DDD + número (11 dígitos, sem 55)
-    // Isso garante consistência no banco de dados
+    // Normalizar para formato padrão
     let normalizedWhatsapp = cleanNumber;
     
     if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
@@ -113,12 +117,19 @@ Deno.serve(async (req) => {
       normalizedWhatsapp = cleanNumber;
       console.log(`✅ Número já normalizado: ${normalizedWhatsapp}`);
     } else if (cleanNumber.length === 10) {
-      // Número antigo com 8 dígitos - PRECISA ADICIONAR O NONO DÍGITO (9)
-      // Formato: DDD (2) + número antigo (8) -> DDD (2) + 9 + número (8) = 11 dígitos
+      // Número com 10 dígitos - verificar se DDD exige nono dígito ou não
       const ddd = cleanNumber.substring(0, 2);
-      const numberPart = cleanNumber.substring(2);
-      normalizedWhatsapp = ddd + '9' + numberPart;
-      console.log(`📱 Número antigo corrigido: ${cleanNumber} -> ${normalizedWhatsapp} (adicionado nono dígito)`);
+      
+      if (dddsWithout9thDigit.includes(ddd)) {
+        // DDDs do Norte: NÃO adicionar o nono dígito
+        normalizedWhatsapp = cleanNumber;
+        console.log(`📱 DDD ${ddd} não usa nono dígito, mantendo: ${normalizedWhatsapp}`);
+      } else {
+        // Demais DDDs: adicionar o nono dígito (9)
+        const numberPart = cleanNumber.substring(2);
+        normalizedWhatsapp = ddd + '9' + numberPart;
+        console.log(`📱 Número antigo corrigido: ${cleanNumber} -> ${normalizedWhatsapp} (adicionado nono dígito)`);
+      }
     } else {
       console.log(`⚠️ Formato inesperado: ${cleanNumber} (${cleanNumber.length} dígitos)`);
       normalizedWhatsapp = cleanNumber;
