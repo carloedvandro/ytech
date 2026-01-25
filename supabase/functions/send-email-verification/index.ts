@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Y-TECH Internet 5G <noreply@yrwentechnology.com.br>',
+        from: 'Y-TECH Internet 5G <onboarding@resend.dev>',
         to: [email],
         subject: '🔐 Código de Verificação - Y-TECH Internet 5G',
         html: emailHtml,
