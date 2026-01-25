@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, AlertCircle, MessageCircle, Copy } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, MessageCircle, Copy, Mail } from "lucide-react";
 
 // Schema de validação
 const signupSchema = z.object({
@@ -47,6 +47,8 @@ const Signup = () => {
   const [waitingForCode, setWaitingForCode] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('whatsapp');
   
   // Número do WhatsApp de suporte da YTech
   const YTECH_WHATSAPP = "5511994869948"; // Formato: 55 + DDD + número
@@ -246,6 +248,60 @@ const Signup = () => {
   const openWhatsapp = () => {
     const message = encodeURIComponent(SIGNUP_MESSAGE);
     window.open(`https://wa.me/${YTECH_WHATSAPP}?text=${message}`, '_blank');
+  };
+
+  // Função para enviar código por email
+  const handleSendByEmail = async () => {
+    const email = watch("email");
+    
+    if (!email || !whatsapp) {
+      toast({
+        title: "Erro",
+        description: "Email e WhatsApp são obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setSendingEmail(true);
+    
+    try {
+      console.log('📧 Enviando código por email no cadastro...');
+      
+      const { error } = await supabase.functions.invoke("send-email-verification", {
+        body: { 
+          email,
+          whatsapp 
+        },
+      });
+
+      if (error) {
+        console.error('❌ Erro ao enviar email:', error);
+        toast({
+          title: "Erro ao enviar email",
+          description: "Não foi possível enviar o código por email",
+          variant: "destructive",
+        });
+        setSendingEmail(false);
+        return;
+      }
+
+      setVerificationMethod('email');
+      toast({
+        title: "Código enviado por email!",
+        description: `Verifique sua caixa de entrada: ${email}`,
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar o código",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
 
@@ -704,6 +760,7 @@ const Signup = () => {
                             onClick={() => {
                               setWaitingForCode(false);
                               setVerificationCode("");
+                              setVerificationMethod('whatsapp');
                               if (pollingInterval) {
                                 clearInterval(pollingInterval);
                                 setPollingInterval(null);
@@ -722,6 +779,47 @@ const Signup = () => {
                             Verificar Código
                           </Button>
                         </div>
+
+                        {/* Opção de enviar por email */}
+                        {verificationMethod === 'whatsapp' && (
+                          <div className="pt-3 border-t border-border">
+                            <p className="text-xs text-muted-foreground text-center mb-2">
+                              Não recebeu o código no WhatsApp?
+                            </p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={handleSendByEmail}
+                              disabled={sendingEmail}
+                              className="w-full text-primary hover:text-primary hover:bg-primary/10 text-sm"
+                            >
+                              {sendingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              <Mail className="mr-2 h-4 w-4" />
+                              Enviar código por Email
+                            </Button>
+                          </div>
+                        )}
+
+                        {verificationMethod === 'email' && (
+                          <div className="pt-3 border-t border-border">
+                            <Alert className="bg-blue-500/10 border-blue-500/30 mb-2">
+                              <Mail className="h-4 w-4 text-blue-500" />
+                              <AlertDescription>
+                                <strong className="text-blue-600">Código enviado por email!</strong>
+                                <p className="text-sm mt-1">Verifique sua caixa de entrada</p>
+                              </AlertDescription>
+                            </Alert>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => setVerificationMethod('whatsapp')}
+                              className="w-full text-muted-foreground hover:text-foreground text-sm"
+                            >
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Voltar para WhatsApp
+                            </Button>
+                          </div>
+                        )}
                       </>
                     )}
                   </>
