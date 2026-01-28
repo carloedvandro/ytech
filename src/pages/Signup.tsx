@@ -185,6 +185,8 @@ const Signup = () => {
 
   // Função para verificar o código
   const verifyCode = async () => {
+    const email = watch("email");
+
     if (verificationCode.length !== 6) {
       toast({
         title: "Código incompleto",
@@ -196,9 +198,12 @@ const Signup = () => {
 
     setVerifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("verify-whatsapp-code", {
-        body: { whatsapp, code: verificationCode },
-      });
+      const fnName = verificationMethod === 'email' ? 'verify-email-code' : 'verify-whatsapp-code';
+      const body = verificationMethod === 'email'
+        ? { email, whatsapp, code: verificationCode }
+        : { whatsapp, code: verificationCode };
+
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
 
       if (error) throw error;
 
