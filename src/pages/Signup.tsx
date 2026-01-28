@@ -205,9 +205,20 @@ const Signup = () => {
 
       const { data, error } = await supabase.functions.invoke(fnName, { body });
 
-      if (error) throw error;
+      // Quando a função retorna HTTP 400, o Supabase SDK preenche `error`.
+      // Ainda assim, a resposta pode vir em `data` com uma mensagem útil.
+      if (error) {
+        const errorMessage = (data as any)?.error || error.message || "Erro ao verificar código";
+        toast({
+          title: "Código inválido",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        setVerificationCode("");
+        return;
+      }
 
-      if (data.verified) {
+      if (data?.verified) {
         setWhatsappVerified(true);
         setWaitingForCode(false);
         if (pollingInterval) {
@@ -221,7 +232,7 @@ const Signup = () => {
       } else {
         toast({
           title: "Código inválido",
-          description: data.error || "Tente novamente",
+          description: (data as any)?.error || "Tente novamente",
           variant: "destructive",
         });
         setVerificationCode("");
