@@ -16,19 +16,22 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { email, code } = await req.json();
+    const { email, code, whatsapp } = await req.json();
 
     if (!email || !code) {
       throw new Error('Email e código são obrigatórios');
     }
 
-    console.log(`🔍 Verificando código para email: ${email}`);
+    // Usar o mesmo identificador que foi usado no envio
+    const identifier = whatsapp || email.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+
+    console.log(`🔍 Verificando código para: ${email} (identifier: ${identifier})`);
 
     // Buscar verificação mais recente e não verificada
     const { data: verification, error: fetchError } = await supabase
       .from('verification_codes')
       .select('*')
-      .eq('whatsapp', email.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20))
+      .eq('whatsapp', identifier)
       .eq('verified', false)
       .order('created_at', { ascending: false })
       .limit(1)
