@@ -232,9 +232,12 @@ const Login = () => {
       console.log('🔐 Verificando código 2FA...');
       console.log('📊 Estado atual - show2FA:', show2FA, 'pendingAuth:', !!pendingAuth);
       
-      const { data, error } = await supabase.functions.invoke("verify-whatsapp-code", {
-        body: { whatsapp: pendingAuth.whatsapp, code: verificationCode },
-      });
+      const fnName = verificationMethod === 'email' ? 'verify-email-code' : 'verify-whatsapp-code';
+      const body = verificationMethod === 'email'
+        ? { email: pendingAuth.email, whatsapp: pendingAuth.whatsapp, code: verificationCode }
+        : { whatsapp: pendingAuth.whatsapp, code: verificationCode };
+
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
 
       console.log('📥 Resposta da verificação:', { data, error });
 
