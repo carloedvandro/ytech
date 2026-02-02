@@ -48,7 +48,7 @@ const Signup = () => {
   const [verifying, setVerifying] = useState(false);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('whatsapp');
+  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('email');
   
   // Número do WhatsApp de suporte da YTech
   const YTECH_WHATSAPP = "5511994869948"; // Formato: 55 + DDD + número

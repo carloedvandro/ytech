@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+import { NOTIFICATION_CONFIG } from "../_shared/config.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -409,10 +409,21 @@ serve(async (req) => {
 
               console.log('✓ Renewal date extended to:', newRenewal.toISOString());
 
-              // Enviar WhatsApp de confirmação
+              // Enviar notificação de confirmação (email ou whatsapp conforme config)
               if (userProfile?.whatsapp) {
                 try {
-                  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp-notification`, {
+                  // Buscar email do usuário para notificação
+                  const { data: fullProfile } = await supabaseClient
+                    .from('profiles')
+                    .select('email')
+                    .eq('id', userId)
+                    .single();
+
+                  const notificationFn = NOTIFICATION_CONFIG.isEmail 
+                    ? 'send-email-notification' 
+                    : 'send-whatsapp-notification';
+                  
+                  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/${notificationFn}`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -420,6 +431,7 @@ serve(async (req) => {
                     },
                     body: JSON.stringify({
                       whatsapp: userProfile.whatsapp,
+                      email: fullProfile?.email,
                       messageType: 'renewal_early_payment',
                       data: {
                         nextRenewalDate: newRenewal.toISOString(),
@@ -429,7 +441,7 @@ serve(async (req) => {
                     }),
                   });
                 } catch (error) {
-                  console.error('WhatsApp notification error:', error);
+                  console.error('Notification error:', error);
                 }
               }
             }
@@ -534,7 +546,12 @@ serve(async (req) => {
                 const nextRenewalDate = new Date(adjustedNow);
                 nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
 
-                await supabaseClient.functions.invoke('send-whatsapp-notification', {
+                // Enviar notificação (email ou whatsapp conforme config)
+                const notificationFn = NOTIFICATION_CONFIG.isEmail 
+                  ? 'send-email-notification' 
+                  : 'send-whatsapp-notification';
+
+                await supabaseClient.functions.invoke(notificationFn, {
                   body: {
                     messageType: 'renewal_paid_with_balance',
                     userId,
@@ -546,7 +563,7 @@ serve(async (req) => {
                   }
                 });
 
-                console.log('📱 WhatsApp enviado: Renovação paga com saldo');
+                console.log(`📬 Notificação enviada via ${NOTIFICATION_CONFIG.channel}: Renovação paga com saldo`);
               }
 
               // 4. CASO 2: Saldo PARCIAL (R$ 5-124,99) - DESCONTO
@@ -566,8 +583,12 @@ serve(async (req) => {
 
                 discountApplied = maxDiscount;
 
-                // WhatsApp com desconto
-                await supabaseClient.functions.invoke('send-whatsapp-notification', {
+                // Notificação com desconto (email ou whatsapp conforme config)
+                const notificationFn = NOTIFICATION_CONFIG.isEmail 
+                  ? 'send-email-notification' 
+                  : 'send-whatsapp-notification';
+
+                await supabaseClient.functions.invoke(notificationFn, {
                   body: {
                     messageType: 'renewal_with_discount',
                     userId,
@@ -579,7 +600,7 @@ serve(async (req) => {
                   }
                 });
 
-                console.log('📱 WhatsApp enviado: Renovação com desconto');
+                console.log(`📬 Notificação enviada via ${NOTIFICATION_CONFIG.channel}: Renovação com desconto`);
               } else {
                 console.log('⚠️ Saldo insuficiente para desconto (< R$ 5,00)');
               }

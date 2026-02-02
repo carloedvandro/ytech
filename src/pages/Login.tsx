@@ -29,7 +29,7 @@ const Login = () => {
   const [verifying, setVerifying] = useState(false);
   const [pendingAuth, setPendingAuth] = useState<{ email: string; password: string; whatsapp: string } | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('whatsapp');
+  const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('email');
   const hasRedirected = useRef(false);
   const isVerifying2FA = useRef(false);
 
@@ -135,16 +135,20 @@ const Login = () => {
           return;
         }
 
-        console.log('📱 [LOGIN] Enviando código...');
+        console.log('📧 [LOGIN] Enviando código por EMAIL...');
 
-        const { error: sendError } = await supabase.functions.invoke("send-whatsapp-verification", {
-          body: { whatsapp: profile.whatsapp },
+        // Enviar código por email (padrão) ao invés de WhatsApp
+        const { error: sendError } = await supabase.functions.invoke("send-email-verification", {
+          body: { 
+            email: data.email,
+            whatsapp: profile.whatsapp 
+          },
         });
 
         if (sendError) {
           toast({
             title: "Erro ao enviar código",
-            description: "Não foi possível enviar o código",
+            description: "Não foi possível enviar o código por email",
             variant: "destructive",
           });
           setLoading(false);
@@ -153,7 +157,7 @@ const Login = () => {
           return;
         }
 
-        console.log('✅ [LOGIN] Código enviado');
+        console.log('✅ [LOGIN] Código enviado por email');
 
         // Usar setState de forma segura
         const authInfo = {
@@ -173,7 +177,7 @@ const Login = () => {
           
           toast({
             title: "Código enviado!",
-            description: "Verifique seu WhatsApp",
+            description: "Verifique seu email",
           });
           
           console.log('✅ [LOGIN] UI 2FA ativada com sucesso');
@@ -334,7 +338,7 @@ const Login = () => {
     setLoading(false);
     setVerifying(false);
     setSendingEmail(false);
-    setVerificationMethod('whatsapp');
+    setVerificationMethod('email');
     isVerifying2FA.current = false;
   };
 
