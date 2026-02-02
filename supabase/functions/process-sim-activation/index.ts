@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { ENV_CONFIG, logEnvironment } from '../_shared/config.ts';
+import { ENV_CONFIG, NOTIFICATION_CONFIG, logEnvironment, sendNotification } from '../_shared/config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +33,12 @@ Deno.serve(async (req) => {
       }
     );
 
+    // Criar client admin para notificações
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Get authenticated user
     const {
       data: { user },
@@ -50,7 +56,7 @@ Deno.serve(async (req) => {
     // Get user profile
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('full_name, whatsapp')
+      .select('full_name, whatsapp, email')
       .eq('id', user.id)
       .single();
 
@@ -81,83 +87,57 @@ Deno.serve(async (req) => {
 
     console.log('✅ Ativação salva:', activation.id);
 
-    // Prepare WhatsApp message
-    const adminWhatsapp = '5511970492228';
-    
-    let message = `🆕 *NOVA SOLICITAÇÃO DE ATIVAÇÃO*\n\n`;
-    message += `👤 *Cliente:* ${profile.full_name}\n`;
-    message += `📱 *WhatsApp:* ${profile.whatsapp}\n`;
-    message += `📋 *Tipo:* ${activationType === 'chip' ? 'Chip SIM' : 'eSIM'}\n\n`;
-    
-    if (activationType === 'chip') {
-      message += `📊 *Código de Barras:*\n${barcode}\n\n`;
-    } else {
-      message += `📱 *IMEI:* ${imei}\n`;
-      message += `🔑 *EID:* ${eid}\n`;
-      if (deviceType) {
-        message += `📲 *Dispositivo:* ${deviceType}\n`;
-      }
-      if (screenshotUrl) {
-        message += `📸 *Print:* ${screenshotUrl}\n`;
-      }
-      message += `\n`;
-    }
-    
-    message += `⏰ *Data:* ${new Date().toLocaleString('pt-BR')}\n`;
-    message += `🆔 *ID Ativação:* ${activation.id}`;
-
-    // Send WhatsApp notification (only if enabled in environment)
+    // Enviar notificação para admins usando o sistema configurado (email ou whatsapp)
     if (ENV_CONFIG.notifications.enabled) {
       try {
-        const megaApiHost = Deno.env.get('MEGA_API_HOST');
-        const megaInstanceKey = Deno.env.get('MEGA_INSTANCE_KEY');
+        // Preparar dados para o template
+        const notificationData = {
+          fullName: profile.full_name,
+          whatsapp: profile.whatsapp,
+          activationType,
+          barcode,
+          imei,
+          eid,
+          deviceType,
+          screenshotUrl,
+          activationId: activation.id,
+          date: new Date().toLocaleString('pt-BR')
+        };
+
+        // Notificar admins - o sistema escolhe automaticamente email ou whatsapp
+        // Para notificações de admin, usamos messageType específico
+        console.log(`📬 Enviando notificação para admins via ${NOTIFICATION_CONFIG.channel.toUpperCase()}`);
         
-        if (!megaApiHost || !megaInstanceKey) {
-          console.error('⚠️ MEGA_API_HOST ou MEGA_INSTANCE_KEY não configurado');
-          throw new Error('Credenciais Mega API não configuradas');
+        // Buscar admins
+        const { data: adminRoles } = await supabaseAdmin
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin');
+        
+        const adminIds = adminRoles?.map(r => r.user_id) || [];
+        
+        if (adminIds.length > 0) {
+          const { data: adminProfiles } = await supabaseAdmin
+            .from('profiles')
+            .select('email, whatsapp')
+            .in('id', adminIds);
+
+          // Enviar notificação para cada admin
+          for (const admin of adminProfiles || []) {
+            await sendNotification({
+              supabase: supabaseAdmin,
+              email: admin.email,
+              whatsapp: admin.whatsapp,
+              messageType: 'chip_activated_by_user', // Reutilizando template similar
+              data: notificationData
+            });
+          }
         }
-
-        // Format WhatsApp number (remove formatting)
-        const formattedNumber = adminWhatsapp.replace(/\D/g, '');
-        
-        // Use correct Mega API endpoint format (same as send-whatsapp-verification)
-        const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
-        
-        console.log('📤 Enviando WhatsApp para:', formattedNumber);
-        console.log('📤 URL Mega API:', megaUrl);
-        
-        const megaResponse = await fetch(megaUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ENV_CONFIG.mega.apiKey}`,
-          },
-          body: JSON.stringify({
-            messageData: {
-              to: formattedNumber,
-              text: message
-            }
-          }),
-        });
-
-        const megaResult = await megaResponse.json();
-        console.log('📤 WhatsApp enviado:', megaResult);
-
-        // Log WhatsApp message
-        await supabaseClient.from('whatsapp_messages').insert({
-          user_id: user.id,
-          whatsapp: adminWhatsapp,
-          message_type: 'sim_activation_notification',
-          message_content: message,
-          status: megaResponse.ok ? 'sent' : 'failed',
-          failed_reason: megaResponse.ok ? null : JSON.stringify(megaResult),
-          metadata: { activation_id: activation.id },
-        });
-      } catch (whatsappError) {
-        console.error('⚠️ Erro ao enviar WhatsApp (não bloqueia ativação):', whatsappError);
+      } catch (notificationError) {
+        console.error('⚠️ Erro ao enviar notificação (não bloqueia ativação):', notificationError);
       }
     } else {
-      console.log('📱 WhatsApp desabilitado no ambiente SANDBOX');
+      console.log('📭 Notificações desabilitadas no ambiente');
     }
 
     return new Response(
