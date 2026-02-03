@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
+import { NOTIFICATION_CONFIG } from '../_shared/config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -370,6 +371,19 @@ Deno.serve(async (req) => {
           last_message_at: new Date().toISOString(),
           metadata: { userName }
         });
+    }
+
+    // Se WhatsApp estiver desativado (canal=email), não tentar responder via WhatsApp.
+    if (NOTIFICATION_CONFIG.isEmail) {
+      console.log('📭 WhatsApp desativado (canal=email). Resposta do chatbot não será enviada via WhatsApp.');
+      return new Response(JSON.stringify({
+        success: true,
+        message: assistantMessage,
+        delivered: false,
+        reason: 'whatsapp_disabled'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // Enviar resposta via WhatsApp com delay humanizado

@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { decodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts';
+import { NOTIFICATION_CONFIG } from '../_shared/config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,10 +42,34 @@ Deno.serve(async (req) => {
     const isIncomingMessage = fromMe === false && hasMessagePayload && !isGroup && !isStatusBroadcast;
 
     if (isIncomingMessage) {
-      const fromNumber = (remoteJid || '')
-        .replace('@s.whatsapp.net', '')
-        .replace('@lid', '')
-        .replace('@g.us', '');
+      // IMPORTANT: WhatsApp pode enviar o identificador como número (@s.whatsapp.net)
+      // ou como LID (@lid). NUNCA remova o @lid, pois isso quebra o roteamento.
+      const parseSender = (jid: string) => {
+        const cleanJid = (jid || '').replace('@g.us', '');
+        if (!cleanJid) return { kind: 'unknown' as const, id: '' };
+        if (cleanJid.endsWith('@lid')) return { kind: 'lid' as const, id: cleanJid };
+        if (cleanJid.endsWith('@s.whatsapp.net')) {
+          return { kind: 'phone' as const, id: cleanJid.replace('@s.whatsapp.net', '') };
+        }
+        // fallback: pode vir sem sufixo em alguns eventos
+        return { kind: 'unknown' as const, id: cleanJid };
+      };
+
+      const sender = parseSender(remoteJid || '');
+      const fromId = sender.id;
+
+      // Se WhatsApp está desativado (canal = email), não processar chatbot/auto-respostas.
+      // Mantemos apenas o tracking de status (parte de baixo do arquivo).
+      if (NOTIFICATION_CONFIG.isEmail) {
+        console.log('📭 WhatsApp desativado (canal=email). Ignorando mensagem recebida via WhatsApp.');
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'WhatsApp desativado (canal=email)'
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
       const senderName = payload.pushName || payload.data?.pushName || 'Cliente';
       
@@ -63,26 +88,33 @@ Deno.serve(async (req) => {
       // Processar mensagens de áudio
       const audioMessage = msg?.audioMessage || msg?.message?.audioMessage;
       
-      if (messageText && fromNumber) {
-        console.log(`📨 Mensagem de texto recebida de ${fromNumber} (${senderName}): "${messageText}"`);
+      if (messageText && fromId) {
+        console.log(`📨 Mensagem de texto recebida de ${fromId} (${senderName}): "${messageText}"`);
         
-        // Normalizar número para busca (remover 55 se tiver)
-        let normalizedFromNumber = fromNumber;
-        if (fromNumber.length === 13 && fromNumber.startsWith('55')) {
-          normalizedFromNumber = fromNumber.substring(2);
+        // Normalizar número para busca (somente quando é telefone)
+        let normalizedFromNumber = fromId;
+        if (sender.kind === 'phone') {
+          if (fromId.length === 13 && fromId.startsWith('55')) {
+            normalizedFromNumber = fromId.substring(2);
+          }
         }
         
         // Verificar se este número está aguardando verificação de cadastro
-        const { data: pendingVerification } = await supabase
-          .from('whatsapp_verifications')
-          .select('*')
-          .eq('whatsapp', normalizedFromNumber)
-          .eq('verified', false)
-          .eq('code', '') // Código vazio significa que está aguardando a mensagem do usuário
-          .gte('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        // Verificação por WhatsApp depende de telefone (não funciona com @lid, pois não temos o número).
+        const pendingVerificationQuery = sender.kind === 'phone'
+          ? supabase
+              .from('whatsapp_verifications')
+              .select('*')
+              .eq('whatsapp', normalizedFromNumber)
+              .eq('verified', false)
+              .eq('code', '')
+              .gte('expires_at', new Date().toISOString())
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null as any });
+
+        const { data: pendingVerification } = await pendingVerificationQuery;
 
         if (pendingVerification) {
           console.log(`🔐 Número ${normalizedFromNumber} está aguardando verificação de cadastro`);
@@ -111,7 +143,10 @@ Deno.serve(async (req) => {
               const message = `🔐 *Y-TECH Internet 5G*\n\nSeu código de verificação:\n\n*${code}*\n\nVálido por 10 minutos.\n\n_Não compartilhe este código._`;
               
               // Usar o remoteJid original para responder na mesma conversa
-              const replyTo = remoteJid || `${fromNumber}@s.whatsapp.net`;
+              const replyTo = remoteJid || `${fromId}@s.whatsapp.net`;
+              const to = replyTo.endsWith('@s.whatsapp.net')
+                ? replyTo.replace('@s.whatsapp.net', '')
+                : replyTo; // mantém @lid
               
               const megaUrl = `https://${megaApiHost}/rest/sendMessage/${megaInstanceKey}/text`;
               
@@ -124,7 +159,7 @@ Deno.serve(async (req) => {
                   },
                   body: JSON.stringify({
                     messageData: {
-                      to: replyTo.replace('@s.whatsapp.net', '').replace('@lid', ''),
+                      to,
                       text: message
                     }
                   })
@@ -137,7 +172,7 @@ Deno.serve(async (req) => {
                 await supabase
                   .from('whatsapp_messages')
                   .insert({
-                    whatsapp: fromNumber,
+                    whatsapp: sender.kind === 'phone' ? fromId : replyTo,
                     message_type: 'verification_code_reply',
                     message_content: message,
                     status: 'sent',
@@ -163,7 +198,7 @@ Deno.serve(async (req) => {
         // Se não está aguardando verificação, processar com chatbot IA
         supabase.functions.invoke('chatbot-handler', {
           body: {
-            whatsapp: fromNumber,
+            whatsapp: sender.kind === 'phone' ? fromId : (remoteJid || fromId),
             message: messageText,
             userName: senderName
           }
@@ -180,14 +215,14 @@ Deno.serve(async (req) => {
         });
       }
       
-      if (audioMessage && fromNumber) {
-        console.log(`🎙️ Áudio recebido de ${fromNumber} (${senderName})`);
+      if (audioMessage && fromId) {
+        console.log(`🎙️ Áudio recebido de ${fromId} (${senderName})`);
         
         try {
           // Notificar usuário que está processando
           supabase.functions.invoke('send-whatsapp-notification', {
             body: {
-              whatsapp: fromNumber,
+              whatsapp: sender.kind === 'phone' ? fromId : (remoteJid || fromId),
               message: '🎤 Recebi seu áudio! Estou processando...'
             }
           }).catch(err => console.error('Erro ao enviar notificação:', err));
@@ -329,7 +364,7 @@ Deno.serve(async (req) => {
           // Processar com chatbot IA
           supabase.functions.invoke('chatbot-handler', {
             body: {
-              whatsapp: fromNumber,
+              whatsapp: sender.kind === 'phone' ? fromId : (remoteJid || fromId),
               message: transcribedText,
               userName: senderName
             }
@@ -352,7 +387,7 @@ Deno.serve(async (req) => {
           // Notificar usuário sobre o erro
           supabase.functions.invoke('send-whatsapp-notification', {
             body: {
-              whatsapp: fromNumber,
+              whatsapp: sender.kind === 'phone' ? fromId : (remoteJid || fromId),
               message: 'Desculpe, tive um problema ao processar seu áudio. 😔\n\nPor favor, tente enviar sua mensagem por texto!'
             }
           }).catch(err => console.error('Erro ao enviar notificação:', err));
