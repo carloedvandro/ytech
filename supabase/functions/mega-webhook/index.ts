@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 import { decodeBase64 } from 'https://deno.land/std@0.224.0/encoding/base64.ts';
-import { NOTIFICATION_CONFIG } from '../_shared/config.ts';
+import { getNotificationChannel } from '../_shared/config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,7 +60,8 @@ Deno.serve(async (req) => {
 
       // Se WhatsApp está desativado (canal = email), não processar chatbot/auto-respostas.
       // Mantemos apenas o tracking de status (parte de baixo do arquivo).
-      if (NOTIFICATION_CONFIG.isEmail) {
+      const notificationConfig = await getNotificationChannel();
+      if (notificationConfig.isEmail) {
         console.log('📭 WhatsApp desativado (canal=email). Ignorando mensagem recebida via WhatsApp.');
         return new Response(JSON.stringify({
           success: true,

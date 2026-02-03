@@ -1,16 +1,17 @@
 /**
  * Configuração de Ambientes e Canais de Notificação
  * 
+ * O canal de notificação agora é lido do BANCO DE DADOS (tabela system_settings)
+ * e pode ser alterado via painel do Admin sem precisar editar código.
+ * 
  * Para alternar entre SANDBOX e PRODUÇÃO:
  * 1. Mude a variável CURRENT_ENV abaixo
  * 2. Faça o deploy das funções
  * 
- * Para alternar entre WhatsApp e Email:
- * 1. Mude a variável NOTIFICATION_CHANNEL abaixo
- * 2. Faça o deploy das funções
- * 
  * IMPORTANTE: Sempre voltar para 'production' antes de fazer deploy final!
  */
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 
 type Environment = 'sandbox' | 'production';
 type NotificationChannel = 'whatsapp' | 'email';
@@ -18,10 +19,8 @@ type NotificationChannel = 'whatsapp' | 'email';
 // 🔧 ALTERE AQUI PARA TROCAR O AMBIENTE
 const CURRENT_ENV: Environment = 'production';
 
-// 📱 ALTERE AQUI PARA TROCAR O CANAL DE NOTIFICAÇÃO
-// 'whatsapp' = Envia via WhatsApp (Mega API)
-// 'email' = Envia via Email (Resend)
-const NOTIFICATION_CHANNEL: NotificationChannel = 'email';
+// Fallback caso não consiga ler do banco (default: email)
+const DEFAULT_NOTIFICATION_CHANNEL: NotificationChannel = 'email';
 
 // Configurações por ambiente
 const ENVIRONMENTS = {
@@ -32,12 +31,11 @@ const ENVIRONMENTS = {
       baseUrl: 'https://sandbox.asaas.com/api/v3',
     },
     mega: {
-      apiKey: Deno.env.get('MEGA_API_KEY') || '', // Mega não tem sandbox separado, usa a mesma chave
+      apiKey: Deno.env.get('MEGA_API_KEY') || '',
       baseUrl: 'https://api.megaapi.com.br',
     },
     notifications: {
-      enabled: false, // Não enviar notificações em sandbox
-      channel: NOTIFICATION_CHANNEL,
+      enabled: false,
     },
   },
   production: {
@@ -52,7 +50,6 @@ const ENVIRONMENTS = {
     },
     notifications: {
       enabled: true,
-      channel: NOTIFICATION_CHANNEL,
     },
   },
 } as const;
@@ -60,19 +57,74 @@ const ENVIRONMENTS = {
 // Configuração atual
 export const ENV_CONFIG = ENVIRONMENTS[CURRENT_ENV];
 
-// Canal de notificação atual (exportado para uso em outras funções)
+// Função para obter o canal de notificação do banco de dados
+export async function getNotificationChannel(): Promise<{
+  channel: NotificationChannel;
+  isWhatsApp: boolean;
+  isEmail: boolean;
+}> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn('⚠️ Credenciais Supabase não encontradas, usando fallback email');
+      return {
+        channel: DEFAULT_NOTIFICATION_CHANNEL,
+        isWhatsApp: false,
+        isEmail: true
+      };
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('notification_channel')
+      .eq('id', 'main')
+      .single();
+
+    if (error || !data) {
+      console.warn('⚠️ Erro ao buscar configuração do banco:', error?.message);
+      return {
+        channel: DEFAULT_NOTIFICATION_CHANNEL,
+        isWhatsApp: false,
+        isEmail: true
+      };
+    }
+
+    const channel = (data.notification_channel as NotificationChannel) || DEFAULT_NOTIFICATION_CHANNEL;
+    
+    return {
+      channel,
+      isWhatsApp: channel === 'whatsapp',
+      isEmail: channel === 'email'
+    };
+  } catch (err) {
+    console.error('❌ Erro ao obter canal de notificação:', err);
+    return {
+      channel: DEFAULT_NOTIFICATION_CHANNEL,
+      isWhatsApp: false,
+      isEmail: true
+    };
+  }
+}
+
+// DEPRECATED: Use getNotificationChannel() ao invés disso
+// Mantido para compatibilidade com código existente que usa de forma síncrona
+// NOTA: Este valor estático pode estar desatualizado. Prefira usar getNotificationChannel().
 export const NOTIFICATION_CONFIG = {
-  channel: NOTIFICATION_CHANNEL as NotificationChannel,
-  isWhatsApp: (NOTIFICATION_CHANNEL as NotificationChannel) === 'whatsapp',
-  isEmail: (NOTIFICATION_CHANNEL as NotificationChannel) === 'email',
+  channel: DEFAULT_NOTIFICATION_CHANNEL as NotificationChannel,
+  isWhatsApp: false,
+  isEmail: true,
 };
 
 // Helper para log do ambiente
 export function logEnvironment() {
   console.log(`🌍 Ambiente: ${ENV_CONFIG.name}`);
   console.log(`🔑 Asaas URL: ${ENV_CONFIG.asaas.baseUrl}`);
-  console.log(`📬 Canal de Notificação: ${NOTIFICATION_CHANNEL.toUpperCase()}`);
   console.log(`📱 Notificações: ${ENV_CONFIG.notifications.enabled ? 'ATIVADAS' : 'DESATIVADAS'}`);
+  console.log(`📬 Canal padrão: ${DEFAULT_NOTIFICATION_CHANNEL.toUpperCase()} (verificar banco para valor real)`);
 }
 
 // Validar configuração
@@ -101,7 +153,10 @@ export async function sendNotification(params: {
   }
   
   try {
-    if (NOTIFICATION_CONFIG.isEmail) {
+    // Buscar canal configurado do banco
+    const notificationConfig = await getNotificationChannel();
+    
+    if (notificationConfig.isEmail) {
       // Enviar por email
       console.log(`📧 Enviando notificação por EMAIL: ${messageType}`);
       

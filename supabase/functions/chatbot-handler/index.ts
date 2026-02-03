@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { NOTIFICATION_CONFIG } from '../_shared/config.ts';
+import { getNotificationChannel } from '../_shared/config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -374,7 +374,8 @@ Deno.serve(async (req) => {
     }
 
     // Se WhatsApp estiver desativado (canal=email), não tentar responder via WhatsApp.
-    if (NOTIFICATION_CONFIG.isEmail) {
+    const notificationConfig = await getNotificationChannel();
+    if (notificationConfig.isEmail) {
       console.log('📭 WhatsApp desativado (canal=email). Resposta do chatbot não será enviada via WhatsApp.');
       return new Response(JSON.stringify({
         success: true,
