@@ -179,9 +179,21 @@ Deno.serve(async (req) => {
     // Amazonas: 92, 97 | Roraima: 95 | Amapá: 96 | Acre: 68
     const dddsWithout9thDigit = ['92', '97', '95', '96', '68'];
 
-    // Função auxiliar para normalizar número para formato internacional (55 + DDD + número)
-    const normalizePhoneNumber = (phone: string): string => {
-      let cleanNumber = phone.replace(/\D/g, '');
+    // Função auxiliar para normalizar o destinatário.
+    // - Se for um JID do WhatsApp (ex: "1099...@lid"), NÃO altere (Mega API requer o sufixo)
+    // - Se for número, normaliza para 55 + DDD + número
+    const normalizeRecipient = (to: string): string => {
+      const trimmed = String(to || '').trim();
+
+      // IDs modernos do WhatsApp (LID) - manter exatamente como veio
+      if (trimmed.endsWith('@lid')) return trimmed;
+
+      // Alguns webhooks trazem @s.whatsapp.net — Mega API costuma aceitar apenas o número
+      if (trimmed.endsWith('@s.whatsapp.net')) {
+        return trimmed.replace('@s.whatsapp.net', '');
+      }
+
+      let cleanNumber = trimmed.replace(/\D/g, '');
       
       // Se já tem 55 no início e tem 13 dígitos, está correto
       if (cleanNumber.length === 13 && cleanNumber.startsWith('55')) {
@@ -223,7 +235,7 @@ Deno.serve(async (req) => {
     // Permitir envio direto de mensagem (sem template) OU uso de template
     if (message && to) {
       // Envio direto - usado pela ativação de SIM
-      const formattedNumber = normalizePhoneNumber(to);
+      const formattedNumber = normalizeRecipient(to);
       
       console.log(`📱 Enviando mensagem direta para ${formattedNumber}`);
 
@@ -432,7 +444,7 @@ Deno.serve(async (req) => {
     // Enviar para todos os destinatários
     const results = [];
     for (const recipientWhatsapp of recipients) {
-      const formattedNumber = normalizePhoneNumber(recipientWhatsapp);
+       const formattedNumber = normalizeRecipient(recipientWhatsapp);
 
       console.log(`📱 Enviando ${messageType} para ${formattedNumber}`);
 
