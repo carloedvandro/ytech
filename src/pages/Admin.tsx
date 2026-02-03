@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { UserX, UserCheck, Trash2, Archive, RotateCcw, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationChannelToggle } from "@/components/NotificationChannelToggle";
 
 interface User {
   id: string;
@@ -265,6 +266,9 @@ const Admin = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Canal de Notificações */}
+        <NotificationChannelToggle />
+
         {/* Ferramentas de Manutenção */}
         <Card>
           <CardHeader>

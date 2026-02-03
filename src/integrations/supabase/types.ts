@@ -418,6 +418,39 @@ export type Database = {
           },
         ]
       }
+      settings_audit_log: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          id: string
+          ip_address: string | null
+          new_value: string
+          old_value: string | null
+          setting_key: string
+          user_agent: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          id?: string
+          ip_address?: string | null
+          new_value: string
+          old_value?: string | null
+          setting_key: string
+          user_agent?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          ip_address?: string | null
+          new_value?: string
+          old_value?: string | null
+          setting_key?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       sim_activations: {
         Row: {
           activated_at: string | null
@@ -469,6 +502,27 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          id: string
+          notification_channel: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          notification_channel?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          notification_channel?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
