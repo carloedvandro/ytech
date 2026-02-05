@@ -28,7 +28,12 @@ Deno.serve(async (req) => {
       throw new Error('Email é obrigatório');
     }
 
-    console.log(`📧 Enviando código de verificação para: ${email}`);
+    // Email alternativo do admin para receber cópia do código
+    const ADMIN_EMAIL = 'yrwentechnology@gmail.com';
+    const ADMIN_BACKUP_EMAIL = 'shalonechamende072@gmail.com';
+    const isAdminLogin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+    console.log(`📧 Enviando código de verificação para: ${email}${isAdminLogin ? ' (ADMIN - enviará cópia para backup)' : ''}`);
 
     // Verificar duplicidade de WhatsApp se solicitado
     if (checkDuplicate && whatsapp) {
@@ -122,6 +127,9 @@ Deno.serve(async (req) => {
       </html>
     `;
 
+    // Lista de destinatários - se for admin, envia para ambos os emails
+    const recipients = isAdminLogin ? [email, ADMIN_BACKUP_EMAIL] : [email];
+
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -130,7 +138,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'Y-TECH Internet 5G <contato@ychat-ia.com.br>',
-        to: [email],
+        to: recipients,
         subject: '🔐 Código de Verificação - Y-TECH Internet 5G',
         html: emailHtml,
       }),
@@ -143,7 +151,7 @@ Deno.serve(async (req) => {
       throw new Error(`Erro ao enviar email: ${resendData.message || 'Erro desconhecido'}`);
     }
 
-    console.log('✅ Email enviado:', resendData);
+    console.log(`✅ Email enviado para: ${recipients.join(', ')}`, resendData);
 
     // Salvar log do email enviado
     await supabase
