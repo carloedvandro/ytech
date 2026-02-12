@@ -619,24 +619,50 @@ serve(async (req) => {
             console.log('✓ Payment completed');
           }
 
-          // Atualizar renovação (timezone São Paulo)
+          // Atualizar renovação - manter o dia fixo do ciclo
           if (payment.subscription_id) {
-            // Criar data atual no timezone de São Paulo
-            const now = new Date();
-            const saoPauloOffset = -3 * 60; // UTC-3 em minutos
-            const localOffset = now.getTimezoneOffset();
-            const adjustedNow = new Date(now.getTime() + (localOffset - saoPauloOffset) * 60000);
+            let nextRenewalDate: Date;
             
-            // Adicionar 30 dias
-            const nextRenewalDate = new Date(adjustedNow);
-            nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
-            nextRenewalDate.setHours(0, 0, 0, 0); // Meia-noite
+            // Se já existe uma data de renovação anterior, avançar 1 mês mantendo o mesmo dia
+            if (payment.next_renewal_date) {
+              const previousRenewal = new Date(payment.next_renewal_date);
+              const cycleDay = previousRenewal.getUTCDate(); // Dia fixo do ciclo (ex: 5, 7)
+              
+              // Avançar para o próximo mês a partir da data de renovação anterior
+              nextRenewalDate = new Date(previousRenewal);
+              nextRenewalDate.setUTCMonth(nextRenewalDate.getUTCMonth() + 1);
+              
+              // Garantir que o dia do ciclo seja mantido (ex: dia 31 em mês com 30 dias)
+              const maxDay = new Date(nextRenewalDate.getUTCFullYear(), nextRenewalDate.getUTCMonth() + 1, 0).getUTCDate();
+              nextRenewalDate.setUTCDate(Math.min(cycleDay, maxDay));
+              nextRenewalDate.setUTCHours(0, 0, 0, 0);
+              
+              // Se a próxima data ainda está no passado (pagou muito atrasado), avançar mais meses
+              const now = new Date();
+              while (nextRenewalDate < now) {
+                nextRenewalDate.setUTCMonth(nextRenewalDate.getUTCMonth() + 1);
+                const maxD = new Date(nextRenewalDate.getUTCFullYear(), nextRenewalDate.getUTCMonth() + 1, 0).getUTCDate();
+                nextRenewalDate.setUTCDate(Math.min(cycleDay, maxD));
+              }
+              
+              console.log(`✓ Ciclo mantido: dia ${cycleDay} de cada mês. Próximo: ${nextRenewalDate.toISOString()}`);
+            } else {
+              // Primeiro pagamento - usar data atual + 30 dias (São Paulo)
+              const now = new Date();
+              const saoPauloOffset = -3 * 60;
+              const localOffset = now.getTimezoneOffset();
+              const adjustedNow = new Date(now.getTime() + (localOffset - saoPauloOffset) * 60000);
+              nextRenewalDate = new Date(adjustedNow);
+              nextRenewalDate.setDate(nextRenewalDate.getDate() + 30);
+              nextRenewalDate.setHours(0, 0, 0, 0);
+              console.log('✓ Primeiro ciclo definido:', nextRenewalDate.toISOString());
+            }
             
             await supabaseClient
               .from('payments')
               .update({ next_renewal_date: nextRenewalDate.toISOString() })
               .eq('subscription_id', payment.subscription_id);
-            console.log('✓ Renewal updated to (SP):', nextRenewalDate.toISOString());
+            console.log('✓ Renewal updated to:', nextRenewalDate.toISOString());
           }
 
           // Ativar usuário
