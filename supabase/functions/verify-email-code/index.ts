@@ -27,12 +27,11 @@ Deno.serve(async (req) => {
 
     console.log(`🔍 Verificando código para: ${email} (identifier: ${identifier})`);
 
-    // Buscar verificação mais recente e não verificada
+    // Buscar verificação mais recente (verificada ou não) para este identificador
     const { data: verification, error: fetchError } = await supabase
       .from('verification_codes')
       .select('*')
       .eq('whatsapp', identifier)
-      .eq('verified', false)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
