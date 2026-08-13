@@ -285,7 +285,18 @@ const Login = () => {
 
       if (loginError) {
         console.error('❌ Erro no login final:', loginError);
-        throw loginError;
+        // Senha incorreta: voltar para a tela de senha (o código continua válido)
+        setShow2FA(false);
+        setPendingAuth(null);
+        setVerificationCode("");
+        setVerifying(false);
+        isVerifying2FA.current = false;
+        toast({
+          title: "Senha incorreta",
+          description: "Código validado, mas a senha está incorreta. Faça login novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       console.log('✅ Login 2FA completo!');
