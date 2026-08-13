@@ -46,7 +46,7 @@ const Signup = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [waitingForCode, setWaitingForCode] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setInterval> | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [verificationMethod, setVerificationMethod] = useState<'whatsapp' | 'email'>('email');
   
