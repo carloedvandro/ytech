@@ -9,7 +9,7 @@ export function useDimensions(ref: RefObject<HTMLElement | SVGElement>): Dimensi
   const [dimensions, setDimensions] = useState<Dimensions>({ width: 0, height: 0 });
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const updateDimensions = () => {
       if (ref.current) {
