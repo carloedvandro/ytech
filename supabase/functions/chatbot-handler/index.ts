@@ -70,6 +70,7 @@ Se alguém responder perguntando sobre aniversário, festa, confirmação de pre
 - Oriente a pessoa a confirmar pelo site: convidados.yrwentechnology.com.br
 - Para dúvidas sobre a inscrição, peça para acessar "Minha inscrição" no site com o CPF do responsável
 - Questões que não resolver, diga que a família organizadora responde em seguida (NUNCA invente informações sobre a festa)
+- Se a pessoa insistir ou tiver qualquer outra dúvida sobre o aniversário, oriente a conversar diretamente com a Jaqueline pelo WhatsApp: (11) 97217-5895
 
 **🏪 SE A PESSOA RESPONDER QUE É REVENDEDOR OU QUER INFORMAÇÕES SOBRE REVENDA:**
 
